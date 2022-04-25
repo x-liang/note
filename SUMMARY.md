@@ -13,6 +13,8 @@
 * [Spring 学习笔记](spring/README.md)
 * [Spring Cloud 学习笔记](spring cloud/README.md)
 * [Mybatis 学习笔记](mybatis/README.md)
+    * [Mybatis Hello World](mybatis/1.Hello World.md)
+    * [Mybatis 配置文件 TODO](mybatis/2.Global Config.md)
 * [数据库](database/README.md)
     * [Mysql](database/mysql.md)
 * [中间件](middleware/README.md)

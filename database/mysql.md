@@ -968,7 +968,7 @@ create unique index idx_user_phone_name on tb_user(phone,name);
 
 ### **插入数据** 
 
-一次性插入多条记录，可以从一下三个方面进行优化
+一次性插入多条记录，可以从以下三个方面进行优化
 
 - 批量插入数据
 

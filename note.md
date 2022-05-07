@@ -4341,6 +4341,7 @@ auto-aof-rewrite-min-size 64mb意为当文件至少要达到64mb才会触发制�
 缺点
 
 1、AOF 文件比 RDB 文件大，且恢复速度慢。
+
 2、数据集大的时候，比 rdb 启动效率低。
 
 #### RDB与AOF对比

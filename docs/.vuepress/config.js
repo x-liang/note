@@ -7,11 +7,10 @@ module.exports = {
     base: "/",
 
     theme: defaultTheme({
-        // 在这里进行配置
+        // 配置上边的导航栏
         navbar: [
             {
                 text: 'Java 笔记',
-
                 children: [
                     {
                         text: 'Java IO',
@@ -87,9 +86,39 @@ module.exports = {
                         ]
                     }
                 ]
+            },
+            {
+                text:'自我修养',
+                children:[
+                    {
+                        text:'设计模式',
+                        children:[
+                            {
+                                text:'代理模式',
+                                link:'/middleware/tomcat.md'
+                            }
+                            
+                        ]
+                    }
+                ]
+            },
+            {
+                text:'中间件',
+                children:[
+                    {
+                        text:'Tomcat 专题',
+                        children:[
+                            {
+                                text:'Tomcat专题',
+                                link:'/middleware/tomcat.md'
+                            }
+                            
+                        ]
+                    }
+                ]
             }
-
         ],
+        // 配置左侧边栏
         sidebar: {
             '/java/': [
                 {
@@ -111,12 +140,11 @@ module.exports = {
                     text: 'JVM概览',
                     collapsible: true,
                     children:[
-                        '/java/java-jvm/JVM概览.md'
+                        '/java/java-jvm/JVM概览.md',
+                        '/java/java-jvm/JVM类加载器.md'
                     ]
                 }
-
             ],
-           
             '/spring/':[
                 {
                     text: 'Spring Framework',
@@ -126,6 +154,16 @@ module.exports = {
                         'test02'
                     ]
                 }
+            ],
+            '/middleware/':[
+                {
+                    text: 'Tomcat 专题',
+                    collapsible: true,
+                    children:[
+                        '/middleware/tomcat.md'
+                    ]
+                }
+
             ]
         },
         sidebarDepth: 2

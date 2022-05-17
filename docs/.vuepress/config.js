@@ -88,6 +88,27 @@ module.exports = {
                 ]
             },
             {
+                text: 'Spring Cloud',
+                children:[
+                    {
+                        text:'SpringCloud 概览',
+                        link: '/spring-cloud/spring-cloud-overview.md'
+                    },
+                    {
+                        text: 'Nacos',
+                        link: '/spring-cloud/spring-cloud-alibaba-nacos.md'
+                    },
+                    {
+                        text: 'Sentinel',
+                        link: '/spring-cloud/spring-cloud-alibaba-sentinel.md'
+                    },
+                    {
+                        text: 'Seate',
+                        link: '/spring-cloud/spring-cloud-alibaba-seate.md'
+                    }
+                ]
+            },
+            {
                 text:'自我修养',
                 children:[
                     {
@@ -155,6 +176,17 @@ module.exports = {
                     ]
                 }
             ],
+            '/spring-cloud/':[
+                {
+                    text: '微服务架构',
+                    children:[
+                        '/spring-cloud/spring-cloud-overview.md',
+                        '/spring-cloud/spring-cloud-alibaba-nacos.md',
+                        '/spring-cloud/spring-cloud-alibaba-sentinel.md',
+                        '/spring-cloud/spring-cloud-alibaba-seate.md'
+                    ]
+                }
+            ],
             '/middleware/':[
                 {
                     text: 'Tomcat 专题',
@@ -167,7 +199,5 @@ module.exports = {
             ]
         },
         sidebarDepth: 2
-    }),
-
-
+    })
 }

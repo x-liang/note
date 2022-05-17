@@ -2,7 +2,7 @@
 home: true
 heroImage: /logo.png
 heroText: Java 成神之路.
-tagline: Born to win.
+tagline: slogn还没想好
 actionText: 开始探索之旅 →
 actionLink: /zh/guide/
 features:

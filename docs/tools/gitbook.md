@@ -1,4 +1,4 @@
-## gitbook 安装及使用
+# gitbook 安装及使用
 
 ### gitbook的安装
 
@@ -196,10 +196,7 @@ info: >> 1 file(s) generated
 
 ### 安装使用过程中出现的错误
 
-![image-20220425132347160](.image/gitbook/image-20220425132347160.png)
+![image-20220425132347160](../../.img/gitbook/image-20220425132347160.png)
 
 这个直接把polyfills.js中62行到64行的代码注释掉即可
 
-如下：
-
-![image-20220425132618669](.image/gitbook/image-20220425132618669.png)

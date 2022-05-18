@@ -109,6 +109,32 @@ module.exports = {
                 ]
             },
             {
+                text: "数据库",
+                children:[
+                    {
+                        text: "MySQL",
+                        children:[
+                            {
+                                text: "MySQL 基础篇",
+                                link: "/database/mysql/mysql-base.md"
+                            },
+                            {
+                                text: "MySQL 进阶篇",
+                                link: "/database/mysql/mysql-advance.md"
+                            },
+                            {
+                                text: "MySQL 运维篇",
+                                link: "/database/mysql/mysql-devops.md"
+                            },
+                            {
+                                text: "MySQL 应用篇",
+                                link: "/database/mysql/mysql-apply.md"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
                 text:'自我修养',
                 children:[
                     {
@@ -116,7 +142,11 @@ module.exports = {
                         children:[
                             {
                                 text:'代理模式',
-                                link:'/middleware/tomcat.md'
+                                link:'/quality/design-mode/design-proxy.md'
+                            },
+                            {
+                                text:'装饰器模式',
+                                link:'/quality/design-mode/design-decorator.md'
                             }
                             
                         ]
@@ -184,6 +214,26 @@ module.exports = {
                         '/spring-cloud/spring-cloud-alibaba-nacos.md',
                         '/spring-cloud/spring-cloud-alibaba-sentinel.md',
                         '/spring-cloud/spring-cloud-alibaba-seate.md'
+                    ]
+                }
+            ],
+            '/database/':[
+                {
+                    text: 'MySQL',
+                    children:[
+                       '/database/mysql/mysql-base.md',
+                       "/database/mysql/mysql-advance.md",
+                       "/database/mysql/mysql-devops.md",
+                       "/database/mysql/mysql-apply.md"
+                    ]
+                }
+            ],
+            '/quality/':[
+                {
+                    text:'设计模式',
+                    children:[
+                        '/quality/design-mode/design-proxy.md',
+                        '/quality/design-mode/design-decorator.md'
                     ]
                 }
             ],

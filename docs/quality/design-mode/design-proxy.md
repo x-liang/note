@@ -1,15 +1,3 @@
-# 装饰器模式
-
-## 定义
-
-**装饰器模式（Decorator Pattern）**允许向一个现有的对象添加新的功能，同时又不改变其结构。这种类型的设计模式属于结构型模式，它是作为现有的类的一个包装。这种模式创建了一个装饰类，用来包装原有的类，并在保持类方法签名完整性的前提下，提供了额外的功能。
-
-## 使用场景
-
-
-
-
-
 # 代理模式
 
 动态代理在Java中有着广泛的应用，比如Spring AOP、Hibernate数据查询、测试框架的后端mock、RPC远程调用、Java注解对象获取、日志、用户鉴权、全局性异常处理、性能监控，甚至事务处理等。
@@ -34,7 +22,7 @@
 
 代理模式的结构比较简单，其核心是代理类，为了让客户端能够**一致性地对待**真实对象和代理对象，在代理模式中引入了抽象层
 
-![image](.image/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/image.png)
+![image](../../../.img/design-proxy/image.png)
 
 代理模式**按照职责**（使用场景）来分类，至少可以分为以下几类：1、远程代理。 2、虚拟代理。 3、Copy-on-Write 代理。 4、保护（Protect or Access）代理。 5、Cache代理。 6、防火墙（Firewall）代理。 7、同步化（Synchronization）代理。 8、智能引用（Smart Reference）代理等等。
 
@@ -341,7 +329,7 @@ ProxyUtils.generateClassFile(userServiceImpl.getClass(), "UserServiceProxy");
 
 IDEA 再次运行之后就可以在 target 的类路径下找到 UserServiceProxy.class，双击后IDEA的反编译插件会将该二进制class文件
 
-![ff021968-b6a7-423f-ba75-96e4483f53f2](.image/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/ff021968-b6a7-423f-ba75-96e4483f53f2.png)
+![ff021968-b6a7-423f-ba75-96e4483f53f2](../../../.img/design-proxy/ff021968-b6a7-423f-ba75-96e4483f53f2.png)
 
 UserServiceProxy 的代码如下所示：
 
@@ -439,7 +427,7 @@ public Object invoke(Object proxy, Method method, Object[] args) {
 
 JDK动态代理执行方法调用的过程简图如下：
 
-![4993764c-03d1-489d-b3c4-3d65d19043d2](.image/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/4993764c-03d1-489d-b3c4-3d65d19043d2.png)
+![4993764c-03d1-489d-b3c4-3d65d19043d2](../../../.img/design-proxy/4993764c-03d1-489d-b3c4-3d65d19043d2.png)
 
 代理类的调用过程相信大家都明了了，而关于Proxy的源码解析，还请大家另外查阅其他文章或者直接看源码
 

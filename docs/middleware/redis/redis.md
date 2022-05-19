@@ -459,7 +459,7 @@ ziplist结构如下：
 
 - zlend：用于标记压缩列表的末端
 
-> <font color="red">**为什么数据量大时不用ziplist？**</font>
+> `为什么数据量大时不用ziplist？`
 >
 > 因为ziplist是一段连续的内存，插入的时间复杂化度为O(n)，而且每当插入新的元素需要realloc做内存扩展；而且如果超出ziplist内存大小，还会做重新分配的内存空间，并将内容复制到新的地址。如果数量大的话，重新分配内存和拷贝内存会消耗大量时间。所以不适合大型字符串，也不适合存储量多的元素。
 
@@ -469,7 +469,7 @@ ziplist结构如下：
 
 快速列表是ziplist和linkedlist的混合体，是将linkedlist按段切分，每一段用ziplist来紧凑存储，多个ziplist之间使用双向指针链接。
 
-> <font color="red">为什么不直接使用linkedlist？</font>
+> `为什么不直接使用linkedlist？`
 >
 > linkedlist的附加空间相对太高，prev和next指针就要占去16个字节，而且每一个结点都是单独分配，会加剧内存的碎片化，影响内存管理效率。
 

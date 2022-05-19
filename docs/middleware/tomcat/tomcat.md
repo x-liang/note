@@ -97,7 +97,7 @@ http://localhost:8080
 
 HTTP协议是浏览器与服务器之间的数据传送协议。作为应用层协议，HTTP是基于TCP/IP 协议来传递数据的（HTML文件、图片、查询结果等），HTTP协议不涉及数据包 （Packet）传输，主要规定了客户端和服务器之间的通信格式。 
 
-![image-20220514190703490](../../.img/Tomcat/image-20220514190703490.png)
+![image-20220514190703490](../../../.img/tomcat/image-20220514190703490-16529446449972.png)
 
 从图上你可以看到，这个过程是：
 
@@ -124,7 +124,7 @@ HTTP协议是浏览器与服务器之间的数据传送协议。作为应用层�
 
 浏览器发给服务端的是一个HTTP格式的请求，HTTP服务器收到这个请求后，需要调用服务端程序来处理，所谓的服务端程序就是你写的Java类，一般来说不同的请求需要由不同 的Java类来处理。
 
-![image-20220514191514685](../../.img/Tomcat/image-20220514191514685.png)
+![image-20220514191514685](../../../.img/tomcat/image-20220514191514685-16529446449961.png)
 
 图1 ， 表示HTTP服务器直接调用具体业务类，它们是紧耦合的。
 
@@ -138,7 +138,7 @@ Tomcat按照Servlet规范的要求实现了Servlet容器，同时它们也具有
 
 当客户请求某个资源时，HTTP服务器会用一个ServletRequest对象把客户的请求信息封装起来，然后调用Servlet容器的service方法，Servlet容器拿到请求后，根据请求的URL和Servlet的映射关系，找到相应的Servlet，如果Servlet还没有被加载，就用反射机制创建这个Servlet，并调用Servlet的init方法来完成初始化，接着调用Servlet的service方法来处理请求，把ServletResponse对象返回给HTTP服务器，HTTP服务器会把响应发送给 客户端。
 
-![image-20220514191746641](../../.img/Tomcat/image-20220514191746641.png)
+![image-20220514191746641](../../../.img/tomcat/image-20220514191746641-16529446449973.png)
 
 #### Tomcat整体架构 
 
@@ -150,7 +150,7 @@ Tomcat按照Servlet规范的要求实现了Servlet容器，同时它们也具有
 
 因此Tomcat设计了两个核心组件连接器（Connector）和容器（Container）来分别做这两件事情。连接器负责对外交流，容器负责内部处理。
 
-![image-20220514191837469](../../.img/Tomcat/image-20220514191837469.png)
+![image-20220514191837469](../../../.img/tomcat/image-20220514191837469-16529446449974.png)
 
 
 
@@ -164,7 +164,7 @@ Coyote 封装了底层的网络通信（Socket 请求及响应处理），为Cat
 
 Coyote 作为独立的模块，只负责具体协议和IO的相关操作， 与Servlet 规范实现没有直接关系，因此即便是 Request 和 Response 对象也并未实现Servlet规范对应的接口， 而是在Catalina 中将他们进一步封装为ServletRequest 和 ServletResponse 。 
 
-![image-20220514192115572](../../.img/Tomcat/image-20220514192115572.png)
+![image-20220514192115572](../../../.img/tomcat/image-20220514192115572-16529446449975.png)
 
  
 
@@ -190,7 +190,7 @@ Tomcat 支持的应用层协议 ：
 
 协议分层 ：
 
-<img src="../../.img/Tomcat/image-20220514192253401.png" alt="image-20220514192253401" style="zoom:50%;" />
+<img src="../../../.img/tomcat/image-20220514192253401-16529446449976.png" alt="image-20220514192253401" style="zoom:50%;" />
 
 在 8.0 之前 ， Tomcat 默认采用的I/O方式为 BIO ， 之后改为 NIO。 无论 NIO、NIO2 还是 APR， 在性能方面均优于以往的BIO。 如果采用APR， 甚至可以达到 Apache HTTP Server 的影响性能。
 
@@ -200,7 +200,7 @@ Tomcat为了实现支持多种I/O模型和应用层协议，一个容器可能�
 
 #### 连接器组件 
 
-![image-20220514192434499](../../.img/Tomcat/image-20220514192434499.png)
+![image-20220514192434499](../../../.img/tomcat/image-20220514192434499-16529446449977.png)
 
 连接器中的各个组件的作用如下：
 
@@ -234,7 +234,7 @@ Catalina 是Servlet 容器实现，包含了之前讲到的所有的容器组件
 
 Tomcat 的模块分层结构图， 如下：
 
-<img src="../../.img/Tomcat/image-20220515105552488.png" alt="image-20220515105552488" style="zoom:100%;float:left" />
+<img src="../../../.img/tomcat/image-20220515105552488-16529446449978.png" alt="image-20220515105552488" style="zoom:100%;float:left" />
 
 Tomcat 本质上就是一款 Servlet 容器， 因此Catalina 才是 Tomcat 的核心 ， 其他模块都是为Catalina 提供支撑的。 比如 ： 通过Coyote 模块提供链接通信，Jasper 模块提供JSP引擎，Naming 提供JNDI 服务，Juli 提供日志服务。 
 
@@ -242,7 +242,7 @@ Tomcat 本质上就是一款 Servlet 容器， 因此Catalina 才是 Tomcat 的�
 
 Catalina 的主要组件结构如下：
 
-![image-20220515105745172](../../.img/Tomcat/image-20220515105745172.png)
+![image-20220515105745172](../../../.img/tomcat/image-20220515105745172-16529446449979.png)
 
 如上图所示，Catalina负责管理Server，而Server表示着整个服务器。Server下面有多个服务Service，每个服务都包含着多个连接器组件Connector（Coyote 实现）和一个容器组件Container。在Tomcat 启动的时候， 会初始化一个Catalina的实例。 
 
@@ -256,13 +256,13 @@ Catalina 各个组件的职责：
 | Connector | 连接器，处理与客户端的通信，它负责接收客户请求，然后转给相关的容器处理，最后向客户返回响应结果 |
 | Container | 容器，负责处理用户的servlet请求，并返回对象给web用户的模块   |
 
-<img src="../../.img/Tomcat/image-20220515111145342.png" alt="image-20220515111145342" style="zoom:100%;float:left" />
+<img src="../../../.img/tomcat/image-20220515111145342-165294464499710.png" alt="image-20220515111145342" style="zoom:100%;float:left" />
 
 #### Container 结构 
 
 Tomcat设计了4种容器，分别是Engine、Host、Context和Wrapper。这4种容器不是平行关系，而是父子关系。， Tomcat通过一种分层的架构，使得Servlet容器具有很好的灵活性。 
 
-![image-20220515111421682](../../.img/Tomcat/image-20220515111421682.png)
+![image-20220515111421682](../../../.img/tomcat/image-20220515111421682-165294464499711.png)
 
 各个组件的含义 ：
 
@@ -275,15 +275,15 @@ Tomcat设计了4种容器，分别是Engine、Host、Context和Wrapper。这4种
 
 我们也可以再通过Tomcat的server.xml配置文件来加深对Tomcat容器的理解。Tomcat 采用了组件化的设计，它的构成组件都是可配置的，其中最外层的是Server，其他组件按照一定的格式要求配置在这个顶层容器中。
 
-![image-20220515111509589](../../.img/Tomcat/image-20220515111509589.png)
+![image-20220515111509589](../../../.img/tomcat/image-20220515111509589-165294464499712.png)
 
 那么，Tomcat是怎么管理这些容器的呢？你会发现这些容器具有父子关系，形成一个树形结构，你可能马上就想到了设计模式中的组合模式。没错，Tomcat就是用组合模式来管理这些容器的。具体实现方法是，所有容器组件都实现了Container接口，因此组合模式可以使得用户对单容器对象和组合容器对象的使用具有一致性。这里单容器对象指的  是最底层的Wrapper，组合容器对象指的是上面的Context、Host或者Engine。
 
-![image-20220515111700546](../../.img/Tomcat/image-20220515111700546.png)
+![image-20220515111700546](../../../.img/tomcat/image-20220515111700546-165294464499713.png)
 
 Container 接口中提供了以下方法（截图中知识一部分方法） ：
 
-<img src="../../.img/Tomcat/image-20220515111721407.png" alt="image-20220515111721407" style="zoom:100%;float:left" />
+<img src="../../../.img/tomcat/image-20220515111721407-165294464499714.png" alt="image-20220515111721407" style="zoom:100%;float:left" />
 
 在上面的接口看到了getParent、setParent、addChild和removeChild等方法。
 
@@ -295,7 +295,7 @@ Container接口扩展了LifeCycle接口，LifeCycle接口用来统一管理各�
 
 #### 流程
 
-![image-20220515113022994](../../.img/Tomcat/image-20220515113022994.png)
+![image-20220515113022994](../../../.img/tomcat/image-20220515113022994-165294464499715.png)
 
 步骤 : 
 
@@ -329,7 +329,7 @@ Container接口扩展了LifeCycle接口，LifeCycle接口用来统一管理各�
 
 - destroy（）：销毁组件
 
-![image-20220515114000640](../../.img/Tomcat/image-20220515114000640.png)
+![image-20220515114000640](../../../.img/tomcat/image-20220515114000640-165294464499716.png)
 
 
 
@@ -337,7 +337,7 @@ Container接口扩展了LifeCycle接口，LifeCycle接口用来统一管理各�
 
 上面我们提到的Server、Service、Engine、Host、Context都是接口， 下图中罗列了这些接口的默认实现类。当前对于 Endpoint组件来说，在Tomcat中没有对应的Endpoint 接口， 但是有一个抽象类 AbstractEndpoint ，其下有三个实现类： NioEndpoint、Nio2Endpoint、AprEndpoint ， 这三个实现类，分别对应于前面讲解链接器 Coyote时， 提到的链接器支持的三种IO模型：NIO，NIO2，APR ， Tomcat8.5版本中，默认采用的是 NioEndpoint。
 
-![image-20220515114332495](../../.img/Tomcat/image-20220515114332495.png)
+![image-20220515114332495](../../../.img/tomcat/image-20220515114332495-165294464499717.png)
 
 ProtocolHandler ： Coyote协议接口，通过封装Endpoint和Processor ， 实现针对具体协议的处理功能。Tomcat按照协议和IO提供了6个实现类。
 
@@ -357,7 +357,7 @@ HTTP协议：
 
 - Http11AprProtocol ：采用APR的IO模型，需要依赖于APR库。
 
-![image-20220515114739856](../../.img/Tomcat/image-20220515114739856.png)
+![image-20220515114739856](../../../.img/tomcat/image-20220515114739856-165294464499718.png)
 
 ##### 源码入口
 
@@ -365,7 +365,7 @@ HTTP协议：
 
 MainClass：BootStrap ‐‐‐‐> main(String[] args) 
 
-![image-20220515115019926](../../.img/Tomcat/image-20220515115019926.png)
+![image-20220515115019926](../../../.img/tomcat/image-20220515115019926-165294464499719.png)
 
 
 
@@ -389,11 +389,11 @@ Mapper组件的功能就是将用户请求的URL定位到一个Servlet，它的�
 
 下面的示意图中 ， 就描述了当用户请求链接 http://www.itcast.cn/bbs/findAll 之后, 是如何找到最终处理业务逻辑的servlet 。 
 
-![image-20220515120512030](../../.img/Tomcat/image-20220515120512030.png)
+![image-20220515120512030](../../../.img/tomcat/image-20220515120512030-165294464499720.png)
 
 那上面这幅图只是描述了根据请求的URL如何查找到需要执行的Servlet ， 那么下面我们 再来解析一下 ， 从Tomcat的设计架构层面来分析Tomcat的请求处理。
 
-![image-20220515120535877](../../.img/Tomcat/image-20220515120535877.png)
+![image-20220515120535877](../../../.img/tomcat/image-20220515120535877-165294464499721.png)
 
 步骤如下:
 
@@ -419,7 +419,7 @@ Mapper组件的功能就是将用户请求的URL定位到一个Servlet，它的�
 
 #### 请求流程源码解析
 
-![image-20220515120821361](../../.img/Tomcat/image-20220515120821361.png)
+![image-20220515120821361](../../../.img/tomcat/image-20220515120821361-165294464499722.png)
 
 在前面所讲解的Tomcat的整体架构中，我们发现Tomcat中的各个组件各司其职，组件  之间松耦合，确保了整体架构的可伸缩性和可拓展性，那么在组件内部，如何增强组件 的灵活性和拓展性呢？ 在Tomcat中，每个Container组件采用责任链模式来完成具体的请求处理。
 
@@ -543,7 +543,7 @@ GlobalNamingResources 中定义了全局命名服务：
 | threadPriority          | 线程池中线程优先级，默认值为5，值从1到10。                   |
 | className               | 线程池实现类，未指定情况下，默认实现类为org.apache.catalina.core.StandardThreadExecutor。如果想使用自定义线程池首先需要实现org.apache.catalina.Executor接口。 |
 
-![image-20220515131459283](../../.img/Tomcat/image-20220515131459283.png)
+![image-20220515131459283](../../../.img/tomcat/image-20220515131459283-165294464499823.png)
 
 如果不配置共享线程池，那么Catalina 各组件在用到线程池时会独立创建。 
 

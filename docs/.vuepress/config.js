@@ -84,7 +84,14 @@ module.exports = {
                                 link:"/spring/test02.md"
                             }
                         ]
+                    },
+                    {
+                        text: 'Spring 源码解析',
+                        children: [
+
+                        ]
                     }
+
                 ]
             },
             {
@@ -116,19 +123,19 @@ module.exports = {
                         children:[
                             {
                                 text: "MySQL 基础篇",
-                                link: "/database/mysql/mysql-base.md"
+                                link: "/database/mysql/mysql-base.html"
                             },
                             {
                                 text: "MySQL 进阶篇",
-                                link: "/database/mysql/mysql-advance.md"
+                                link: "/database/mysql/mysql-advance.html"
                             },
                             {
                                 text: "MySQL 运维篇",
-                                link: "/database/mysql/mysql-devops.md"
+                                link: "/database/mysql/mysql-devops.html"
                             },
                             {
                                 text: "MySQL 应用篇",
-                                link: "/database/mysql/mysql-apply.md"
+                                link: "/database/mysql/mysql-apply.html"
                             }
                         ]
                     }
@@ -206,6 +213,14 @@ module.exports = {
                     ]
                 }
             ],
+            '/spring/spring-source/':[
+                {
+                    text: 'Spring 源码解析',
+                    children:[
+
+                    ]
+                }
+            ],
             '/spring-cloud/':[
                 {
                     text: '微服务架构',
@@ -214,6 +229,12 @@ module.exports = {
                         '/spring-cloud/spring-cloud-alibaba-nacos.md',
                         '/spring-cloud/spring-cloud-alibaba-sentinel.md',
                         '/spring-cloud/spring-cloud-alibaba-seate.md'
+                    ]
+                },
+                {
+                    text:'常用组件',
+                    children:[
+                        '/spring-cloud/spring-cloud-openfeign.html',
                     ]
                 }
             ],

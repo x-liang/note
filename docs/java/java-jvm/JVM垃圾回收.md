@@ -1207,6 +1207,41 @@ public class WeakReferenceDemo {
 
 
 
+#### 三色标记算法
+
+三色标记算法是一种垃圾回收的标记算法。它可以让JVM不发生或仅短时间发生STW(Stop The World)，从而达到清除JVM内存垃圾的目的。JVM中的CMS、G1垃圾回收器 所使用垃圾回收算法即为三色标记法。
+
+**三色标记的过程**
+
+黑色：表示对象已经被垃圾收集器访问过了，且是安全存活的。（当该对象被重复扫描是可以跳过）
+
+灰色：表示该对象被垃圾收集器扫描过，但是对象上还存在没有扫描的引用。（需要在该对象中寻找垃圾）
+
+白色：表示未被垃圾收集器访问过(在刚开始阶段，所有对象都是白色，若分析结束后仍是白色，即代表不可达)
+
+![在这里插入图片描述](../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5LiA5Y-q5p2_5qCX,size_20,color_FFFFFF,t_70,g_se,x_16.png)
+
+**三色标记存在的问题：**
+
+如果在垃圾收集器进行标记的过程中，用户线程是暂停的，那么这个标记流程不会有任何问题。坏就坏在标记线程和用户线程是并发执行的（用户线程在修改对象中的引用关系，而垃圾收集器在对对象的引用进行标记），这就可能出现一下两种后果：
+
+- 将原本消亡的对象错误的标记成存活的。
+- 将原本存活的对象错误的标记成了消亡。
+
+> 当且仅当一下两个条件同时满足时，会产生对象消失的问题：
+>
+> - 赋值器插入了一条或多条从黑色独享到白色对象的新引用
+> - 赋值器删除了全部从灰色对象到该白色对象的直接或间接引用。
+
+**如何解决？**
+
+通过读写屏障来处理
+
+- 读屏障：在读取一个对象的引用时，记录下引用关系。这个引用可能是从黑色到白色的引用
+- 写屏障：在给对象中的变量赋值时，在赋值前和赋值后执行一些逻辑，记录引用关系
+
+在并发标记的过程中通过读写屏障来记录引用关系的变更，在重新标记阶段，去重新标记这些数据。
+
 #### 总结
 
 - **内存效率**：复制算法>标记清除算法>标记压缩算法（时间复杂度）
@@ -1263,6 +1298,54 @@ minor GC会触发一次 stop the world (minor gc 通常情况下很快)
 
 永久带对应Java内存结构中的方法区，这里没有备用仓库，所以只能使用标记/清除和标记/整理算法。
 
+#### 跨代引用问题
+
+跨代引用是指年轻代的对象引用老年代中的对象，老年代中的对象也会引用年轻代中的对象。那么问题就来了，JVM在进行MinorGC的时候还要去遍历老年代的么？答案当然是不能，那么如何解决？
+
+##### 记忆集
+
+记忆集（Remembered Set），它是在年轻代中建立的一个数据结构，把老年代划分为N个区域，标志出哪个区域会存在跨代引用。这样在进行MinorGC的时候，只要把这些包含了跨代引用的内存区域加入GC Roots一起扫描就行了。
+
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220521090200352.png" alt="image-20220521090200352" style="zoom: 50%;" />
+
+##### 卡表
+
+卡表实际上就是记忆集的一种实现方式，也是目前最常用的一种实现方式。
+
+对于HotSpot虚拟机来说，卡表的实现方式就是一个字节数组。
+
+```java
+CARD_TABLE [this address >> 9] = 0;
+```
+
+这段代码代表着卡表标记的的逻辑。实际上卡表就是映射了一块块的内存地址，这些内存地址块称为卡页，从代码可以看出每个**卡页**的大小就是2^9=512字节。数组的0，1号元素就映射为0x0000～0x01FF(0-511)、0x0200～0x03FF(512-1023)内存地址的卡页。
+
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220521091535223.png" alt="image-20220521091535223" style="zoom:50%;" />
+
+只要一个卡页内的对象存在一个或者多个跨代对象指针，就将该位置的卡表数组元素修改为1，表示这个位置为脏，没有则为0。在GC的时候，就直接把值为1对应的卡页对象指针加入GC Roots一起扫描即可。有了卡表，我们就不需要去在发生MinorGC的时候扫描整个老年代了，性能得到了极大的提升。
+
+
+##### 写屏障
+
+前面介绍的都是一些思想，JVM是如何实现的呢？
+
+没错，就是写屏障。写屏障类似于AOP的思想，在JVM会在`引用类型字段赋值`这个动作生成一个Around，在赋值前，赋值后都会执行一些逻辑，如更新卡表信息。但是写屏障会带来一些性能开销，不过和扫描老年代相比，这个性能开销还是可以接收的。
+
+写屏障还存在一个伪共享问题，现代处理器通常是以缓存行为存储单位，缓存行通常来说都是64字节，一个卡表元素1个字节，占用的卡页内存大小就是64*512=32KB的大小。如果多线程刚好更新刚好处于这32KB范围内的对象，那么就会对性能产生影响。
+
+JDK7之后新增了一个参数-XX:+UseCondCardMark，他代表是否开启卡表更新的判断，没有被标记过才标记为脏。
+
+```java
+if (CARD_TABLE [this address >> 9] != 0) 
+  	CARD_TABLE [this address >> 9] = 0;
+```
+
+一个卡业内数据被修改多次，只有第一次修改卡表。从而减少卡表的修改次数
+
+
+
+
+
 ### 垃圾回收器
 
 
@@ -1317,7 +1400,7 @@ JVM的相关参数：
 
 
 
-#### Serial Garbage Collector
+#### Serial 垃圾回收器
 
 **算法**：采用复制算法
 
@@ -1331,131 +1414,165 @@ JVM的相关参数：
 
 **适用场景**：平时的开发与调试程序使用，以及桌面应用交互程序。
 
-**开启参数**：-XX:+UseSerialGC（client模式默认值）
+执行流程：
+
+![img](../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/52efcc60493d41e8acd36f5a6f192122-2.png)
+
+常用参数：
+
+- -XX:+UseSerialGC：启用serial垃圾收集器(这个参数会同时启用serial和serial old)
+- -XX:SurvivorRatio： 调整新生代中的eden比例，默认-XX:SurvivorRatio=8
+- -XX:+PrintGCDetails： 发生GC是打印日志（JDK9之前有效）
+- -XX:MaxTenuringThreshold=15： 晋升到老年代的阈值，Parallel默认15，CMS默认6，G1默认15
+
+- -XX:PretenureSizeThreshold=3145728： 当对象大于该大小后，直接晋升到老年代。注意这里只能以字节的形式指定
 
 
 
-#### Serial Old Garbage Collector
+#### Serial Old 垃圾回收器
 
-**算法**：**标记/整理**算法
+**算法**：标记/整理算法
 
 **内存区域**：针对新生代设计
 
+其他特性和Serial相似
 
 
-#### ParNew Garbage Collector
 
-**算法**：采用复制算法
+
+
+常用参数：
+
+- -XX:+UseSerialGC： Serial + Serial Old
+
+- -XX:+UseParallelGC,使用Parallel Scavenge + Serial Old收集器组合。
+- -XX:+UseConcMarkSweepGC,使用ParNew + CMS + Serial Old收集器组合（JDK9中参数）。
+
+#### ParNew 垃圾回收器
+
+ParNew收集器其实就是Serial收集器的多线程版本，在JDK9及以后的版本作为CMS默认的新生代垃圾收集器，不在支持单独配置参数。
+
+**算法**：采用标记复制算法
 
 **内存区域**：针对新生代设计
 
 **执行方式**：多线程、并行
 
-**执行过程**：当新生代内存不够用时，先暂停全部用户程序，然后开启**若干条GC线程**使用复制算法并行进行垃圾回收，这一过程中可能会有一些对象提升到年老代
+**执行过程**：当新生代内存不够用时，先暂停全部用户程序，然后开启若干条GC线程使用复制算法并行进行垃圾回收，这一过程中可能会有一些对象提升到年老代
 
-**特点**：采用多线程并行运行，因此会对系统的内核处理器数目比较敏感，至少需要多于一个的处理器，**有几个处理器就会开几个线程（不过线程数是可以使用参数-XX:ParallelGCThreads=<N>控制的）**，因此只**适合于多核多处理器的系统**。尽管整个GC阶段还是要暂停用户程序，但多线程并行处理并不会造成太长的停顿时间。因此就吞吐量来说，ParNew要大于serial，在处理器越多的时候，效果越明显。但是这并非绝对，**对于单个处理器来说，由于并行执行的开销（比如同步），ParNew的性能将会低于serial搜集器**。不仅是单个处理器的时候，如果在容量较小的堆上，甚至在两个处理器的情况下，ParNew的性能都并非一定可以高过serial。
+**特点**：采用多线程并行运行，因此会对系统的内核处理器数目比较敏感。同样需要STW。在单核CPU上其性能可不不如Serial 好。
 
 **适用场景**：在中到大型的堆上，且系统处理器至少多于一个的情况
 
-**开启参数**：-XX:+UseParNewGC
+执行流程：
 
-
-
-#### Parallel Scavenge Garbage Collector
-
-这个搜集器与ParNew几乎一模一样，都是针对**新生代**设计，采用**复制算法**的并行搜集器。它与ParNew最大的不同就是可设置的参数不一样，它可以让我们**更精确的控制GC停顿时间以及吞吐量**。
-
-parallel scavenge搜集器提供参数主要包括**控制最大的停顿时间（使用-XX:MaxGCPauseMillis=<N>），以及控制吞吐量（使用-XX:GCTimeRatio=<N>）**。由此可以看出，parallel scavenge就是为了提供吞吐量控制的搜集器。
-
-不过千万不要以为把最大停顿时间调的越小越好，或者吞吐量越大越好，在使用parallel scavenge搜集器时，主要有三个性能指标，**最大停顿时间、吞吐量以及新生代区域的最小值**。
-
-parallel scavenge搜集器具有相应的调节策略，它将会**优先满足最大停顿时间的目标，次之是吞吐量，最后才是新生代区域的最小值**。
-
-因此，如果将最大停顿时间调的过小，将会牺牲整体的吞吐量以及新生代大小来满足你的私欲。手心手背都是肉，我们最好还是不要这么干。不过parallel scavenge有一个参数可以让parallel scavenge搜集器全权接手内存区域大小的调节，这其中还包括了晋升为年老代（可使用-XX:MaxTenuringThreshold=n调节）的年龄，也就是使用-XX:UseAdaptiveSizePolicy打开内存区域大小**自适应策略**。
-
-parallel scavenge搜集器可使用参数-XX:+UseParallelGC开启，同时它也是server模式下默认的新生代搜集器。
-
-
+![img](../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/5329112d6f7c48b296483782c019a4a0-2.png)
 
 常用参数：
 
--XX:+UseParallelGC ~ -XX:+UseParallelOldGC       开启ParallelGC
+- -XX：+UseParNewGC： 启用ParNew+Serial Old垃圾收集器组合（JDK9取消了该参数）
+- -XX:+UseConcMarkSweepGC： 启用ParNew + CMS的垃圾收集器组合（JDK9取消了该参数）
+- -XX:ParallelGCThreads=3：代表垃圾回收线程最多可以3条同时运行。
 
--XX:+UseAdaptiveSizePolicy    动态调整新生代的内存比例
+#### Parallel Scavenge垃圾回收器
 
--XX:GCTimeRatio=ratio            用来调整吞吐量的目标、就是GC时间站总运行时间的比例，ratio默认为99，即所占比例为1/(1+99)= 0.01，（通常设为19）
+Parallel的主要关注点在吞吐量，单位时间内收集的垃圾越多越好。
 
--XX:MaxGCPauseMillis=ms      指定每次GC的时间，默认200毫秒
+针对新生代，采用标记复制算法。与ParNew相比，可控制的参数更多。
 
--XX:ParallelGCThreads=n         GC的线程数
+回收流程：
+
+![img](../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/41beb7b8332445f28d26ad0b1ad0b07b-2.png)
+
+ 常用参数：
+
+- -XX:+UseParallelGC： 启用Parallel Scavenge + Serial Old组合模式
+- -XX:+UseParallelOldGC： 启用Parallel Scavenge + Parallel Old组合模式
+- -XX:ParallelGCThreads： 设置垃圾收集线程数
+- -XX:MaxGCPauseMillis=200： 指定最大停顿时间，默认200毫秒
+- -XX:GCTimeRatio=99： 代表垃圾收集时间所占比例，计算公式1/(1+99),
+- -XX:+UseAdaptiveSizePolicy: 这是一个开关参数，开启后，JVM会根据-XX:MaxGCPauseMillis=200和-XX:GCTimeRatio=99这两个参数动态调整-Xmx、-Xms、-Xmn、-XX:SurvivorRatio、-XX:PretenureSizeThreshold等参数，来最大限度的提升吞吐量。
 
 
 
-#### Parallel Old Garbage Collector
 
-Parallel Old与ParNew或者Parallel Scavenge的关系就好似serial与serial old一样，相互之间的区别并不大，只不过parallel old是针对年**老代设计的并行搜集器**而已，因此它采用**标记/整理**算法。
 
-Parallel Old搜集器还有一个重要的意义就是，**它是除了serial old以外唯一一个可以与parallel scavenge搭配工作的年老代搜集器**，因此为了避免serial old影响parallel scavenge可控制吞吐量的名声，**parallel old就作为了parallel scavenge真正意义上的搭档**。
 
-它可以使用参数-XX:-UseParallelOldGC开启，不过在JDK6以后，它也是在开启parallel scavenge之后默认的年老代搜集器。
 
-#### CMS Garbage Collector
 
-Concurrent Mark Sweep（以下简称CMS）搜集器是唯一一个真正意义上实现了**应用程序与GC线程一起工作**（一起是针对客户而言，而并不一定是真正的一起，有可能是快速交替）的搜集器。
+
+#### Parallel Old 垃圾回收器
+
+针对年**老代设计的并行搜集器**，采用**标记/整理**算法。
+
+可以和serial 、parallel scavenge 搭配使用。在JDK8及以前是默认的垃圾收集器。
+
+
+
+执行流程和常用的参数与Parallel Scavenge相同，这里不在介绍。
+
+
+
+#### CMS 垃圾回收器
 
 CMS是针对**年老代**设计的搜集器，并采用**标记/清除**算法，它也是**唯一一个**在年老代采用**标记/清除**算法的搜集器。
 
-采用标记/清除算法是因为它特殊的处理方式造成的，它的处理分为四个阶段。
+CMS垃圾收集器主要分为以下五个阶段。
 
-​     1、**初始标记**：需要暂停应用程序，快速标记存活对象。
+​     1、**初始标记**：只标记和GCRoots直接关联的对象，以及年轻代指向老年代的对象(需要Stop The World)
 
-​     2、**并发标记**：恢复应用程序，并发跟踪GC Roots。
+​     2、**并发标记**：和用户线程并行执行，根据初试标记结果做可达性分析。（三色标记）
 
-​     3、**重新标记**：需要暂停应用程序，重新标记跟踪遗漏的对象。
+​     3、**重新标记**：需要暂停应用程序，处理并发标记中错标或漏标的对象。(三色标记存在的问题)
 
-​     4、**并发清除**：恢复应用程序，并发清除未标记的垃圾对象。
+​     4、**并发清除**：并发清除垃圾对象
 
-它比原来的标记/清除算法复杂了点，主要表现在**并发标记和并发清除**这两个阶段，而这两个阶段也是整个GC阶段中**耗时最长的阶段**，不过由于这两个阶段皆是与应用程序并发执行的，因此CMS搜集器造成的停顿时间是非常短暂的。这点还是比较好理解的。
-
-不过它的**缺点**也是要简单提一下的，主要有以下几点。
-
-​	1、由于GC线程与应用程序并发执行时会抢占CPU资源，因此会造成**整体的吞吐量下降**。也就是说，从吞吐量的指标上来说，CMS搜集器是要弱于parallel scavenge搜集器的。
-
-​	2、标记/清除很大的一个缺点，那就是**内存碎片**的存在。因此JVM提供了-XX:+UseCMSCompactAtFullCollection参数用于在全局GC（full GC）后进行一次碎片整理的工作，由于每次全局GC后都进行碎片整理会较大的影响停顿时间，JVM又提供了参数-XX:CMSFullGCsBeforeCompaction去**控制在几次全局GC后会进行碎片整理**。
-
-​	3、CMS最后一个缺点涉及到一个术语---并发模式失败（Concurrent Mode Failure），大意是：如果**并发搜集器不能在年老代填满之前完成不可达（unreachable）对象的回收**，或者**年老代中有效的空闲内存空间不能满足某一个内存的分配请求**，此时应用会被暂停，并在此暂停期间开始垃圾回收，直到回收完成才会恢复应用程序。这种无法并发完成搜集的情况就成为**并发模式失败（concurrent mode failure）**，而且这种情况的发生也意味着我们需要调节并发搜集器的参数了。
+​	 5、**并发重置**：重置本次GC过程中的标记数据。
 
 
 
-> 年老代填满之前无法完成对象回收是指**年老代在并发清除阶段清除不及时**，因此造成的空闲内存不足。而不能满足内存的分配请求，则主要指的是新生代在提升到年老代时，由于**年老代的内存碎片过多**，导致一些分配由于没有连续的内存无法满足。
->
-> 实际上，在**并发模式失败**的情况下，**serial old**会作为备选垃圾收集器，进行一次全局GC（Full GC），因此serial old也算是CMS的“替补”。显然，由于serial old的介入，会造成较大的停顿时间。
->
-> 为了尽量避免并发模式失败发生，我们可以调节-XX:CMSInitiatingOccupancyFraction=<N>参数，去控制当年老代的内存占用达到多少的时候（N%），便开启并发搜集器开始回收年老代。
+CMS主要关注点在用户体验，他的终极目标是尽量减少总体的STW的时间
 
+执行流程：
 
+![img](../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/ea233bd806054640a98cedbe051cde5f-2.png)
 
 常用参数：
 
--XX:+UseConcMarkSweepGC ~ -XX:+UseParNewGC ~ SerialOld   启动CMS垃圾回收器
-
--XX:ParallelGCThreads=n   并发线程数
-
--XX:ConcGCThreads=threads       并行线程数(建议设置为CPU核数的1/4)
-
--XX:CMSInitiatingOccupancyFraction=percent  控制内存占比达到多少比例时开启垃圾回收
-
--XX:+CMSScavengeBeforeRemark
+- -XX:+UseConcMarkSweepGC： 使用ParNew + CMS的组合
+- -XX:CMSInitiatingOccupancyFraction=92
+- -XX:ParallelGCThread=3 垃圾收集线程数
+- -XX:SurvivorRatio： 调整新生代中的eden比例，默认-XX:SurvivorRatio=8
+- -XX:MaxTenuringThreshold=15： 晋升到老年代的阈值，Parallel默认15，CMS默认6，G1默认15
 
 
 
+优点：
+
+- 并发收集，低停顿
+
+缺点：
+
+- 对CPU资源敏感，用户线程和垃圾收集线程会争抢资源，会对垃圾收集的吞吐量造成影响。
+- 标记清除会产生内存碎片
+  - -XX:+UseCMSCompactAtFullCollection：开启在全局Full GC后执行碎片整理工作
+  - -XX:CMSFullGCsBeforeCompaction：控制在几次Full GC后进行一次碎片整理。（每次都整理开销大）
+- 无法处理浮动垃圾：初始标记后，堆内存中会产生一些新的GCRoots，在并发标记的过程中，也会存在一些标记为活动的对象变为垃圾对象的情况。这些垃圾对象在本次垃圾扫描中是无法被回收的。
+- 并发失败模式，意思就是内存回收的速度追不上内存分配的速度，导致没有内存可以分配，这时候就会暂停用户线程，全力清理垃圾，知道回收完成才恢复用户线程
+  - 这里的无内存分配，可能是浮动垃圾造成的。也可能是内存碎片问题。
+  - -XX:CMSInitiatingOccupancyFraction=<N>  控制老年代的内存占用比例到达多少时，开启老年代的垃圾回收
 
 
-#### Garbage First（G1）
+
+
+
+#### Garbage First垃圾回收器
 
 
 
 TODO  https://blog.csdn.net/u011381576/article/details/79889804
+
+[(44条消息) 虚拟机中的经典垃圾收集器及常用参数解析（Serial、ParNew、Parallel Scavenge、Serial Old、Parallel Old、CMS、G1）_StudentPro的博客-CSDN博客](https://blog.csdn.net/m0_46897923/article/details/114087384)
 
 G1(Garbage First)垃圾收集器是当今垃圾回收技术最前沿的成果之一。早在JDK7就已加入JVM的收集器大家庭中，成为HotSpot重点发展的垃圾回收技术。同优秀的CMS垃圾回收器一样，G1也是关注最小时延的垃圾回收器，也同样适合大尺寸堆内存的垃圾收集，官方也推荐使用G1来代替选择CMS。G1最大的特点是引入分区的思路，弱化了分代的概念，合理利用垃圾收集各个周期的资源，解决了其他收集器甚至CMS的众多缺陷。
 
@@ -1606,6 +1723,24 @@ RSet在内部使用Per Region Table(PRT)记录分区的引用情况。由于RSet
 
 
 
+
+常用参数：
+
+- -Xss256k,设置虚拟机栈大小
+- -Xmx10m,设置堆最大内存
+- -Xms10m,设置堆最小内存
+- -XX:ConcGCThreads=2,并发标记阶段使用线程数，可适当高一点。
+- -XX:G1NewSizePercen=5,新生代占用堆最小值，默认5%
+- -XX:G1MaxNewSizePercent=60,新生代占用最大值，默认60%
+- -XX:MetaSpaceSize=10m,方法区最小值（元空间）
+- -XX:MaxMetaSpaceSize=10m，方法区最大子，默认-1，没有最大
+- -XX:InitiatingHeapOccpancyPercent=92，触发G1的内存使用率
+- -XX:SurvivorRatio=8，Eden区域所占10份中的比例
+- -XX:ParallelGCThreads=2,收集线程的个数一般与服务器核心数相同
+- -XX:MaxTenuringThreshold=15,设置进入老年代对象的年龄。
+- -XX:+UseG1GC,使用G1收集器
+- -XX:MaxGCPauseMillis=200,设置最大停顿时间，默认就是200毫秒
+- -XX:G1HeapRegionSize=2，设置每个Region的大小，该值取值范围是1-32，且必须是2的n次幂，当对象的值达到Region设置的值的一半时，被设为大对象会存入humongous区域，更大的对象存储在N个连续的Humongous Region中，G1中的大多数行为都把Humongous Region看做老年代的一部分。
 
 ### 垃圾回收调优
 

@@ -13,22 +13,34 @@ module.exports = {
                 text: 'Java 笔记',
                 children: [
                     {
+                        text: 'Java 基础',
+                        children: [
+                            {
+                                text: 'Java 基础知识',
+                                link: '/java/java-base/java-base.html'
+                            }
+                        ]
+                    },
+                    {
                         text: 'Java IO',
                         children:[
                             {
                                 text: 'Java IO 基础知识',
-                                link: '/java/java-io/Java IO 前置知识.md'
+                                link: '/java/java-io/Java IO 前置知识.html'
                             }
                         ]
                     },
-
                     {
                        text: 'Java 集合',
                        children:[
-                           {
-                               text:"Java Map详解",
-                               link:"/Java/测试.md"
-                           }
+                            {
+                                text: "Java 集合概览",
+                                link: "/java/java-collection/java-collection-overview.html"
+                            },
+                            {
+                                text: 'Java List集合',
+                                link:'/java/java-collection/java-collection-list.html'
+                            }
                        ]
                     },
                     {
@@ -36,7 +48,7 @@ module.exports = {
                         children:[
                             {
                                 text:'Java 并发基础',
-                                link:'/java/java-concurrent/Java并发基础.md'
+                                link:'/java/java-concurrent/Java并发基础.html'
                             }
                         ]
                     },
@@ -45,27 +57,27 @@ module.exports = {
                         children:[
                             {
                                 text:'JVM概览',
-                                link:'/java/java-jvm/JVM概览.md'
+                                link:'/java/java-jvm/JVM概览.html'
                             },
                             {
                                 text:'JVM内存结构',
-                                link:'/java/java-jvm/JVM内存结构.md'
+                                link:'/java/java-jvm/JVM内存结构.html'
                             },
                             {
                                 text:'JVM垃圾回收',
-                                link:'/java/java-jvm/JVM垃圾回收.md'
+                                link:'/java/java-jvm/JVM垃圾回收.html'
                             },
                             {
                                 text:'JVM类文件结构',
-                                link:'/java/java-jvm/JVM类文件结构.md'
+                                link:'/java/java-jvm/JVM类文件结构.html'
                             },
                             {
                                 text:'JVM类加载器',
-                                link:'/java/java-jvm/JVM类加载器.md'
+                                link:'/java/java-jvm/JVM类加载器.html'
                             },
                             {
                                 text:'Java内存模型',
-                                link:'/java/java-jvm/JVM内存模型.md'
+                                link:'/java/java-jvm/JVM内存模型.html'
                             }
                         ]
                     }
@@ -81,7 +93,7 @@ module.exports = {
                         children:[
                             {
                                 text:"Spring IOC详解",
-                                link:"/spring/test02.md"
+                                link:"/spring/test02.html"
                             }
                         ]
                     },
@@ -149,11 +161,11 @@ module.exports = {
                         children:[
                             {
                                 text:'代理模式',
-                                link:'/quality/design-mode/design-proxy.md'
+                                link:'/quality/design-mode/design-proxy.html'
                             },
                             {
                                 text:'装饰器模式',
-                                link:'/quality/design-mode/design-decorator.md'
+                                link:'/quality/design-mode/design-decorator.html'
                             }
                             
                         ]
@@ -180,10 +192,18 @@ module.exports = {
         sidebar: {
             '/java/': [
                 {
+                    text: 'Java 集合',
+                    collapsible: true,
+                    children: [
+                        '/java/java-collection/java-collection-overview.html',
+                        '/java/java-collection/java-collection-list.html'
+                    ]
+                },
+                {
                     text: 'Java IO 模型',
                     collapsible: true,
                     children:[
-                        '/java/java-io/Java IO 前置知识.md',
+                        '/java/java-io/Java IO 前置知识.html',
                         '/java/java-io/Java BIO.md'
                     ]
                 },
@@ -191,15 +211,15 @@ module.exports = {
                     text: 'Java 并发编程',
                     collapsible: true,
                     children:[
-                        '/java/java-concurrent/Java并发基础.md'
+                        '/java/java-concurrent/Java并发基础.html'
                     ]
                 },
                 {
                     text: 'JVM概览',
                     collapsible: true,
                     children:[
-                        '/java/java-jvm/JVM概览.md',
-                        '/java/java-jvm/JVM类加载器.md'
+                        '/java/java-jvm/JVM概览.html',
+                        '/java/java-jvm/JVM类加载器.html'
                     ]
                 }
             ],
@@ -225,10 +245,10 @@ module.exports = {
                 {
                     text: '微服务架构',
                     children:[
-                        '/spring-cloud/spring-cloud-overview.md',
-                        '/spring-cloud/spring-cloud-alibaba-nacos.md',
-                        '/spring-cloud/spring-cloud-alibaba-sentinel.md',
-                        '/spring-cloud/spring-cloud-alibaba-seate.md'
+                        '/spring-cloud/spring-cloud-overview.html',
+                        '/spring-cloud/spring-cloud-alibaba-nacos.html',
+                        '/spring-cloud/spring-cloud-alibaba-sentinel.html',
+                        '/spring-cloud/spring-cloud-alibaba-seate.html'
                     ]
                 },
                 {
@@ -242,10 +262,10 @@ module.exports = {
                 {
                     text: 'MySQL',
                     children:[
-                       '/database/mysql/mysql-base.md',
-                       "/database/mysql/mysql-advance.md",
-                       "/database/mysql/mysql-devops.md",
-                       "/database/mysql/mysql-apply.md"
+                       '/database/mysql/mysql-base.html',
+                       "/database/mysql/mysql-advance.html",
+                       "/database/mysql/mysql-devops.html",
+                       "/database/mysql/mysql-apply.html"
                     ]
                 }
             ],
@@ -253,8 +273,8 @@ module.exports = {
                 {
                     text:'设计模式',
                     children:[
-                        '/quality/design-mode/design-proxy.md',
-                        '/quality/design-mode/design-decorator.md'
+                        '/quality/design-mode/design-proxy.html',
+                        '/quality/design-mode/design-decorator.html'
                     ]
                 }
             ],

@@ -69,11 +69,11 @@ xxx.ibd：xxx代表的是表名，innoDB引擎的每张表都会对应这样一�
 show variables like 'innodb_file_per_table';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426095518142.png" alt="image-20220426095518142" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426095518142.png" alt="image-20220426095518142" style="zoom:50%;" />
 
 如果该参数开启，代表对于InnoDB引擎的表，每一张表都对应一个ibd文件。 我们直接打开MySQL的数据存放目录： C:\ProgramData\MySQL\MySQL Server 8.0\Data ， 这个目录下有很多文件夹，不同的文件夹代表不同的数据库，我们直接打开itcast文件夹。
 
-<img src="../../../.img/mysql-advance/image-20220426095639059.png" alt="image-20220426095639059" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426095639059.png" alt="image-20220426095639059" style="zoom:50%;" />
 
 可以看到里面有很多的ibd文件，每一个ibd文件就对应一张表，比如：我们有一张表 account，就有这样的一个account.ibd文件，而在这个ibd文件中不仅存放表结构、数据，还会存放该表对应的索引信息。 而该文件是基于二进制存储的，不能直接基于记事本打开，我们可以使用mysql提供的一个指令 ibd2sdi ，通过该指令就可以从ibd文件中提取sdi信息，而sdi数据字典信息中就包含该表的表结构。
 
@@ -113,7 +113,7 @@ xxx.MYD: 存储数据
 
 xxx.MYI: 存储索引
 
-<img src="../../../.img/mysql-advance/image-20220426101050220.png" alt="image-20220426101050220" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426101050220.png" alt="image-20220426101050220" style="zoom:50%;" />
 
 #### Memory
 
@@ -184,11 +184,11 @@ MySQL的索引是在存储引擎层实现的，不同的存储引擎有不同的
 
 假如说MySQL的索引结构采用二叉树的数据结构，比较理想的结构如下：
 
-<img src="../../../.img/mysql-advance/image-20220426125410635.png" alt="image-20220426125410635" style="zoom:33%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426125410635.png" alt="image-20220426125410635" style="zoom:33%;" />
 
 如果主键是顺序插入的，则会形成一个单向链表，结构如下：
 
-<img src="../../../.img/mysql-advance/image-20220426125454233.png" alt="image-20220426125454233" style="zoom:33%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426125454233.png" alt="image-20220426125454233" style="zoom:33%;" />
 
 所以，如果选择二叉树作为索引结构，会存在以下缺点：
 
@@ -198,7 +198,7 @@ MySQL的索引是在存储引擎层实现的，不同的存储引擎有不同的
 
 此时大家可能会想到，我们可以选择红黑树，红黑树是一颗自平衡二叉树，那这样即使是顺序插入数据，最终形成的数据结构也是一颗平衡的二叉树,结构如下:
 
-<img src="../../../.img/mysql-advance/image-20220426125558905.png" alt="image-20220426125558905" style="zoom:33%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426125558905.png" alt="image-20220426125558905" style="zoom:33%;" />
 
 但是，即使如此，由于红黑树也是一颗二叉树，所以也会存在一个缺点：
 
@@ -212,7 +212,7 @@ MySQL的索引是在存储引擎层实现的，不同的存储引擎有不同的
 
 B-Tree，B树是一种多叉路衡查找树，相对于二叉树，B树每个节点可以有多个分支，即多叉。以一颗最大度数（max-degree）为5(5阶)的b-tree为例，那这个B树每个节点最多存储4个key，5个指针：
 
-<img src="../../../.img/mysql-advance/image-20220426125715435.png" alt="image-20220426125715435" style="zoom:40%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426125715435.png" alt="image-20220426125715435" style="zoom:40%;" />
 
 
 
@@ -230,7 +230,7 @@ B-Tree，B树是一种多叉路衡查找树，相对于二叉树，B树每个节
 
 B+Tree是B-Tree的变种，我们以一颗最大度数（max-degree）为4（4阶）的b+tree为例，来看一下其结构示意图：
 
-<img src="../../../.img/mysql-advance/image-20220426125836198.png" alt="image-20220426125836198" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426125836198.png" alt="image-20220426125836198" style="zoom:50%;" />
 
 我们可以看到，两部分：
 
@@ -254,7 +254,7 @@ B+Tree是B-Tree的变种，我们以一颗最大度数（max-degree）为4（4�
 
 MySQL索引数据结构对经典的B+Tree进行了优化。在原B+Tree的基础上，增加一个指向相邻叶子节点的链表指针，就形成了带有顺序指针的B+Tree，提高区间访问的性能，利于排序。
 
-<img src="../../../.img/mysql-advance/image-20220426130002472.png" alt="image-20220426130002472" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426130002472.png" alt="image-20220426130002472" style="zoom:50%;" />
 
 #### Hash
 
@@ -264,11 +264,11 @@ MySQL中除了支持B+Tree索引，还支持一种索引类型---Hash索引。
 
 哈希索引就是采用一定的hash算法，将键值换算成新的hash值，映射到对应的槽位上，然后存储在hash表中。
 
-<img src="../../../.img/mysql-advance/image-20220426130112307.png" alt="image-20220426130112307" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426130112307.png" alt="image-20220426130112307" style="zoom:50%;" />
 
 如果两个(或多个)键值，映射到一个相同的槽位上，他们就产生了hash冲突（也称为hash碰撞），可以通过链表来解决。
 
-<img src="../../../.img/mysql-advance/image-20220426130147436.png" alt="image-20220426130147436" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426130147436.png" alt="image-20220426130147436" style="zoom:50%;" />
 
 ##### 特点
 
@@ -322,7 +322,7 @@ MySQL中除了支持B+Tree索引，还支持一种索引类型---Hash索引。
 
 聚集索引和二级索引的具体结构如下：
 
-<img src="../../../.img/mysql-advance/image-20220426132101688.png" alt="image-20220426132101688" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426132101688.png" alt="image-20220426132101688" style="zoom:50%;" />
 
 - 聚集索引的叶子节点下挂的是这一行的数据 。
 
@@ -332,7 +332,7 @@ MySQL中除了支持B+Tree索引，还支持一种索引类型---Hash索引。
 
 接下来，我们来分析一下，当我们执行如下的SQL语句时，具体的查找过程是什么样子的。
 
-<img src="../../../.img/mysql-advance/image-20220426132221890.png" alt="image-20220426132221890" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426132221890.png" alt="image-20220426132221890" style="zoom:50%;" />
 
 具体过程如下: 
 
@@ -416,7 +416,7 @@ MySQL 客户端连接成功后，通过 show [session|global] status 命令可�
 SHOW GLOBAL STATUS LIKE 'Com_______'; 
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426133035695.png" alt="image-20220426133035695" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426133035695.png" alt="image-20220426133035695" style="zoom:50%;" />
 
 Com_delete: 删除次数
 
@@ -434,7 +434,7 @@ Com_update: 更新次数
 
 MySQL的慢查询日志默认没有开启，我们可以查看一下系统变量 slow_query_log。
 
-<img src="../../../.img/mysql-advance/image-20220426133244664.png" alt="image-20220426133244664" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426133244664.png" alt="image-20220426133244664" style="zoom:50%;" />
 
 如果要开启慢查询日志，需要在MySQL的配置文件（/etc/my.cnf）中配置如下信息：
 
@@ -464,13 +464,13 @@ select * from tb_user; -- 这条SQL执行效率比较高, 执行耗时 0.00sec
 select count(*) from tb_sku; -- 由于tb_sku表中, 预先存入了1000w的记录, count一次,耗时 13.35sec
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426133553213.png" alt="image-20220426133553213" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426133553213.png" alt="image-20220426133553213" style="zoom:50%;" />
 
 **检查慢查询日志**
 
 最终我们发现，在慢查询日志中，只会记录执行时间超多我们预设时间（2s）的SQL，执行较快的SQL是不会记录的。那这样，通过慢查询日志，就可以定位出执行效率比较低的SQL，从而有针对性的进行优化。
 
-<img src="../../../.img/mysql-advance/image-20220426133716953.png" alt="image-20220426133716953" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426133716953.png" alt="image-20220426133716953" style="zoom:50%;" />
 
 
 
@@ -484,7 +484,7 @@ show profiles 能够在做SQL优化时帮助我们了解时间都耗费到哪里
 SELECT @@have_profiling ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426133851894.png" alt="image-20220426133851894" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426133851894.png" alt="image-20220426133851894" style="zoom:50%;" />
 
 可以看到，当前MySQL是支持 profile操作的，但是开关是关闭的。可以通过set语句在session/global级别开启profiling：
 
@@ -514,11 +514,11 @@ show profile cpu for query query_id;
 
 查看每一条SQL的耗时情况: 
 
-<img src="../../../.img/mysql-advance/image-20220426134116001.png" alt="image-20220426134116001" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426134116001.png" alt="image-20220426134116001" style="zoom:50%;" />
 
 查看指定SQL各个阶段的耗时情况 :
 
-<img src="../../../.img/mysql-advance/image-20220426134155085.png" alt="image-20220426134155085" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426134155085.png" alt="image-20220426134155085" style="zoom:50%;" />
 
 #### explain
 
@@ -531,7 +531,7 @@ EXPLAIN 或者 DESC命令获取 MySQL 如何执行 SELECT 语句的信息，包�
 explain / desc EXPLAIN SELECT 字段列表 FROM 表名 WHERE 条件 ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426134818605.png" alt="image-20220426134818605" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426134818605.png" alt="image-20220426134818605" style="zoom:50%;" />
 
 Explain 执行计划中各个字段的含义:
 
@@ -554,11 +554,11 @@ Explain 执行计划中各个字段的含义:
 
 以 tb_user 表为例，我们先来查看一下之前 tb_user 表所创建的索引。
 
-<img src="../../../.img/mysql-advance/image-20220426135255321.png" alt="image-20220426135255321" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135255321.png" alt="image-20220426135255321" style="zoom:50%;" />
 
 在 tb_user 表中，有一个联合索引，这个联合索引涉及到三个字段，顺序分别为：profession，age，status。
 
-对于最左前缀法则指的是，查询时，最左变的列，也就是profession必须存在，否则索引全部失效。而且中间不能跳过某一列，否则该列后面的字段索引将失效。 接下来，我们来演示几组案例，看一下
+对于最左前缀法则指的是，查询时，最左边的列，也就是profession必须存在，否则索引全部失效。而且中间不能跳过某一列，否则该列后面的字段索引将失效。 接下来，我们来演示几组案例，看一下
 
 具体的执行计划：
 
@@ -566,19 +566,19 @@ Explain 执行计划中各个字段的含义:
 explain select * from tb_user where profession = '软件工程' and age = 31 and status = '0';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426135401081.png" alt="image-20220426135401081" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135401081.png" alt="image-20220426135401081" style="zoom:50%;" />
 
 ```sql
 explain select * from tb_user where profession = '软件工程' and age = 31;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426135541380.png" alt="image-20220426135541380" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135541380.png" alt="image-20220426135541380" style="zoom:50%;" />
 
 ```sql
 explain select * from tb_user where profession = '软件工程';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426135632221.png" alt="image-20220426135632221" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135632221.png" alt="image-20220426135632221" style="zoom:50%;" />
 
 以上的这三组测试中，我们发现只要联合索引最左边的字段 profession存在，索引就会生效，只不过索引的长度不同。 而且由以上三组测试，我们也可以推测出profession字段索引长度为47、age字段索引长度为2、status字段索引长度为5。
 
@@ -586,13 +586,13 @@ explain select * from tb_user where profession = '软件工程';
 explain select * from tb_user where age = 31 and status = '0'; 
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426135730402.png" alt="image-20220426135730402" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135730402.png" alt="image-20220426135730402" style="zoom:50%;" />
 
 ```sql
 explain select * from tb_user where status = '0';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426135807560.png" alt="image-20220426135807560" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135807560.png" alt="image-20220426135807560" style="zoom:50%;" />
 
 而通过上面的这两组测试，我们也可以看到索引并未生效，原因是因为不满足最左前缀法则，联合索引最左边的列profession不存在。
 
@@ -600,7 +600,7 @@ explain select * from tb_user where status = '0';
 explain select * from tb_user where profession = '软件工程' and status = '0';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426135900534.png" alt="image-20220426135900534" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426135900534.png" alt="image-20220426135900534" style="zoom:50%;" />
 
 上述的SQL查询时，存在profession字段，最左边的列是存在的，索引满足最左前缀法则的基本条件。但是查询时，跳过了age这个列，所以后面的列索引是不会使用的，也就是索引部分生效，所以索引的长度就是47。
 
@@ -610,7 +610,7 @@ explain select * from tb_user where profession = '软件工程' and status = '0'
 >
 > 当执行SQL语句: explain select * from tb_user where age = 31 and status = '0' and profession = '软件工程'； 时，是否满足最左前缀法则，走不走上述的联合索引，索引长度？
 >
-> <img src="../../../.img/mysql-advance/image-20220426140032442.png" alt="image-20220426140032442" style="zoom:50%;float:left" />
+> <img src="../../../.img/mysql-advance/image-20220426140032442.png" alt="image-20220426140032442" style="zoom:50%;" />
 >
 > 可以看到，是完全满足最左前缀法则的，索引长度54，联合索引是生效的。
 >
@@ -626,7 +626,7 @@ explain select * from tb_user where profession = '软件工程' and status = '0'
 explain select * from tb_user where profession = '软件工程' and age > 30 and status = '0';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426140210209.png" alt="image-20220426140210209" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426140210209.png" alt="image-20220426140210209" style="zoom:50%;" />
 
 当范围查询使用> 或 < 时，走联合索引了，但是索引的长度为49，就说明范围查询右边的status字段是没有走索引的。
 
@@ -654,7 +654,7 @@ explain select * from tb_user where profession = '软件工程' and age >= 30 an
 explain select * from tb_user where phone = '17799990015';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426140525159.png" alt="image-20220426140525159" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426140525159.png" alt="image-20220426140525159" style="zoom:50%;" />
 
 当根据phone字段进行函数运算操作之后，索引失效。
 
@@ -662,7 +662,7 @@ explain select * from tb_user where phone = '17799990015';
 explain select * from tb_user where substring(phone,10,2) = '15';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426140602887.png" alt="image-20220426140602887" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426140602887.png" alt="image-20220426140602887" style="zoom:50%;" />
 
 
 
@@ -677,14 +677,14 @@ explain select * from tb_user where profession = '软件工程' and age = 31 and
 explain select * from tb_user where profession = '软件工程' and age = 31 and status = 0;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426140707371.png" alt="image-20220426140707371" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426140707371.png" alt="image-20220426140707371" style="zoom:50%;" />
 
-```
+```sql
 explain select * from tb_user where phone = '17799990015';
 explain select * from tb_user where phone = 17799990015;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426140843786.png" alt="image-20220426140843786" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426140843786.png" alt="image-20220426140843786" style="zoom:50%;" />
 
 经过上面两组示例，我们会明显的发现，如果字符串不加单引号，对于查询结果，没什么影响，但是数据库存在隐式类型转换，索引将失效。
 
@@ -696,13 +696,13 @@ explain select * from tb_user where phone = 17799990015;
 
 由于下面查询语句中，都是根据profession字段查询，符合最左前缀法则，联合索引是可以生效的，我们主要看一下，模糊查询时，%加在关键字之前，和加在关键字之后的影响。
 
-```
+```sql
 explain select * from tb_user where profession like '软件%'; 
 explain select * from tb_user where profession like '%工程'; 
 explain select * from tb_user where profession like '%工%';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426141016243.png" alt="image-20220426141016243" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426141016243.png" alt="image-20220426141016243" style="zoom:50%;" />
 
 经过上述的测试，我们发现，在like模糊查询中，在关键字后面加%，索引可以生效。而如果在关键字前面加了%，索引将会失效。
 
@@ -710,24 +710,24 @@ explain select * from tb_user where profession like '%工%';
 
 用or分割开的条件， 如果or前的条件中的列有索引，而后面的列中没有索引，那么涉及的索引都不会被用到。
 
-```
+```sql
 explain select * from tb_user where id = 10 or age = 23; 
 explain select * from tb_user where phone = '17799990017' or age = 23; 
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426141147408.png" alt="image-20220426141147408" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426141147408.png" alt="image-20220426141147408" style="zoom:50%;" />
 
 由于age没有索引，所以即使id、phone有索引，索引也会失效。所以需要针对于age也要建立索引。
 
 然后，我们可以对age字段建立索引。
 
-```
+```sql
 create index idx_user_age on tb_user(age);
 ```
 
 建立了索引之后，我们再次执行上述的SQL语句，看看前后执行计划的变化。
 
-<img src="../../../.img/mysql-advance/image-20220426141312971.png" alt="image-20220426141312971" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426141312971.png" alt="image-20220426141312971" style="zoom:50%;" />
 
 最终，我们发现，当or连接的条件，左右两侧字段都有索引时，索引才会生效。
 
@@ -735,12 +735,12 @@ create index idx_user_age on tb_user(age);
 
 如果MySQL评估使用索引比全表更慢，则不使用索引。
 
-```
+```sql
 select * from tb_user where phone >= '17799990005'; 
 select * from tb_user where phone >= '17799990015';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426141420100.png" alt="image-20220426141420100" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426141420100.png" alt="image-20220426141420100" style="zoom:50%;" />
 
 经过测试我们发现，相同的SQL语句，只是传入的字段值不同，最终的执行计划也完全不一样，这是为什么呢？
 
@@ -750,16 +750,16 @@ select * from tb_user where phone >= '17799990015';
 
 执行如下两条语句 ：
 
-```
+```sql
 explain select * from tb_user where profession is null; 
 explain select * from tb_user where profession is not null;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426141550959.png" alt="image-20220426141550959" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426141550959.png" alt="image-20220426141550959" style="zoom:50%;" />
 
 接下来，我们做一个操作将profession字段值全部更新为null。然后，再次执行上述的两条SQL，查看SQL语句的执行计划。
 
-<img src="../../../.img/mysql-advance/image-20220426141639442.png" alt="image-20220426141639442" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426141639442.png" alt="image-20220426141639442" style="zoom:50%;" />
 
 最终我们看到，一模一样的SQL语句，先后执行了两次，结果查询计划是不一样的，为什么会出现这种现象，这是和数据库的数据分布有关系。查询时MySQL会评估，走索引快，还是全表扫描快，如果全表扫描更快，则放弃索引走全表扫描。 因此，is null 、is not null是否走索引，得具体情况具体分析，并不是固定的。
 
@@ -767,11 +767,11 @@ explain select * from tb_user where profession is not null;
 
 目前tb_user表的数据情况如下:
 
-<img src="../../../.img/mysql-advance/image-20220426142000554.png" alt="image-20220426142000554" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426142000554.png" alt="image-20220426142000554" style="zoom:50%;" />
 
 索引情况如下:
 
-<img src="../../../.img/mysql-advance/image-20220426142104568.png" alt="image-20220426142104568" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426142104568.png" alt="image-20220426142104568" style="zoom:50%;" />
 
 把上述的 idx_user_age, idx_email 这两个之前测试使用过的索引直接删除。
 
@@ -782,7 +782,7 @@ drop index idx_email on tb_user;
 
 执行SQL : explain select * from tb_user where profession = '软件工程';
 
-<img src="../../../.img/mysql-advance/image-20220426144116562.png" alt="image-20220426144116562" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426144116562.png" alt="image-20220426144116562" style="zoom:50%;" />
 
 查询走了联合索引。
 
@@ -790,7 +790,7 @@ drop index idx_email on tb_user;
 
 创建单列索引后，再次执行A中的SQL语句，查看执行计划，看看到底走哪个索引。
 
-<img src="../../../.img/mysql-advance/image-20220426144253275.png" alt="image-20220426144253275" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426144253275.png" alt="image-20220426144253275" style="zoom:50%;" />
 
 测试结果，我们可以看到，possible_keys中 idx_user_pro_age_sta,idx_user_pro 这两个索引都可能用到，最终MySQL选择了idx_user_pro_age_sta索引。这是MySQL自动选择的结果。
 
@@ -800,19 +800,19 @@ SQL提示，是优化数据库的一个重要手段，简单来说，就是在SQ
 
 1). use index ： 建议MySQL使用哪一个索引完成此次查询（仅仅是建议，mysql内部还会再次进行评估）。
 
-```
+```sql
 explain select * from tb_user use index(idx_user_pro) where profession = '软件工程';
 ```
 
 2). ignore index ： 忽略指定的索引。
 
-```
+```sql
 explain select * from tb_user ignore index(idx_user_pro) where profession = '软件工程';
 ```
 
 3). force index ： 强制使用索引。
 
-```
+```sql
 explain select * from tb_user force index(idx_user_pro) where profession = '软件工程';
 ```
 
@@ -824,7 +824,7 @@ explain select * from tb_user force index(idx_user_pro) where profession = '软�
 
 接下来，我们来看一组SQL的执行计划，看看执行计划的差别，然后再来具体做一个解析。
 
-```
+```sql
 explain select id, profession from tb_user where profession = '软件工程' and age = 31 and status = '0' ; 
 explain select id,profession,age, status from tb_user where profession = '软件工程' and age = 31 and status = '0' ; 
 explain select id,profession,age, status, name from tb_user where profession = '软 件工程' and age = 31 and status = '0' ;
@@ -833,7 +833,7 @@ explain select * from tb_user where profession = '软件工程' and age = 31 and
 
 上述这几条SQL的执行结果为:
 
-<img src="../../../.img/mysql-advance/image-20220426144634023.png" alt="image-20220426144634023" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426144634023.png" alt="image-20220426144634023" style="zoom:50%;" />
 
 从上述的执行计划我们可以看到，这四条SQL语句的执行计划前面所有的指标都是一样的，看不出来差异。但是此时，我们主要关注的是后面的Extra，前面两天SQL的结果为 Using where; UsingIndex ; 而后面两条SQL的结果为: Using index condition 。
 
@@ -1034,45 +1034,45 @@ load data local infile '/root/sql1.log' into table tb_user fields terminated by 
 
 ①. 从磁盘中申请页， 主键顺序插入
 
-<img src="../../../.img/mysql-advance/image-20220426151017038.png" alt="image-20220426151017038" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151017038.png" alt="image-20220426151017038" style="zoom:50%;" />
 
 ②. 第一个页没有满，继续往第一页插入
 
-<img src="../../../.img/mysql-advance/image-20220426151103028.png" alt="image-20220426151103028" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151103028.png" alt="image-20220426151103028" style="zoom:50%;" />
 
 ③. 当第一个也写满之后，再写入第二个页，页与页之间会通过指针连接
 
-<img src="../../../.img/mysql-advance/image-20220426151138823.png" alt="image-20220426151138823" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151138823.png" alt="image-20220426151138823" style="zoom:50%;" />
 
 ④. 当第二页写满了，再往第三页写入
 
-<img src="../../../.img/mysql-advance/image-20220426151214000.png" alt="image-20220426151214000" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151214000.png" alt="image-20220426151214000" style="zoom:50%;" />
 
 ##### B. 主键乱序插入效果
 
 ①. 加入1#,2#页都已经写满了，存放了如图所示的数据
 
-<img src="../../../.img/mysql-advance/image-20220426151343299.png" alt="image-20220426151343299" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151343299.png" alt="image-20220426151343299" style="zoom:50%;" />
 
 ②. 此时再插入id为50的记录，我们来看看会发生什么现象，会再次开启一个页，写入新的页中吗？
 
-<img src="../../../.img/mysql-advance/image-20220426151436767.png" alt="image-20220426151436767" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151436767.png" alt="image-20220426151436767" style="zoom:50%;" />
 
 不会。因为，索引结构的叶子节点是有顺序的。按照顺序，应该存储在47之后。
 
-<img src="../../../.img/mysql-advance/image-20220426151507616.png" alt="image-20220426151507616" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151507616.png" alt="image-20220426151507616" style="zoom:50%;" />
 
 但是47所在的1#页，已经写满了，存储不了50对应的数据了。 那么此时会开辟一个新的页 3#。
 
-<img src="../../../.img/mysql-advance/image-20220426151533629.png" alt="image-20220426151533629" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151533629.png" alt="image-20220426151533629" style="zoom:50%;" />
 
 但是并不会直接将50存入3#页，而是会将1#页后一半的数据，移动到3#页，然后在3#页，插入50。
 
-<img src="../../../.img/mysql-advance/image-20220426151559527.png" alt="image-20220426151559527" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151559527.png" alt="image-20220426151559527" style="zoom:50%;" />
 
 移动数据，并插入id为50的数据之后，那么此时，这三个页之间的数据顺序是有问题的。 1#的下一个页，应该是3#， 3#的下一个页是2#。 所以，此时，需要重新设置链表指针。
 
-<img src="../../../.img/mysql-advance/image-20220426151629960.png" alt="image-20220426151629960" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151629960.png" alt="image-20220426151629960" style="zoom:50%;" />
 
 上述的这种现象，称之为 "页分裂"，是比较耗费性能的操作。
 
@@ -1080,25 +1080,25 @@ load data local infile '/root/sql1.log' into table tb_user fields terminated by 
 
 目前表中已有数据的索引结构(叶子节点)如下：
 
-<img src="../../../.img/mysql-advance/image-20220426151753238.png" alt="image-20220426151753238" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151753238.png" alt="image-20220426151753238" style="zoom:50%;" />
 
 当我们对已有数据进行删除时，具体的效果如下:
 
 当删除一行记录时，实际上记录并没有被物理删除，只是记录被标记（flaged）为删除并且它的空间变得允许被其他记录声明使用。
 
-<img src="../../../.img/mysql-advance/image-20220426151816649.png" alt="image-20220426151816649" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151816649.png" alt="image-20220426151816649" style="zoom:50%;" />
 
 当我们继续删除2#的数据记录
 
-<img src="../../../.img/mysql-advance/image-20220426151833513.png" alt="image-20220426151833513" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151833513.png" alt="image-20220426151833513" style="zoom:50%;" />
 
 当页中删除的记录达到 MERGE_THRESHOLD（默认为页的50%），InnoDB会开始寻找最靠近的页（前或后）看看是否可以将两个页合并以优化空间使用。
 
-<img src="../../../.img/mysql-advance/image-20220426151913875.png" alt="image-20220426151913875" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151913875.png" alt="image-20220426151913875" style="zoom:50%;" />
 
 删除数据，并将页合并之后，再次插入新的数据21，则直接插入3#页
 
-<img src="../../../.img/mysql-advance/image-20220426151931681.png" alt="image-20220426151931681" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426151931681.png" alt="image-20220426151931681" style="zoom:50%;" />
 
 这个里面所发生的合并页的这个现象，就称之为 "页合并"。
 
@@ -1117,7 +1117,7 @@ load data local infile '/root/sql1.log' into table tb_user fields terminated by 
 
 - 业务操作时，避免对主键的修改。
 
-<img src="../../../.img/mysql-advance/image-20220426152045680.png" alt="image-20220426152045680" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426152045680.png" alt="image-20220426152045680" style="zoom:50%;" />
 
 
 
@@ -1135,7 +1135,7 @@ MySQL的排序，有两种方式：
 
 #### 查看索引
 
-<img src="../../../.img/mysql-advance/image-20220426152313693.png" alt="image-20220426152313693" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426152313693.png" alt="image-20220426152313693" style="zoom:50%;" />
 
 #### 执行排序SQL
 
@@ -1143,19 +1143,19 @@ MySQL的排序，有两种方式：
 explain select id,age,phone from tb_user order by age ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426152358277.png" alt="image-20220426152358277" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426152358277.png" alt="image-20220426152358277" style="zoom:50%;" />
 
 ```sql
 explain select id,age,phone from tb_user order by age, phone ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426152439578.png" alt="image-20220426152439578" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426152439578.png" alt="image-20220426152439578" style="zoom:50%;" />
 
 由于 age, phone 都没有索引，所以此时再排序时，出现Using filesort， 排序性能较低。
 
 #### 创建索引
 
-```
+```sql
 -- 创建索引 
 create index idx_user_age_phone_aa on tb_user(age,phone);
 ```
@@ -1166,17 +1166,17 @@ create index idx_user_age_phone_aa on tb_user(age,phone);
 
  创建索引后，根据age, phone进行升序排序
 
-```
+```sql
 explain select id,age,phone from tb_user order by age; 
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426153204338.png" alt="image-20220426153204338" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153204338.png" alt="image-20220426153204338" style="zoom:50%;" />
 
-```
+```sql
 explain select id,age,phone from tb_user order by age , phone; 
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426153230444.png" alt="image-20220426153230444" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153230444.png" alt="image-20220426153230444" style="zoom:50%;" />
 
 建立索引之后，再次进行排序查询，就由原来的Using filesort， 变为了 Using index，性能就是比较高的了。
 
@@ -1186,11 +1186,11 @@ explain select id,age,phone from tb_user order by age , phone;
 
 创建索引后，根据age, phone进行降序排序
 
-```
+```sql
 explain select id,age,phone from tb_user order by age desc , phone desc ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426153351875.png" alt="image-20220426153351875" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153351875.png" alt="image-20220426153351875" style="zoom:50%;" />
 
 也出现 Using index， 但是此时Extra中出现了 Backward index scan，这个代表反向扫描索引，因为在MySQL中我们创建的索引，默认索引的叶子节点是从小到大排序的，而此时我们查询排序时，是从大到小，所以，在扫描时，就是反向扫描，就会出现 Backward index scan。 在MySQL8版本中，支持降序索引，我们也可以创建降序索引。
 
@@ -1198,27 +1198,27 @@ explain select id,age,phone from tb_user order by age desc , phone desc ;
 
 根据phone，age进行升序排序，phone在前，age在后。
 
-```
+```sql
 explain select id,age,phone from tb_user order by phone , age;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426153508957.png" alt="image-20220426153508957" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153508957.png" alt="image-20220426153508957" style="zoom:50%;" />
 
 排序时,也需要满足最左前缀法则,否则也会出现 filesort。因为在创建索引的时候， age是第一个字段，phone是第二个字段，所以排序时，也就该按照这个顺序来，否则就会出现 Using filesort。
 
 根据age, phone进行降序一个升序，一个降序
 
-```
+```sql
 explain select id,age,phone from tb_user order by age asc , phone desc ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426153619040.png" alt="image-20220426153619040" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153619040.png" alt="image-20220426153619040" style="zoom:50%;" />
 
 因为创建索引时，如果未指定顺序，默认都是按照升序排序的，而查询时，一个升序，一个降序，此时就会出现Using filesort。
 
 为了解决上述的问题，我们可以创建一个索引，这个联合索引中 age 升序排序，phone 倒序排序。
 
-```
+```sql
 create index idx_user_age_phone_ad on tb_user(age asc ,phone desc);
 ```
 
@@ -1226,9 +1226,9 @@ create index idx_user_age_phone_ad on tb_user(age asc ,phone desc);
 
 升序/降序联合索引结构图示: 
 
-<img src="../../../.img/mysql-advance/image-20220426153729688.png" alt="image-20220426153729688" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153729688.png" alt="image-20220426153729688" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220426153740747.png" alt="image-20220426153740747" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426153740747.png" alt="image-20220426153740747" style="zoom:50%;" />
 
 #### 总结
 
@@ -1250,33 +1250,33 @@ D. 如果不可避免的出现filesort，大数据量排序时，可以适当增
 
 首先我们先将 tb_user 表的索引全部删除掉 。
 
-<img src="../../../.img/mysql-advance/image-20220426154028829.png" alt="image-20220426154028829" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426154028829.png" alt="image-20220426154028829" style="zoom:50%;" />
 
 接下来，在没有索引的情况下，执行如下SQL，查询执行计划：
 
-```
+```sql
 explain select profession , count(*) from tb_user group by profession ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426154100621.png" alt="image-20220426154100621" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426154100621.png" alt="image-20220426154100621" style="zoom:50%;" />
 
 然后，我们在针对于 profession ， age， status 创建一个联合索引。
 
-```
+```sql
 create index idx_user_pro_age_sta on tb_user(profession , age , status); 
 ```
 
 紧接着，再执行前面相同的SQL查看执行计划。
 
-```
+```sql
 explain select profession , count(*) from tb_user group by profession ;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220426154150695.png" alt="image-20220426154150695" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426154150695.png" alt="image-20220426154150695" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220426154257324.png" alt="image-20220426154257324" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426154257324.png" alt="image-20220426154257324" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220426154316395.png" alt="image-20220426154316395" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426154316395.png" alt="image-20220426154316395" style="zoom:50%;" />
 
 我们发现，如果仅仅根据age分组，就会出现 Using temporary ；而如果是 根据profession,age两个字段同时分组，则不会出现 Using temporary。原因是因为对于分组操作，在联合索引中，也是符合最左前缀法则的。
 
@@ -1296,7 +1296,7 @@ explain select profession , count(*) from tb_user group by profession ;
 
 我们一起来看看执行limit分页查询耗时对比：
 
-<img src="../../../.img/mysql-advance/image-20220426154659445.png" alt="image-20220426154659445" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426154659445.png" alt="image-20220426154659445" style="zoom:50%;" />
 
 通过测试我们会看到，越往后，分页查询效率越低，这就是分页查询的问题所在。
 
@@ -1395,7 +1395,7 @@ MySQL中的锁，按照锁的粒度分，分为以下三类：
 
 假设在数据库中存在这样三张表: tb_stock 库存表，tb_order 订单表，tb_orderlog 订单日志表。
 
-<img src="../../../.img/mysql-advance/image-20220426155608697.png" alt="image-20220426155608697" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426155608697.png" alt="image-20220426155608697" style="zoom:50%;" />
 
 - 在进行数据备份时，先备份了tb_stock库存表。
 
@@ -1415,7 +1415,7 @@ MySQL中的锁，按照锁的粒度分，分为以下三类：
 
 **B. 再来分析一下加了全局锁后的情况**
 
-<img src="../../../.img/mysql-advance/image-20220426155839152.png" alt="image-20220426155839152" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426155839152.png" alt="image-20220426155839152" style="zoom:50%;" />
 
 对数据库进行进行逻辑备份之前，先对整个数据库加上全局锁，一旦加了全局锁之后，其他的DDL、DML全部都处于阻塞状态，但是可以执行DQL语句，也就是处于只读状态，而数据备份就是查询操作。那么数据在进行逻辑备份的过程中，数据库中的数据就是不会发生变化的，这样就保证了数据的一致性和完整性。
 
@@ -1495,7 +1495,7 @@ A. 读锁
 
 左侧为客户端一，对指定表加了读锁，不会影响右侧客户端二的读，但是会阻塞右侧客户端的写。
 
-<img src="../../../.img/mysql-advance/image-20220426160414695.png" alt="image-20220426160414695" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426160414695.png" alt="image-20220426160414695" style="zoom:50%;" />
 
 
 
@@ -1503,7 +1503,7 @@ B. 写锁
 
 左侧为客户端一，对指定表加了写锁，会阻塞右侧客户端的读和写。
 
-<img src="../../../.img/mysql-advance/image-20220426160456612.png" alt="image-20220426160456612" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426160456612.png" alt="image-20220426160456612" style="zoom:50%;" />
 
 
 
@@ -1538,23 +1538,23 @@ MDL加锁过程是系统自动控制，无需显式使用，在访问一张表�
 
 首先客户端一，开启一个事务，然后执行DML操作，在执行DML语句时，会对涉及到的行加行锁。
 
-<img src="../../../.img/mysql-advance/image-20220426161203823.png" alt="image-20220426161203823" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426161203823.png" alt="image-20220426161203823" style="zoom:50%;" />
 
 当客户端二，想对这张表加表锁时，会检查当前表是否有对应的行锁，如果没有，则添加表锁，此时就会从第一行数据，检查到最后一行数据，效率较低。
 
-<img src="../../../.img/mysql-advance/image-20220426161235688.png" alt="image-20220426161235688" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426161235688.png" alt="image-20220426161235688" style="zoom:50%;" />
 
 有了意向锁之后 :
 
 客户端一，在执行DML操作时，会对涉及的行加行锁，同时也会对该表加上意向锁。
 
-<img src="../../../.img/mysql-advance/image-20220426161359156.png" alt="image-20220426161359156" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426161359156.png" alt="image-20220426161359156" style="zoom:50%;" />
 
 
 
 而其他客户端，在对这张表加表锁的时候，会根据该表上所加的意向锁来判定是否可以成功加表锁，而不用逐行判断行锁情况了。
 
-<img src="../../../.img/mysql-advance/image-20220426161508026.png" alt="image-20220426161508026" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426161508026.png" alt="image-20220426161508026" style="zoom:50%;" />
 
 总结：
 
@@ -1600,7 +1600,7 @@ InnoDB实现了以下两种类型的行锁：
 
 两种行锁的兼容情况如下:
 
-<img src="../../../.img/mysql-advance/image-20220426162017022.png" alt="image-20220426162017022" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426162017022.png" alt="image-20220426162017022" style="zoom:50%;" />
 
 常见的SQL语句，在执行时，所加的行锁如下：
 
@@ -1659,13 +1659,13 @@ B. 索引上的等值查询(非唯一普通索引)，向右遍历时最后一个
 
 我们知道InnoDB的B+树索引，叶子节点是有序的双向链表。 假如，我们要根据这个二级索引查询值为18的数据，并加上共享锁，我们是只锁定18这一行就可以了吗？ 并不是，因为是非唯一索引，这个结构中可能有多个18的存在，所以，在加锁时会继续往后找，找到一个不满足条件的值（当前案例中也就是29）。此时会对18加临键锁，并对29之前的间隙加锁。
 
-<img src="../../../.img/mysql-advance/image-20220426163540635.png" alt="image-20220426163540635" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426163540635.png" alt="image-20220426163540635" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220426163601381.png" alt="image-20220426163601381" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426163601381.png" alt="image-20220426163601381" style="zoom:50%;" />
 
 C. 索引上的范围查询(唯一索引)--会访问到不满足条件的第一个值为止。
 
-<img src="../../../.img/mysql-advance/image-20220426163645003.png" alt="image-20220426163645003" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220426163645003.png" alt="image-20220426163645003" style="zoom:50%;" />
 
 查询的条件为id>=19，并添加共享锁。 此时我们可以根据数据库表中现有的数据，将数据分为三个部分：
 
@@ -1685,7 +1685,7 @@ C. 索引上的范围查询(唯一索引)--会访问到不满足条件的第一�
 
 InnoDB的逻辑存储结构如下图所示:
 
-<img src="../../../.img/mysql-advance/image-20220427080239097.png" alt="image-20220427080239097" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427080239097.png" alt="image-20220427080239097" style="zoom:50%;" />
 
 **表空间 ：**表空间是InnoDB存储引擎逻辑结构的最高层， 如果用户启用了参数 innodb_file_per_table(在8.0版本中默认开启) ，则每张表都会有一个表空间（xxx.ibd），一个mysql实例可以对应多个表空间，用于存储记录、索引等数据。
 
@@ -1705,7 +1705,7 @@ InnoDB的逻辑存储结构如下图所示:
 
 MySQL5.5 版本开始，默认使用InnoDB存储引擎，它擅长事务处理，具有崩溃恢复特性，在日常开发中使用非常广泛。下面是InnoDB架构图，左侧为内存结构，右侧为磁盘结构。
 
-<img src="../../../.img/mysql-advance/image-20220427080814476.png" alt="image-20220427080814476" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427080814476.png" alt="image-20220427080814476" style="zoom:50%;" />
 
 
 
@@ -1734,7 +1734,7 @@ InnoDB存储引擎基于磁盘文件存储，访问物理硬盘和在内存中�
  show variables like 'innodb_buffer_pool_size';
 ```
 
-<img src="../../../.img/mysql-advance/image-20220427081105843.png" alt="image-20220427081105843" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427081105843.png" alt="image-20220427081105843" style="zoom:50%;" />
 
 #####  Change Buffer
 
@@ -1744,7 +1744,7 @@ Change Buffer的意义是什么呢?
 
 先来看一幅图，这个是二级索引的结构图：
 
-<img src="../../../.img/mysql-advance/image-20220427081201997.png" alt="image-20220427081201997" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427081201997.png" alt="image-20220427081201997" style="zoom:50%;" />
 
 与聚集索引不同，二级索引通常是非唯一的，并且以相对随机的顺序插入二级索引。同样，删除和更新可能会影响索引树中不相邻的二级索引页，如果每一次都操作磁盘，会造成大量的磁盘IO。有了ChangeBuffer之后，我们可以在缓冲池中进行合并处理，减少磁盘IO。
 
@@ -1774,7 +1774,7 @@ innodb_flush_log_at_trx_commit：日志刷新到磁盘时机，取值主要包�
 
 - 2: 日志在每次事务提交后写入，并每秒刷新到磁盘一次。
 
-<img src="../../../.img/mysql-advance/image-20220427081356587.png" alt="image-20220427081356587" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427081356587.png" alt="image-20220427081356587" style="zoom:50%;" />
 
 
 
@@ -1782,7 +1782,7 @@ innodb_flush_log_at_trx_commit：日志刷新到磁盘时机，取值主要包�
 
 接下来，再来看看InnoDB体系结构的右边部分，也就是磁盘结构：
 
-<img src="../../../.img/mysql-advance/image-20220427081505911.png" alt="image-20220427081505911" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427081505911.png" alt="image-20220427081505911" style="zoom:50%;" />
 
 ##### System Tablespace
 
@@ -1790,7 +1790,7 @@ innodb_flush_log_at_trx_commit：日志刷新到磁盘时机，取值主要包�
 
 参数：innodb_data_file_path
 
-<img src="../../../.img/mysql-advance/image-20220427081601090.png" alt="image-20220427081601090" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427081601090.png" alt="image-20220427081601090" style="zoom:50%;" />
 
 系统表空间，默认的文件名叫 ibdata1。
 
@@ -1802,11 +1802,11 @@ innodb_flush_log_at_trx_commit：日志刷新到磁盘时机，取值主要包�
 
 开关参数：innodb_file_per_table ，该参数默认开启。
 
-<img src="../../../.img/mysql-advance/image-20220427081942107.png" alt="image-20220427081942107" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427081942107.png" alt="image-20220427081942107" style="zoom:50%;" />
 
 那也就是说，我们每创建一个表，都会产生一个表空间文件，如图：
 
-<img src="../../../.img/mysql-advance/image-20220427082018336.png" alt="image-20220427082018336" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427082018336.png" alt="image-20220427082018336" style="zoom:50%;" />
 
 
 
@@ -1820,7 +1820,7 @@ A. 创建表空间
 CREATE TABLESPACE ts_name ADD DATAFILE 'file_name' ENGINE = engine_name;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220427082223707.png" alt="image-20220427082223707" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427082223707.png" alt="image-20220427082223707" style="zoom:50%;" />
 
 B. 创建表时指定表空间
 
@@ -1828,7 +1828,7 @@ B. 创建表时指定表空间
 CREATE TABLE xxx ... TABLESPACE ts_name;
 ```
 
-<img src="../../../.img/mysql-advance/image-20220427082337252.png" alt="image-20220427082337252" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427082337252.png" alt="image-20220427082337252" style="zoom:50%;" />
 
 ##### Undo Tablespaces
 
@@ -1854,7 +1854,7 @@ InnoDB 使用会话临时表空间和全局临时表空间。存储用户创建�
 
 双写缓冲区，innoDB引擎将数据页从Buffer Pool刷新到磁盘前，先将数据页写入双写缓冲区文件中，便于系统异常时恢复数据。
 
-<img src="../../../.img/mysql-advance/image-20220427082511506.png" alt="image-20220427082511506" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427082511506.png" alt="image-20220427082511506" style="zoom:50%;" />
 
 #####  Redo Log
 
@@ -1862,7 +1862,7 @@ InnoDB 使用会话临时表空间和全局临时表空间。存储用户创建�
 
 以循环方式写入重做日志文件，涉及两个文件：
 
-<img src="../../../.img/mysql-advance/image-20220427082652621.png" alt="image-20220427082652621" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427082652621.png" alt="image-20220427082652621" style="zoom:50%;" />
 
 
 
@@ -1870,7 +1870,7 @@ InnoDB 使用会话临时表空间和全局临时表空间。存储用户创建�
 
 前面我们介绍了InnoDB的内存结构，以及磁盘结构，那么内存中我们所更新的数据，又是如何到磁盘中的呢？ 此时，就涉及到一组后台线程，接下来，就来介绍一些InnoDB中涉及到的后台线程。
 
-<img src="../../../.img/mysql-advance/image-20220427082857707.png" alt="image-20220427082857707" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427082857707.png" alt="image-20220427082857707" style="zoom:50%;" />
 
 在InnoDB的后台线程中，分为4类，分别是：Master Thread 、IO Thread、Purge Thread、Page Cleaner Thread。
 
@@ -1912,11 +1912,11 @@ TODO
 
 那实际上，我们研究事务的原理，就是研究MySQL的InnoDB引擎是如何保证事务的这四大特性的。
 
-<img src="../../../.img/mysql-advance/image-20220427083211638.png" alt="image-20220427083211638" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427083211638.png" alt="image-20220427083211638" style="zoom:50%;" />
 
 而对于这四大特性，实际上分为两个部分。 其中的原子性、一致性、持久化，实际上是由InnoDB中的两份日志来保证的，一份是redo log日志，一份是undo log日志。 而隔离性是通过数据库的锁，加上MVCC来保证的。
 
-<img src="../../../.img/mysql-advance/image-20220427083250837.png" alt="image-20220427083250837" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427083250837.png" alt="image-20220427083250837" style="zoom:50%;" />
 
 我们在讲解事务原理的时候，主要就是来研究一下redolog，undolog以及MVCC。
 
@@ -1930,11 +1930,11 @@ TODO
 
 我们知道，在InnoDB引擎中的内存结构中，主要的内存区域就是缓冲池，在缓冲池中缓存了很多的数据页。 当我们在一个事务中，执行多个增删改的操作时，InnoDB引擎会先操作缓冲池中的数据，如果缓冲区没有对应的数据，会通过后台线程将磁盘中的数据加载出来，存放在缓冲区中，然后将缓冲池中的数据修改，修改后的数据页我们称为脏页。 而脏页则会在一定的时机，通过后台线程刷新到磁盘中，从而保证缓冲区与磁盘的数据一致。 而缓冲区的脏页数据并不是实时刷新的，而是一段时间之后将缓冲区的数据刷新到磁盘中，假如刷新到磁盘的过程出错了，而提示给用户事务提交成功，而数据却没有持久化下来，这就出现问题了，没有保证事务的持久性。
 
-<img src="../../../.img/mysql-advance/image-20220427083538516.png" alt="image-20220427083538516" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427083538516.png" alt="image-20220427083538516" style="zoom:50%;" />
 
 那么，如何解决上述的问题呢？ 在InnoDB中提供了一份日志 redo log，接下来我们再来分析一下，通过redolog如何解决这个问题。
 
-<img src="../../../.img/mysql-advance/image-20220427083611859.png" alt="image-20220427083611859" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427083611859.png" alt="image-20220427083611859" style="zoom:50%;" />
 
 有了redolog之后，当对缓冲区的数据进行增删改之后，会首先将操作的数据页的变化，记录在redolog buffer中。在事务提交时，会将redo log buffer中的数据刷新到redo log磁盘文件中。过一段时间之后，如果刷新缓冲区的脏页到磁盘时，发生错误，此时就可以借助于redo log进行数据恢复，这样就保证了事务的持久性。 而如果脏页成功刷新到磁盘 或 或者涉及到的数据已经落盘，此时redolog就没有作用了，就可以删除了，所以存在的两个redolog文件是循环写的。
 
@@ -1964,7 +1964,7 @@ Undo log存储：undo log采用段的方式进行管理和记录，存放在前�
 
 测试：
 
-<img src="../../../.img/mysql-advance/image-20220427084241423.png" alt="image-20220427084241423" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427084241423.png" alt="image-20220427084241423" style="zoom:50%;" />
 
 在测试中我们可以看到，即使是在默认的RR隔离级别下，事务A中依然可以读取到事务B最新提交的内容，因为在查询语句后面加上了 lock in share mode 共享锁，此时是当前读操作。当然，当我们加排他锁的时候，也是当前读操作。
 
@@ -1980,7 +1980,7 @@ Undo log存储：undo log采用段的方式进行管理和记录，存放在前�
 
 测试:
 
-<img src="../../../.img/mysql-advance/image-20220427084502280.png" alt="image-20220427084502280" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427084502280.png" alt="image-20220427084502280" style="zoom:50%;" />
 
 在测试中,我们看到即使事务B提交了数据,事务A中也查询不到。 原因就是因为普通的select是快照读，而在当前默认的RR隔离级别下，开启事务后第一个select语句才是快照读的地方，后面执行相同的select语句都是从快照中获取数据，可能不是当前的最新数据，这样也就保证了可重复读。
 
@@ -1996,7 +1996,7 @@ Undo log存储：undo log采用段的方式进行管理和记录，存放在前�
 
 ##### 介绍
 
-<img src="../../../.img/mysql-advance/image-20220427084719578.png" alt="image-20220427084719578" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427084719578.png" alt="image-20220427084719578" style="zoom:50%;" />
 
 当我们创建了上面的这张表，我们在查看表结构的时候，就可以显式的看到这三个字段。 实际上除了这三个字段以外，InnoDB还会自动的给我们添加三个隐藏字段及其含义分别是：
 
@@ -2020,11 +2020,11 @@ ibd2sdi stu.ibd
 
 查看到的表结构信息中，有一栏 columns，在其中我们会看到处理我们建表时指定的字段以外，还有额外的两个字段 分别是：DB_TRX_ID 、 DB_ROLL_PTR ，因为该表有主键，所以没有DB_ROW_ID隐藏字段。
 
-<img src="../../../.img/mysql-advance/image-20220427090457189.png" alt="image-20220427090457189" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427090457189.png" alt="image-20220427090457189" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220427090527928.png" alt="image-20220427090527928" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427090527928.png" alt="image-20220427090527928" style="zoom:50%;" />
 
- 查看没有主键的表 employee
+查看没有主键的表 employee
 
 建表语句：
 
@@ -2052,7 +2052,7 @@ ibd2sdi employee.ibd
 
 有一张表原始数据为：
 
-<img src="../../../.img/mysql-advance/image-20220427090814049.png" alt="image-20220427090814049" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427090814049.png" alt="image-20220427090814049" style="zoom:50%;" />
 
 > DB_TRX_ID : 代表最近修改事务ID，记录插入这条记录或最后一次修改该记录的事务ID，是自增的。
 >
@@ -2062,27 +2062,27 @@ ibd2sdi employee.ibd
 
 A. 第一步
 
-<img src="../../../.img/mysql-advance/image-20220427090918139.png" alt="image-20220427090918139" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427090918139.png" alt="image-20220427090918139" style="zoom:50%;" />
 
 当事务2执行第一条修改语句时，会记录undo log日志，记录数据变更之前的样子; 然后更新记录，并且记录本次操作的事务ID，回滚指针，回滚指针用来指定如果发生回滚，回滚到哪一个版本。
 
-<img src="../../../.img/mysql-advance/image-20220427091020709.png" alt="image-20220427091020709" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427091020709.png" alt="image-20220427091020709" style="zoom:50%;" />
 
 B.第二步
 
-<img src="../../../.img/mysql-advance/image-20220427091058108.png" alt="image-20220427091058108" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427091058108.png" alt="image-20220427091058108" style="zoom:50%;" />
 
 当事务3执行第一条修改语句时，也会记录undo log日志，记录数据变更之前的样子; 然后更新记录，并且记录本次操作的事务ID，回滚指针，回滚指针用来指定如果发生回滚，回滚到哪一个版本。
 
-<img src="../../../.img/mysql-advance/image-20220427091138980.png" alt="image-20220427091138980" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427091138980.png" alt="image-20220427091138980" style="zoom:50%;" />
 
 C. 第三步
 
-<img src="../../../.img/mysql-advance/image-20220427091218848.png" alt="image-20220427091218848" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427091218848.png" alt="image-20220427091218848" style="zoom:50%;" />
 
 当事务4执行第一条修改语句时，也会记录undo log日志，记录数据变更之前的样子; 然后更新记录，并且记录本次操作的事务ID，回滚指针，回滚指针用来指定如果发生回滚，回滚到哪一个版本。
 
-<img src="../../../.img/mysql-advance/image-20220427091253293.png" alt="image-20220427091253293" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427091253293.png" alt="image-20220427091253293" style="zoom:50%;" />
 
 
 
@@ -2134,15 +2134,15 @@ RC隔离级别下，在事务中每一次执行快照读时都会生成ReadView�
 
 在事务5中，查询了两次id为30的记录，由于隔离级别为Read Committed，所以每一次进行快照读都会生成一个ReadView，那么两次生成的ReadView如下。
 
-<img src="../../../.img/mysql-advance/image-20220427093322038.png" alt="image-20220427093322038" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427093322038.png" alt="image-20220427093322038" style="zoom:50%;" />
 
 那么这两次快照读在获取数据时，就需要根据所生成的ReadView以及ReadView的版本链访问规则，到undolog版本链中匹配数据，最终决定此次快照读返回的数据。
 
 先来看第一次快照读具体的读取过程：
 
-<img src="../../../.img/mysql-advance/image-20220427093417945.png" alt="image-20220427093417945" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427093417945.png" alt="image-20220427093417945" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220427093449949.png" alt="image-20220427093449949" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427093449949.png" alt="image-20220427093449949" style="zoom:50%;" />
 
 在进行匹配时，会从undo log的版本链，从上到下进行挨个匹配，在遇到第一条复合的记录后，就直接返回了
 
@@ -2156,9 +2156,9 @@ RC隔离级别下，在事务中每一次执行快照读时都会生成ReadView�
 
 B. 再来看第二次快照读具体的读取过程:
 
-<img src="../../../.img/mysql-advance/image-20220427093417945.png" alt="image-20220427093417945" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427093417945.png" alt="image-20220427093417945" style="zoom:50%;" />
 
-<img src="../../../.img/mysql-advance/image-20220427093449949.png" alt="image-20220427093449949" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427093449949.png" alt="image-20220427093449949" style="zoom:50%;" />
 
 在进行匹配时，会从undo log的版本链，从上到下进行挨个匹配，在遇到第一条复合的记录后，就直接返回了
 
@@ -2172,13 +2172,13 @@ RR隔离级别下，仅在事务中第一次执行快照读时生成ReadView，�
 
 那MySQL是如何做到可重复读的呢? 我们简单分析一下就知道了
 
-<img src="../../../.img/mysql-advance/image-20220427095606457.png" alt="image-20220427095606457" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427095606457.png" alt="image-20220427095606457" style="zoom:50%;" />
 
 我们看到，在RR隔离级别下，只是在事务中第一次快照读时生成ReadView，后续都是复用该ReadView，那么既然ReadView都一样， ReadView的版本链匹配规则也一样， 那么最终快照读返回的结果也是一样的。
 
 所以呢，MVCC的实现原理就是通过 InnoDB表的隐藏字段、UndoLog 版本链、ReadView来实现的。而MVCC + 锁，则实现了事务的隔离性。 而一致性则是由redolog 与 undolog保证。
 
-<img src="../../../.img/mysql-advance/image-20220427095709975.png" alt="image-20220427095709975" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427095709975.png" alt="image-20220427095709975" style="zoom:50%;" />
 
 
 
@@ -2225,7 +2225,7 @@ mysqladmin 是一个执行管理操作的客户端程序。可以用它来检查
 mysqladmin --help
 ```
 
-<img src="../../../.img/mysql-advance/image-20220427101337195.png" alt="image-20220427101337195" style="zoom:50%;float:left" />
+<img src="../../../.img/mysql-advance/image-20220427101337195.png" alt="image-20220427101337195" style="zoom:50%;" />
 
 ```
 语法:

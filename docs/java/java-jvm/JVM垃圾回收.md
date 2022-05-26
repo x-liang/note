@@ -245,7 +245,7 @@ public class Test
   minor version: 0
   major version: 52
   flags: ACC_PUBLIC, ACC_SUPER
-Constant pool:  <font>这里就是这个类需要的常量，运行后，会保存到常量池中，#后面的数字也会变为真时的内存地址。</font>
+Constant pool:  这里就是这个类需要的常量，运行后，会保存到常量池中，#后面的数字也会变为真时的内存地址。
    #1 = Methodref          #6.#15         // java/lang/Object."<init>":()V
    #2 = Fieldref           #16.#17        // java/lang/System.out:Ljava/io/PrintStream;
    #3 = String             #18            // hello world
@@ -846,7 +846,7 @@ DirectByteBuffer(int cap) {                   // package-private
 
 Cleaner继承自`PhantomReference`，所以当垃圾回收器在回收`DirectByteBuffer`这个对象时，就会同步对cleaner进行回收工作；
 
-<font color="red">TODO 补充一下虚引用</font>
+TODO 补充一下虚引用
 
 Deallocator的实现
 
@@ -1560,7 +1560,7 @@ CMS主要关注点在用户体验，他的终极目标是尽量减少总体的ST
 - 无法处理浮动垃圾：初始标记后，堆内存中会产生一些新的GCRoots，在并发标记的过程中，也会存在一些标记为活动的对象变为垃圾对象的情况。这些垃圾对象在本次垃圾扫描中是无法被回收的。
 - 并发失败模式，意思就是内存回收的速度追不上内存分配的速度，导致没有内存可以分配，这时候就会暂停用户线程，全力清理垃圾，知道回收完成才恢复用户线程
   - 这里的无内存分配，可能是浮动垃圾造成的。也可能是内存碎片问题。
-  - -XX:CMSInitiatingOccupancyFraction=<N>  控制老年代的内存占用比例到达多少时，开启老年代的垃圾回收
+  - -XX:CMSInitiatingOccupancyFraction=90  控制老年代的内存占用比例到达多少时，开启老年代的垃圾回收
 
 
 

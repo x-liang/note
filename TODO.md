@@ -28,6 +28,28 @@ https://blog.csdn.net/qq_41775852/article/details/106156038
 
 
 
+JVM调优思路
+
+https://blog.51cto.com/u_15281317/3007659
+
+Redis集群架构  写的详细的文章
+
+https://blog.csdn.net/weixin_40242845/article/details/123491390
+
+
+
+Redis 事物
+
+https://segmentfault.com/a/1190000023951592
+
+
+
+Sql优化思路
+
+[MySQL慢查询优化、索引优化、以及表等优化总结 – mikechen的互联网架构](https://mikechen.cc/3305.html)
+
+
+
 
 
 收藏网站
@@ -39,6 +61,14 @@ https://www.pdai.tech/
 生成博客的工具
 
 https://vuepress.vuejs.org/zh/
+
+
+
+
+
+分析Spring cloud ribbon和Spring Cloud LoadBalance较好的文章
+
+https://www.hxstrive.com/subject/spring_cloud.htm
 
 
 

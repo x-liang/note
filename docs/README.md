@@ -2,7 +2,7 @@
 home: true
 heroImage: /logo.png
 heroText: Java 成神之路.
-tagline: slogn还没想好
+tagline: 尊严只在剑锋之上，真理只在源码之中！
 actionText: 开始探索之旅 →
 actionLink: /zh/guide/
 features:

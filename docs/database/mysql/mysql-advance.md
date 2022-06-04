@@ -411,22 +411,44 @@ DROP INDEX index_name ON table_name ;
 MySQL 客户端连接成功后，通过 show [session|global] status 命令可以提供服务器状态信息。通过如下指令，可以查看当前数据库的INSERT、UPDATE、DELETE、SELECT的访问频次：
 
 ```sql
--- session 是查看当前会话 ; 
+-- session 是查看当前会话,默认是此级别; 
 -- global 是查询全局数据 ; 
-SHOW GLOBAL STATUS LIKE 'Com_______'; 
+SHOW GLOBAL STATUS LIKE 'Com_%'; 
 ```
 
 <img src="../../../.img/mysql-advance/image-20220426133035695.png" alt="image-20220426133035695" style="zoom:50%;" />
 
-Com_delete: 删除次数
+- Com_delete: 删除次数
 
-Com_insert: 插入次数
+- Com_insert: 插入次数
 
-Com_select: 查询次数
+- Com_select: 查询次数
 
-Com_update: 更新次数
+- Com_update: 更新次数
 
-> 通过上述指令，我们可以查看到当前数据库到底是以查询为主，还是以增删改为主，从而为数据库优化提供参考依据。 如果是以增删改为主，我们可以考虑不对其进行索引的优化。 如果是以查询为主，那么就要考虑对数据库的索引进行优化了。
+通过下面两个参数可以了解事物的提交和回滚情况：
+
+- Com_commit: 事物提交次数
+- Com_rollback: 事物回滚次数
+
+下面还有几个针对InnoDB存储引擎的参数可以参考：
+
+- Innodb_row_read: Select查询返回的行数
+- Innodb_rows_inserted: 执行INSERT操作插入的行数。
+- Innodb_rows_updated: 执行UPDATE操作更新的行数
+- Innodb_rows_deleted: 执行DELETE操作删除的行数
+
+通过这几个操作可以很容易了解当前数据库是以插入更新为主，还是以查询操作为主。
+
+以下几个参数用于了解数据库的基本情况：
+
+- Connections： 试图连接MySQL服务器的次数
+- Uptime： 服务器的工作时间
+- Slow_queries: 慢查询的次数。
+
+
+
+
 
 #### 慢查询日志
 
@@ -520,6 +542,12 @@ show profile cpu for query query_id;
 
 <img src="../../../.img/mysql-advance/image-20220426134155085.png" alt="image-20220426134155085" style="zoom:50%;" />
 
+MySQL支持进一步选择all、cpu、block io、context、switch、page faults等明细类型来查看MySQL在使用什么资源上耗费了过高的时间。
+
+
+
+
+
 #### explain
 
 EXPLAIN 或者 DESC命令获取 MySQL 如何执行 SELECT 语句的信息，包括在 SELECT 语句执行过程中表如何连接和连接的顺序。
@@ -527,8 +555,8 @@ EXPLAIN 或者 DESC命令获取 MySQL 如何执行 SELECT 语句的信息，包�
 语法:
 
 ```sql
--- 直接在select语句之前加上关键字 
-explain / desc EXPLAIN SELECT 字段列表 FROM 表名 WHERE 条件 ;
+-- 直接在select语句之前加上关键字 explain / desc 
+EXPLAIN SELECT 字段列表 FROM 表名 WHERE 条件 ;
 ```
 
 <img src="../../../.img/mysql-advance/image-20220426134818605.png" alt="image-20220426134818605" style="zoom:50%;" />
@@ -538,13 +566,20 @@ Explain 执行计划中各个字段的含义:
 | 字段         | 含义                                                         |
 | ------------ | ------------------------------------------------------------ |
 | id           | select查询的序列号，表示查询中执行select子句或者是操作表的顺序(id相同，执行顺序从上到下；id不同，值越大，越先执行)。 |
-| select_type  | 表示 SELECT 的类型，常见的取值有 SIMPLE（简单表，即不使用表连接或者子查询）、PRIMARY（主查询，即外层的查询）、UNION（UNION 中的第二个或者后面的查询语句）、SUBQUERY（SELECT/WHERE之后包含了子查询）等 |
-| type         | 表示连接类型，性能由好到差的连接类型为NULL、system、const、eq_ref、ref、range、 index、all 。 |
-| possible_key | 显示可能应用在这张表上的索引，一个或多个。                   |
+| select_type  | 表示 SELECT 的类型，常见的取值有 <br>SIMPLE（简单表，即不使用表连接或者子查询）、<br/>PRIMARY（主查询，即外层的查询）、<br/>UNION（UNION 中的第二个或者后面的查询语句）、<br/>SUBQUERY（SELECT/WHERE之后包含了子查询）等 |
+| table        | 输出结果集的表                                               |
+| type         | 表示MySQL在表中找到所需行的方式，或者叫访问类型，常见类型如下：<br>type=ALL： 全表扫描，Mysql遍历全表来找到匹配行<br>type=index：索引全扫描，Mysql遍历整个索引来查询匹配的行，<br>type=range：索引范围扫描，常见于<，<=，>，>=，between等操作。<br/>type=ref：使用非唯一索引(不是UNIQUE类型的索引)扫描或唯一索引的前缀扫描，返回匹配某个单独值的记录行。<br>type=eq_ref：使用唯一索引扫描（例如：锁表连接中使用primary key或者unique key作为关联条件）<br>type=const/system：单表中只有一行匹配，查询非常迅速，例如通过primary key 或者 unique key 进行查询。<br>type=NULL：MySQL不用访问索引，就能获取结果。 |
+| possible_key | 表示查询是可能使用的索引                                     |
 | key          | 实际使用的索引，如果为NULL，则没有使用索引。                 |
 | key_len      | 表示索引中使用的字节数， 该值为索引字段最大可能长度，并非实际使用长度，在不损失精确性的前提下， 长度越短越好 。 |
 | rows         | MySQL认为必须要执行查询的行数，在innodb引擎的表中，是一个估计值，可能并不总是准确的。 |
 | filtered     | 表示返回结果的行数占需读取行数的百分比， filtered 的值越大越好。 |
+
+
+
+
+
+
 
 ### 索引使用
 

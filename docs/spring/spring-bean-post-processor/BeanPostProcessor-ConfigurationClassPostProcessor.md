@@ -1,0 +1,3 @@
+# ConfigurationClassPostProcessor
+
+这个是Spring中非常重要的一个后置处理器类，主要负责@Configuration注解的解析，

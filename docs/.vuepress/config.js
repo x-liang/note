@@ -1,11 +1,14 @@
 const { defaultTheme } = require('@vuepress/theme-default')
 
 module.exports = {
-    lang: 'zh-CN',
-    title: 'Java 成神之路',
-    description: '这是我的第一个 VuePress 站点',
+    locales:{
+        '/':{
+            lang: 'zh-CN',
+            title: 'Java 成神之路',
+            description: '这是我的第一个 VuePress 站点',
+        }
+    },
     base: "/",
-
     theme: defaultTheme({
         // 配置上边的导航栏
         navbar: [
@@ -98,9 +101,12 @@ module.exports = {
                         ]
                     },
                     {
-                        text: 'Spring 源码解析',
+                        text: 'Spring 后置处理器解析',
                         children: [
-                            
+                            {
+                                text: 'Spring 后置处理器总览',
+                                link: '/spring/spring-bean-post-processor/BeanPostProcessor-base.html'
+                            }
                         ]
                     }
 
@@ -231,13 +237,12 @@ module.exports = {
                         'test01',
                         'test02'
                     ]
-                }
-            ],
-            '/spring/spring-source/':[
+                },
                 {
-                    text: 'Spring 源码解析',
+                    text: 'Spring 后置处理器',
                     children:[
-
+                        '/spring/spring-bean-post-processor/BeanPostProcessor-base.html',
+                        '/spring/spring-bean-post-processor/BeanPostProcessor-ConfigurationClassPostProcessor.html'
                     ]
                 }
             ],

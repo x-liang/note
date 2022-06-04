@@ -48,9 +48,9 @@ Sql优化思路
 
 [MySQL慢查询优化、索引优化、以及表等优化总结 – mikechen的互联网架构](https://mikechen.cc/3305.html)
 
+sql join
 
-
-
+https://segmentfault.com/a/1190000015572505
 
 收藏网站
 
@@ -69,6 +69,14 @@ https://vuepress.vuejs.org/zh/
 分析Spring cloud ribbon和Spring Cloud LoadBalance较好的文章
 
 https://www.hxstrive.com/subject/spring_cloud.htm
+
+https://www.cnblogs.com/wuzhenzhao/p/13680807.html
+
+https://www.cnblogs.com/wuzhenzhao/p/13672916.html
+
+https://blog.csdn.net/qq_33591903/article/details/119618198
+
+https://www.jianshu.com/p/8775406565ca
 
 
 
@@ -90,3 +98,12 @@ https://blog.csdn.net/weixin_43001336/article/details/122852708
 
 死锁问题排查
 
+
+
+
+
+OAuth2
+
+https://zhuanlan.zhihu.com/p/110127600
+
+https://www.cnblogs.com/chengxy-nds/p/13261131.html

@@ -1,3 +1,6 @@
 :root {
 	--content-width: 60%;
+	.theme-default-content>p {
+		text-indent: 2em;
+	}
 }

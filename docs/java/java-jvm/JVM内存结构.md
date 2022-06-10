@@ -6,7 +6,7 @@
 
 Java 虚拟机在执行 Java 程序的过程中会把它管理的内存划分为若干个不同的数据区域。每个区域都有各自的作用。JVM 的运行时数据区主要包括：**堆、栈、方法区、程序计数器**等。而 JVM 的优化问题主要在线程共享的数据区中：**堆、方法区**。
 
-<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/jvm-memory.png" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/jvm-memory.png" alt="img" style="zoom:100%;" />
 
 ### 程序计数器
 
@@ -174,7 +174,7 @@ JVM虚拟机栈的大小可以通过参数来指定    **-Xss size**
 > 1.  MetaSpaceSize：初始化元空间大小，控制发生GC阈值
 > 2.  MaxMetaspaceSize ： 限制元空间大小上限，防止异常占用过多物理内存
 >
-> <img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/image-20220510230231970.png" alt="image-20220510230231970" style="zoom:50%;float:left" />
+> <img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/image-20220510230231970.png" alt="image-20220510230231970" style="zoom:50%;" />
 
 
 
@@ -186,7 +186,7 @@ Class文件中除了类的版本，字段，方法，接口等，还有常量池
 
 注：JDK8以后，常量池保存在堆中。
 
-<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/jvm-memory-method-constant.png" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/jvm-memory-method-constant.png" alt="img" style="zoom:100%;" />
 
 优点：
 
@@ -603,11 +603,11 @@ System.out.println(x1 == x2);
 
 Java 8 中的存储位置：
 
-<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/image-20220511132237266.png" alt="image-20220511132237266" style="zoom:40%;float:left" />
+<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/image-20220511132237266.png" alt="image-20220511132237266" style="zoom:40%;" />
 
 java 6 中的存储位置：
 
-<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/image-20220511132330620.png" alt="image-20220511132330620" style="zoom:40%;float:left" />
+<img src="../../../.img/JVM%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84/image-20220511132330620.png" alt="image-20220511132330620" style="zoom:40%;" />
 
 将串池转移到堆内存后，更有利于内存的回收
 

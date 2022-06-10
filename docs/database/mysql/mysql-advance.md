@@ -657,7 +657,7 @@ explain select * from tb_user where profession = '软件工程' and status = '0'
 
 联合索引中，出现范围查询(>,<)，范围查询右侧的列索引失效。
 
-```
+```sql
 explain select * from tb_user where profession = '软件工程' and age > 30 and status = '0';
 ```
 
@@ -665,7 +665,7 @@ explain select * from tb_user where profession = '软件工程' and age > 30 and
 
 当范围查询使用> 或 < 时，走联合索引了，但是索引的长度为49，就说明范围查询右边的status字段是没有走索引的。
 
-```
+```sql
 explain select * from tb_user where profession = '软件工程' and age >= 30 and status = '0';
 ```
 

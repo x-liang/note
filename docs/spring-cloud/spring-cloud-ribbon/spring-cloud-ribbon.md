@@ -33,7 +33,7 @@
 
 
 
-## Spring Cloud Ribbon
+## Spring Cloud Ribbon 简介
 
 Ribbon是Netflix公司开源的一个客户单负载均衡的项目，可以自动与 Eureka 进行交互。它提供下列特性：
 
@@ -42,7 +42,7 @@ Ribbon是Netflix公司开源的一个客户单负载均衡的项目，可以自�
 - 以异步和反应式模型执行多协议 (HTTP, TCP, UDP)
 - 缓存和批量
 
-### Ribbon中的关键组件
+## Spring Cloud Ribbon中的关键组件
 
 ![img](../../../.img/ribbon/13587608-75ed41151f955860.png)
 
@@ -58,7 +58,7 @@ Ribbon是Netflix公司开源的一个客户单负载均衡的项目，可以自�
 
 - **LoadBalancer**：负载均衡器，负责负载均衡调度的管理。
 
-### 简单使用
+## Spring Cloud Ribbon简单使用
 
 通常情况下，将RestTemplate和Ribbon结合使用，例如：
 
@@ -104,9 +104,7 @@ public @interface LoadBalanced {
 
 可以看到在LoadBalanced的定义上添加了`@Qualifier`注解，由此实现了对`RestTemplate`对象的标记。下面我们就来看看，Spring Cloud Ribbon是如何实现客户端的负载均衡的。
 
-### 源码分析
-
-#### 自动装配
+## Spring Cloud Ribbon自动装配
 
 根据Spring Boot的自动装配原则，我们直接去查看spring-cloud-netflix-ribbon-2.2.9.RELEASE.jar包下的META_INF目录中的spring.factories文件：
 
@@ -130,13 +128,17 @@ public class RibbonAutoConfiguration {
 }
 ```
 
-下面来挨个分析：
 
-##### @Configuration： 
+
+### RibbonAutoConfiguration上的注解
+
+下面来挨个分析这个自动装配类上标记的注解：
+
+#### @Configuration： 
 
 标明这个一个配置类
 
-##### @Conditional
+#### @Conditional
 
 自动装配的条件，条件类为`RibbonAutoConfiguration.RibbonClassesConditions.class`
 
@@ -164,7 +166,7 @@ static class RibbonClassesConditions extends AllNestedConditions {
 
 该条件装配类继承自`AllNestedConditions`，表示该类定义的所有内部类的条件注解都必须满足。即当前环境必须存在这几个类：IClient、RestTemplate、AsyncRestTemplate、Ribbon。
 
-##### @RibbonClients
+#### @RibbonClients
 
 ```java
 @Configuration(proxyBeanMethods = false)
@@ -206,6 +208,7 @@ public class RibbonClientConfigurationRegistrar implements ImportBeanDefinitionR
 		Map<String, Object> client = metadata.getAnnotationAttributes(RibbonClient.class.getName(), true);
 		String name = getClientName(client);
 		if (name != null) {
+            // 注册客户端配置
 			registerClientConfiguration(registry, name, client.get("configuration"));
 		}
 	}
@@ -234,6 +237,1111 @@ public class RibbonClientConfigurationRegistrar implements ImportBeanDefinitionR
 }
 ```
 
+从上面的代码可以看到，最后注册的bean的类型都是`RibbonClientSpecification`类型。
+
+#### @AutoConfigureAfter
+
+这个注解是用来控制自动装配类的加载顺序的，先加载该注解中引入的自动配置类，在加载当前的自动配置类。该注解中引入的自动装配类`EurekaClientAutoConfiguration`是用来自动装配Eureka的，目前没有用到。
+
+
+
+#### @AutoConfigureBefore
+
+控制自动装配类的加载顺序，在加载完当前自动装配类后在记载该注解中的自动装配类。该注解中引入的连个配置类LoadBalancerAutoConfiguration.class, AsyncLoadBalancerAutoConfiguration.class 后面在介绍。
+
+
+
+#### @EnableConfigurationProperties
+
+这个是用来启用配置项的。
+
+
+
+#### @ConditionalOnProperty
+
+启用条件，默认是启用的。
+
+
+
+
+
+### RibbonAutoConfiguration
+
+上面讲解了一些自动动装配类`RibbonAutoConfiguration`上的条件注解，下面来看看这个自动装配类注入了那些bean。
+
+```java
+@Autowired(required = false)
+private List<RibbonClientSpecification> configurations = new ArrayList<>();
+
+@Autowired
+private RibbonEagerLoadProperties ribbonEagerLoadProperties;
+```
+
+这两个自动注入的属性是通过上面的注解加载的，configurations是在解析@RibbonClients注解时注入的bean，而ribbonEagerLoadProperties是激活的配置类。
+
+
+
+```java
+@Bean
+@ConditionalOnMissingBean
+public SpringClientFactory springClientFactory() {
+    SpringClientFactory factory = new SpringClientFactory();
+    factory.setConfigurations(this.configurations);
+    return factory;
+}
+```
+
+TODO  
+
+
+
+```java
+@Bean
+@ConditionalOnMissingBean(LoadBalancerClient.class)
+public LoadBalancerClient loadBalancerClient() {
+    return new RibbonLoadBalancerClient(springClientFactory());
+}
+```
+
+这里加载LoadBalancerClient的实例，默认实现为`RibbonLoadBalancerClient`
+
+
+
+
+
+注入RestTemplate的定制器，
+
+```java
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnClass(HttpRequest.class)
+@ConditionalOnRibbonRestClient
+protected static class RibbonClientHttpRequestFactoryConfiguration {
+
+    @Autowired
+    private SpringClientFactory springClientFactory;
+
+    @Bean
+    public RestTemplateCustomizer restTemplateCustomizer(
+        final RibbonClientHttpRequestFactory ribbonClientHttpRequestFactory) {
+        return restTemplate -> restTemplate
+            .setRequestFactory(ribbonClientHttpRequestFactory);
+    }
+
+    @Bean
+    public RibbonClientHttpRequestFactory ribbonClientHttpRequestFactory() {
+        return new RibbonClientHttpRequestFactory(this.springClientFactory);
+    }
+
+}
+```
+
+
+
+
+
+注入PropertiesFactory
+
+```java
+@Bean
+@ConditionalOnMissingBean
+public PropertiesFactory propertiesFactory() {
+   return new PropertiesFactory();
+}
+```
+
+
+
+
+
+
+
+### LoadBalancerAutoConfiguration
+
+
+
+
+
+## Spring Cloud Ribbon的负载均衡器
+
+负载均衡器的作用就是协调其他组件，完成负载均衡的调度管理功能。Ribbon中负载均衡器的接口定义为`ILoadBalancer`
+
+```java
+public interface ILoadBalancer {
+	/**
+	 * 添加新的服务列表
+	 */
+	public void addServers(List<Server> newServers);
+	
+	/**
+	 * 根据key通过负载均衡器选个一个服务
+	 */
+	public Server chooseServer(Object key);
+	
+	/**
+	 * 由客户端回调，是某个服务下线
+	 */
+	public void markServerDown(Server server);
+
+	/**
+	 * 获取可用的服务列表
+     */
+    public List<Server> getReachableServers();
+
+    /**
+     * 获取所有服务列表，包含可用和不可用
+     */
+	public List<Server> getAllServers();
+}
+```
+
+其直接抽象实现为`AbstractLoadBalancer`，只是定义了两个新的方法，并没有什么具体的实现。
+
+```java
+public abstract class AbstractLoadBalancer implements ILoadBalancer {
+    
+    public enum ServerGroup{
+        ALL,
+        STATUS_UP,
+        STATUS_NOT_UP        
+    }
+        
+    /**
+     * 定义一个空参数的chooseServer()
+     */
+    public Server chooseServer() {
+    	return chooseServer(null);
+    }
+
+    /**
+     * 根据服务分组获取服务列表
+     */
+    public abstract List<Server> getServerList(ServerGroup serverGroup);
+    
+    /**
+     * 获取loadBalancer的统计信息
+     */
+    public abstract LoadBalancerStats getLoadBalancerStats();    
+}
+```
+
+下面来看看LoadBalancer的实现类图：
+
+<img src="../../../.img/spring-cloud-ribbon/image-20220613100308276.png" alt="image-20220613100308276" style="zoom:60%;" />
+
+
+
+### NoOpLoadBalancer
+
+
+
+### BaseLoadBalancer
+
+
+
+### DynamicServerListLoadBalancer
+
+
+
+### ZoneAwareLoadBalancer
+
+
+
+
+
+
+
+## Spring Cloud Ribbon的负载均衡策略
+
+Ribbon中负载均衡策略的抽象接口定义为`IRule`，下面来看看接口定义：
+
+```java
+public interface IRule{
+    /*
+     *根据key从存活的服务列表中选择一个
+     */
+    public Server choose(Object key);
+    // 设置负载均衡器
+    public void setLoadBalancer(ILoadBalancer lb);
+    // 获取负载均衡器
+    public ILoadBalancer getLoadBalancer();    
+}
+```
+
+接口`AbstractLoadBalancerRule`是IRule的直接抽象类实现
+
+```java
+public abstract class AbstractLoadBalancerRule implements IRule, IClientConfigAware {
+    private ILoadBalancer lb;
+    @Override
+    public void setLoadBalancer(ILoadBalancer lb){
+        this.lb = lb;
+    }
+    @Override
+    public ILoadBalancer getLoadBalancer(){
+        return lb;
+    }      
+}
+```
+
+我们可以看到，其除了实现了一个IClientConfigAware接口，以及实现了负载均衡器的存取外，并没有什么具体的实现。好了，下面来看看IRule接口有哪些具体的实现类：
+
+![image-20220612215843204](../../../.img/spring-cloud-ribbon/image-20220612215843204.png)
+
+### 负载均衡策略概述
+
+- **ClientConfigEnableRoundRobinRule**： 轮询
+- **BestAvailableRule**：选择具有最低并发请求的服务器。
+- **RandomRule**：随机选择一个服务器。
+- **RoundRobinRule**：轮询选择服务器。
+- **RetryRule**：具备重试机制的轮询。
+- **WeightedResponseTimeRule**：根据使用平均响应时间去分配一个weight（权重） ，weight越低，被选择的可能性就越低。
+- **ZoneAvoidanceRule**：根据区域和可用性筛选，再轮询选择服务器。
+
+下面依次介绍没法负载均衡器的实现。
+
+
+
+
+
+### RandomRule
+
+随机选择，这个策略在实现上比较简单，就是先获取服务列表，通过`ThreadLocalRandom`生成一个server数量以内的随机数，然后判断一些对应的server是否存活，如果存活，就直接返回。
+
+下面来看一下核心源码实现：
+
+```java
+public class RandomRule extends AbstractLoadBalancerRule {
+
+    /** 从存活的服务中随机选择一个 */
+    public Server choose(ILoadBalancer lb, Object key) {
+        if (lb == null) {
+            return null;
+        }
+        Server server = null;
+
+        while (server == null) {
+            if (Thread.interrupted()) {
+                return null;
+            }
+            // 获取存活的服务列表
+            List<Server> upList = lb.getReachableServers();
+            // 获取所有服务列表
+            List<Server> allList = lb.getAllServers();
+
+            int serverCount = allList.size();
+            if (serverCount == 0) {
+               // 没有服务，返回null
+                return null;
+            }
+
+            int index = chooseRandomInt(serverCount);
+            server = upList.get(index);
+
+            if (server == null) {
+                /*server为空，可能是该服务已经不可用了，继续选择 */
+                Thread.yield();
+                continue;
+            }
+            if (server.isAlive()) {
+             	// server为存活状态，直接返回
+                return (server);
+            }
+            // 到这里说明server已经不可打了，设置为null
+            server = null;
+            Thread.yield();
+        }
+        return server;
+    }
+	// 用来产生随机数
+    protected int chooseRandomInt(int serverCount) {
+        return ThreadLocalRandom.current().nextInt(serverCount);
+    }
+}
+```
+
+
+
+
+
+### RoundRobinRule
+
+轮询模式，使用一个整数与server列表的长度进行取余，来完成轮询操作。轮询成功，对整数进行加1操作。
+
+下面来看一下源码实现：
+
+```java
+public class RoundRobinRule extends AbstractLoadBalancerRule {
+
+    private AtomicInteger nextServerCyclicCounter;
+
+    public RoundRobinRule() {
+        nextServerCyclicCounter = new AtomicInteger(0);
+    }
+
+    public RoundRobinRule(ILoadBalancer lb) {
+        this();
+        setLoadBalancer(lb);
+    }
+
+    public Server choose(ILoadBalancer lb, Object key) {
+        if (lb == null) {
+            log.warn("no load balancer");
+            return null;
+        }
+
+        Server server = null;
+        int count = 0;
+        while (server == null && count++ < 10) {
+            List<Server> reachableServers = lb.getReachableServers();
+            List<Server> allServers = lb.getAllServers();
+            int upCount = reachableServers.size();
+            int serverCount = allServers.size();
+			// 首先判断是否有可用的服务
+            if ((upCount == 0) || (serverCount == 0)) {
+                log.warn("No up servers available from load balancer: " + lb);
+                return null;
+            }
+            int nextServerIndex = incrementAndGetModulo(serverCount);
+            server = allServers.get(nextServerIndex);
+            if (server == null) {
+                /* Transient. */
+                Thread.yield();
+                continue;
+            }
+			// 检查server是否存活，并且为提供服务做好准备
+            if (server.isAlive() && (server.isReadyToServe())) {
+                return (server);
+            }
+            // server已死，置空
+            server = null;
+        }
+		// 限制轮询次数了。
+        if (count >= 10) {
+            log.warn("No available alive servers after 10 tries from load balancer: " + lb);
+        }
+        return server;
+    }
+
+    /**
+     * 获取下一个server的index，这里使用CAS+死循环的方式保证并发安全。
+     */
+    private int incrementAndGetModulo(int modulo) {
+        for (;;) {
+            int current = nextServerCyclicCounter.get();
+            int next = (current + 1) % modulo;
+            if (nextServerCyclicCounter.compareAndSet(current, next))
+                return next;
+        }
+    }
+}
+```
+
+
+
+### RetryRule
+
+重试策略，针对现有负载均衡策略，添加重试逻辑。
+
+下面来看看核心源码实现(省略了一下不重要的逻辑)：
+
+```java
+public class RetryRule extends AbstractLoadBalancerRule {
+    // 默认的级联策略是 轮询策略
+	IRule subRule = new RoundRobinRule();
+    // 最大重试毫秒数，当总的执行时间超过500毫秒后，停止重试。默认500毫秒
+	long maxRetryMillis = 500;
+
+	/* 选择一个server*/
+	public Server choose(ILoadBalancer lb, Object key) {
+		long requestTime = System.currentTimeMillis();
+		long deadline = requestTime + maxRetryMillis;
+
+		Server answer = null;
+		// 首先使用级联的策略选择负载策略
+		answer = subRule.choose(key);
+		// 如果answer无效 并且 未到deadline，执行重试逻辑
+		if (((answer == null) || (!answer.isAlive())) && (System.currentTimeMillis() < deadline)) {
+
+			InterruptTask task = new InterruptTask(deadline
+					- System.currentTimeMillis());
+			// 只要执行时间为超过 maxRetryMillis, 就无限次重试。
+			while (!Thread.interrupted()) {
+				answer = subRule.choose(key);
+				if (((answer == null) || (!answer.isAlive())) && (System.currentTimeMillis() < deadline)) {
+					/* 让出cpu */
+					Thread.yield();
+				} else {
+					break;
+				}
+			}
+			task.cancel();
+		}
+		if ((answer == null) || (!answer.isAlive())) {
+			return null;
+		} else {
+			return answer;
+		}
+	}
+}
+```
+
+
+
+### ClientConfigEnabledRoundRobinRule
+
+该负载均衡策略内部使用的是轮询策略。这里没什么好说的。
+
+下面看看源码实现：
+
+```java
+public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule {
+
+    RoundRobinRule roundRobinRule = new RoundRobinRule();
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        roundRobinRule = new RoundRobinRule();
+    }
+
+    @Override
+    public void setLoadBalancer(ILoadBalancer lb) {
+    	super.setLoadBalancer(lb);
+    	roundRobinRule.setLoadBalancer(lb);
+    }
+    
+    @Override
+    public Server choose(Object key) {
+        if (roundRobinRule != null) {
+            return roundRobinRule.choose(key);
+        } else {
+            throw new IllegalArgumentException("This class has not been initialized with the RoundRobinRule class");
+        }
+    }
+}
+```
+
+
+
+### WeightedResponseTimeRule
+
+
+
+以响应时间作为权重，进行负载分配。这里先介绍一些算法的实现，然后在看代码就很好理解了。
+
+假设有A、B、C、D第个实例，平均响应时间是10,20,30,50，相加得到的总响应时间是100。每个实例的权重是总响应时间-自身响应时间，可得如下：
+
+- A：100 - 10 = 90；
+- B：90 + 100 - 20 = 170；
+- C：170 + 100 - 30 = 240；
+- D： 240 + 100 - 50 = 290；
+
+则每个实例的权重空间为：
+
+- A：[0, 90]
+- B：[90, 170]
+- C：[170, 240]
+- D：[240, 290]
+
+在获取实例的时候，通过290乘以一个0到1直接的随机数，这个随机数落到那个区间，就选取那个实例。好了，下面我们来看一下计算权重的源码实现：
+
+```java {49-88}
+public class WeightedResponseTimeRule extends RoundRobinRule {
+	// 定时任务的默认间隔时间间隔时间
+    public static final int DEFAULT_TIMER_INTERVAL = 30 * 1000;
+    // 定时任务的时间间隔
+    private int serverWeightTaskTimerInterval = DEFAULT_TIMER_INTERVAL;
+    // 定时任务调度器
+    protected Timer serverWeightTimer = null;
+    
+    // 设置负载均衡器
+    public void setLoadBalancer(ILoadBalancer lb) {
+        super.setLoadBalancer(lb);
+        if (lb instanceof BaseLoadBalancer) {
+            name = ((BaseLoadBalancer) lb).getName();
+        }
+        initialize(lb);
+    }
+    
+    void initialize(ILoadBalancer lb) {        
+        if (serverWeightTimer != null) {
+            serverWeightTimer.cancel();
+        }
+        // 初始化一个定时调度器
+        serverWeightTimer = new Timer("NFLoadBalancer-serverWeightTimer-" + name, true);
+        // 提交定时任务
+        serverWeightTimer.schedule(new DynamicServerWeightTask(), 0, serverWeightTaskTimerInterval);
+        // 初始化运行
+        ServerWeight sw = new ServerWeight();
+        sw.maintainWeights();
+		// 停止任务的钩子方法
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            public void run() {
+                logger.info("Stopping NFLoadBalancer-serverWeightTimer-" + name);
+                serverWeightTimer.cancel();
+            }
+        }));
+    }
+	// 定时任务类
+    class DynamicServerWeightTask extends TimerTask {
+        public void run() {
+            ServerWeight serverWeight = new ServerWeight();
+            try {
+                serverWeight.maintainWeights();
+            } catch (Exception e) {
+                logger.error("Error running DynamicServerWeightTask for {}", name, e);
+            }
+        }
+    }
+	// 这里就是具体计算权重的类了。
+    class ServerWeight {
+        public void maintainWeights() {
+            ILoadBalancer lb = getLoadBalancer();
+            if (lb == null) {
+                return;
+            }
+            // 通过cas来加锁
+            if (!serverWeightAssignmentInProgress.compareAndSet(false,  true))  {
+                return; 
+            }
+            
+            try {
+                AbstractLoadBalancer nlb = (AbstractLoadBalancer) lb;
+                LoadBalancerStats stats = nlb.getLoadBalancerStats();
+                if (stats == null) {
+                    return;
+                }
+                double totalResponseTime = 0;
+                // 对所有服务的平均响应时间求和
+                for (Server server : nlb.getAllServers()) {
+                    ServerStats ss = stats.getSingleServerStat(server);
+                    totalResponseTime += ss.getResponseTimeAvg();
+                }
+                Double weightSoFar = 0.0;
+                // 计算权重
+                List<Double> finalWeights = new ArrayList<Double>();
+                for (Server server : nlb.getAllServers()) {
+                    ServerStats ss = stats.getSingleServerStat(server);
+                    double weight = totalResponseTime - ss.getResponseTimeAvg();
+                    weightSoFar += weight;
+                    finalWeights.add(weightSoFar);   
+                }
+                setWeights(finalWeights);
+            } catch (Exception e) {
+                logger.error("Error calculating server weights", e);
+            } finally {
+                serverWeightAssignmentInProgress.set(false);
+            }
+        }
+    }    
+}
+```
+
+下面来看服务选择的源码实现：
+
+```java
+public class WeightedResponseTimeRule extends RoundRobinRule {
+    @Override
+    public Server choose(ILoadBalancer lb, Object key) {
+        if (lb == null) {
+            return null;
+        }
+        Server server = null;
+        while (server == null) {
+            List<Double> currentWeights = accumulatedWeights;
+            if (Thread.interrupted()) {
+                return null;
+            }
+            List<Server> allList = lb.getAllServers();
+            int serverCount = allList.size();
+            if (serverCount == 0) {
+                return null;
+            }
+            int serverIndex = 0;
+            double maxTotalWeight = currentWeights.size() == 0 ? 0 : currentWeights.get(currentWeights.size() - 1); 
+            if (maxTotalWeight < 0.001d || serverCount != currentWeights.size()) {
+                // 如果权重不可用的话，这里选择轮询策略
+                server =  super.choose(getLoadBalancer(), key);
+                if(server == null) {
+                    return server;
+                }
+            } else {
+                // 这里计算权重，使用最大数乘以一个0到1直接的随机值，结果落到那个区间，就选取区间对应的实例
+                double randomWeight = random.nextDouble() * maxTotalWeight;
+                int n = 0;
+                for (Double d : currentWeights) {
+                    if (d >= randomWeight) {
+                        serverIndex = n;
+                        break;
+                    } else {
+                        n++;
+                    }
+                }
+                server = allList.get(serverIndex);
+            }
+			// 老套路
+            if (server == null) {
+                Thread.yield();
+                continue;
+            }
+            if (server.isAlive()) {
+                return (server);
+            }
+            server = null;
+        }
+        return server;
+    }
+}   
+```
+
+
+
+### BestAvailableRule
+
+该策略会选择一个响应最快的server返回。
+
+```java
+public class BestAvailableRule extends ClientConfigEnabledRoundRobinRule {
+    private LoadBalancerStats loadBalancerStats;
+    @Override
+    public Server choose(Object key) {
+        if (loadBalancerStats == null) {
+            return super.choose(key);
+        }
+        List<Server> serverList = getLoadBalancer().getAllServers();
+        int minimalConcurrentConnections = Integer.MAX_VALUE;
+        long currentTime = System.currentTimeMillis();
+        Server chosen = null;
+        for (Server server: serverList) {
+            ServerStats serverStats = loadBalancerStats.getSingleServerStat(server);
+            if (!serverStats.isCircuitBreakerTripped(currentTime)) {
+                int concurrentConnections = serverStats.getActiveRequestsCount(currentTime);
+                if (concurrentConnections < minimalConcurrentConnections) {
+                    minimalConcurrentConnections = concurrentConnections;
+                    chosen = server;
+                }
+            }
+        }
+        if (chosen == null) {
+            return super.choose(key);
+        } else {
+            return chosen;
+        }
+    }
+
+    @Override
+    public void setLoadBalancer(ILoadBalancer lb) {
+        super.setLoadBalancer(lb);
+        if (lb instanceof AbstractLoadBalancer) {
+            loadBalancerStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();            
+        }
+    }
+}
+```
+
+
+
+
+
+### ZoneAvoidanceRule
+
+这个是Ribbon中最终要的一个负载均衡策略，该策略是Spring Cloud自动装配是的默认选项。
+
+该类继承自`PredicateBasedRule`，老规矩，先来看看父类的定义：
+
+```java
+public abstract class PredicateBasedRule extends ClientConfigEnabledRoundRobinRule {
+   
+    public abstract AbstractServerPredicate getPredicate();
+        
+    @Override
+    public Server choose(Object key) {
+        ILoadBalancer lb = getLoadBalancer();
+        Optional<Server> server = getPredicate().chooseRoundRobinAfterFiltering(lb.getAllServers(), key);
+        if (server.isPresent()) {
+            return server.get();
+        } else {
+            return null;
+        }       
+    }
+}
+```
+
+该类重写了choose方法，在方法中调用了`AbstractServerPredicate#chooseRoundRobinAfterFiltering`方法，来看看这个源码：
+
+```java
+// AbstractServerPredicate#chooseRoundRobinAfterFiltering
+public Optional<Server> chooseRoundRobinAfterFiltering(List<Server> servers, Object loadBalancerKey) {
+    List<Server> eligible = getEligibleServers(servers, loadBalancerKey);
+    if (eligible.size() == 0) {
+        return Optional.absent();
+    }
+    return Optional.of(eligible.get(incrementAndGetModulo(eligible.size())));
+}
+private int incrementAndGetModulo(int modulo) {
+    for (;;) {
+        int current = nextIndex.get();
+        int next = (current + 1) % modulo;
+        if (nextIndex.compareAndSet(current, next) && current < modulo)
+            return current;
+    }
+}
+```
+
+可以看到该方法首先调用`getEligibleServers`方法过滤出合适的server列表，然后通过轮询的方式选择了一个server。那么过滤逻辑的实现是什么呢，下面来看看ZoneAvoidanceRule的实现。
+
+先来看一下构造函数以及抽象实现方法：
+
+```java
+public class ZoneAvoidanceRule extends PredicateBasedRule {
+
+    private static final Random random = new Random();    
+    private CompositePredicate compositePredicate;
+    
+    public ZoneAvoidanceRule() {
+        super();
+        ZoneAvoidancePredicate zonePredicate = new ZoneAvoidancePredicate(this);
+        AvailabilityPredicate availabilityPredicate = new AvailabilityPredicate(this);
+        compositePredicate = createCompositePredicate(zonePredicate, availabilityPredicate);
+    }
+    
+    private CompositePredicate createCompositePredicate(ZoneAvoidancePredicate p1, AvailabilityPredicate p2) {
+        return CompositePredicate.withPredicates(p1, p2)
+                             .addFallbackPredicate(p2)
+                             .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
+                             .build();
+        
+    }
+
+    @Override
+    public AbstractServerPredicate getPredicate() {
+        return compositePredicate;
+    }    
+}
+```
+
+
+
+
+
+## Spring Cloud Ribbon的心跳检测机制
+
+## Spring Cloud Ribbon的服务列表
+
+`ServerList`是服务列表组件的顶级接口定义，里边只定义了两个方法，包括获取原始的服务列表，以及更新后的服务列表。
+
+```java
+public interface ServerList<T extends Server> {
+    /** 返回初试的服务列表 */
+    public List<T> getInitialListOfServers();
+    /** 返回更新后的服务列表 */
+    public List<T> getUpdatedListOfServers();   
+}
+```
+
+其实现的类图如下
+
+<img src="../../../.img/spring-cloud-ribbon/image-20220614170722800.png" alt="image-20220614170722800" style="zoom:67%;" />
+
+这里StaticServerList是ServerList的一个简单实现，NacosServerList是Nacos的实现。下面主要讲解StaticServerList以及ConfigurationBasedServerList。
+
+
+
+### StaticServerList
+
+静态服务列表，见名知意，这个服务列表在配置完成后，就不会有变动了，实现如下：
+
+```java
+public class StaticServerList<T extends Server> implements ServerList<T> {
+	private final List<T> servers;
+	public StaticServerList(T... servers) {
+		this.servers = Arrays.asList(servers);
+	}
+	@Override
+	public List<T> getInitialListOfServers() {
+		return servers;
+	}
+	@Override
+	public List<T> getUpdatedListOfServers() {
+		return servers;
+	}
+}
+```
+
+
+
+### ConfigurationBasedServerList
+
+基于配置的服务列表。
+
+ConfigurationBasedServerList继承自AbstractServerList，而AbstractServerList由实现了ServerList接口，下面来看看AbstractServerList类实现扩展了那些功能：
+
+```java
+public abstract class AbstractServerList<T extends Server> implements ServerList<T>, IClientConfigAware {   
+     
+    public AbstractServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws ClientException{
+        try {
+            String niwsServerListFilterClassName = niwsClientConfig
+                    .getProperty(
+                            CommonClientConfigKey.NIWSServerListFilterClassName,
+                            ZoneAffinityServerListFilter.class.getName())
+                    .toString();
+
+            AbstractServerListFilter<T> abstractNIWSServerListFilter = 
+                    (AbstractServerListFilter<T>) ClientFactory.instantiateInstanceWithClientConfig(niwsServerListFilterClassName, niwsClientConfig);
+            return abstractNIWSServerListFilter;
+        } catch (Throwable e) {
+            throw new ClientException(
+                    ClientException.ErrorType.CONFIGURATION,
+                    "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
+                            + niwsClientConfig
+                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName), e);
+        }
+    }
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+## Spring Cloud Ribbon的服务列表过滤
+
+服务实例过滤器（ServerListFilter）为负载均衡器（Loadbalancer）提供从服务实例列表（ServerList）获取的服务实例过滤出符合要求的服务实例。
+
+负载均衡器（Loadbalancer）通过服务实例列表(ServerList)从注册中心(register)或者配置文件（yaml或properties）上读取全部服务实例(server)，然后以服务实例过滤器(ServerListFilter)的过滤方式进行筛选留下满足条件的服务实例，进而借助负载均衡策略(IRule)选择出一个合适的服务实例。
+
+首先来看接口定义：
+
+```java
+public interface ServerListFilter<T extends Server> {
+	// 获取过滤后的服务列表
+    public List<T> getFilteredListOfServers(List<T> servers);
+
+}
+```
+
+这个接口定义特别简单，就一个方法，返回过滤后的接口信息。
+
+下面来看一下接口的抽象实现：
+
+```java
+public abstract class AbstractServerListFilter<T extends Server> implements ServerListFilter<T> {
+
+    private volatile LoadBalancerStats stats;
+    
+    public void setLoadBalancerStats(LoadBalancerStats stats) {
+        this.stats = stats;
+    }
+    
+    public LoadBalancerStats getLoadBalancerStats() {
+        return stats;
+    }
+
+}
+```
+
+下面来看一下类图：
+
+<img src="../../../.img/spring-cloud-ribbon/image-20220615094039643.png" alt="image-20220615094039643" style="zoom:60%;" />
+
+这里面ZonePreferenceServerListFilter是SpringCloud的实现，其余为Ribbon内部的实现。下面就来看实现源码。
+
+
+
+### ZoneAffinityServerListFilter
+
+区域相关性筛选过滤
+
+
+
+```java
+public class ZoneAffinityServerListFilter<T extends Server> extends
+        AbstractServerListFilter<T> implements IClientConfigAware {
+	// 区域相关， 默认false
+    private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
+    // 区域排除， 默认false
+    private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
+    @Override
+    public List<T> getFilteredListOfServers(List<T> servers) {
+        if (zone != null && (zoneAffinity || zoneExclusive) && servers !=null && servers.size() > 0){
+            // 这里调用过滤条件
+            List<T> filteredServers = Lists.newArrayList(Iterables.filter(
+                    servers, this.zoneAffinityPredicate.getServerOnlyPredicate()));
+            if (shouldEnableZoneAffinity(filteredServers)) {
+                return filteredServers;
+            } else if (zoneAffinity) {
+                overrideCounter.increment();
+            }
+        }
+        return servers;
+    }
+	
+    private boolean shouldEnableZoneAffinity(List<T> filtered) {    
+        if (!zoneAffinity && !zoneExclusive) {
+            return false;
+        }
+        if (zoneExclusive) {
+            return true;
+        }
+        LoadBalancerStats stats = getLoadBalancerStats();
+        if (stats == null) {
+            return zoneAffinity;
+        } else {
+            ZoneSnapshot snapshot = stats.getZoneSnapshot(filtered);
+            double loadPerServer = snapshot.getLoadPerServer();
+            int instanceCount = snapshot.getInstanceCount();            
+            int circuitBreakerTrippedCount = snapshot.getCircuitTrippedCount();
+            if (((double) circuitBreakerTrippedCount) / instanceCount >= blackOutServerPercentageThreshold.get() 
+                    || loadPerServer >= activeReqeustsPerServerThreshold.get()
+                    || (instanceCount - circuitBreakerTrippedCount) < availableServersThreshold.get()) {
+                return false;
+            } else {
+                return true;
+            }
+            
+        }
+    }
+}          
+```
+
+这里使用的过滤条件在`ZoneAffinityPredicate`里面，可以看到，就是对比了一下区域名称是否相同。
+
+```java
+public class ZoneAffinityPredicate extends AbstractServerPredicate {
+    private final String zone = ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
+    @Override
+    public boolean apply(PredicateKey input) {
+        Server s = input.getServer();
+        String az = s.getZone();
+        if (az != null && zone != null && az.toLowerCase().equals(zone.toLowerCase())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+```
+
+
+
+### ServerListSubsetFilter
+
+对于过滤后的服务器列表，在这里会进行进一步的过滤，包括剔除一些不健康的服务列表，只保留下最稳定的服务器列表，如：
+
+- 并发连接计数超过客户端配置的服务列表，配置项为 `<clientName>.<nameSpace>.ServerListSubsetFilter.eliminationConnectionThresold`
+
+- 服务故障计数超过客户端配置的列表，配置项为：`<clientName>.<nameSpace>.ServerListSubsetFilter.eliminationFailureThresold`
+
+- 如果前两部剔除的列表小于配置的剔除比例，其余服务按运行状况排序，强制末位剔除。配置项为：
+
+  `<clientName>.<nameSpace>.ServerListSubsetFilter.forceEliminatePercent`
+
+下面来看代码实现：
+
+```java
+public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServerListFilter<T> implements IClientConfigAware, Comparator<T>{
+
+    private Random random = new Random();
+    private volatile Set<T> currentSubset = Sets.newHashSet(); 
+
+        
+    /** 过滤服务列表 */
+    public List<T> getFilteredListOfServers(List<T> servers) {
+        // 首先调用父类的方法进行过滤
+        List<T> zoneAffinityFiltered = super.getFilteredListOfServers(servers);
+        Set<T> candidates = Sets.newHashSet(zoneAffinityFiltered);
+        Set<T> newSubSet = Sets.newHashSet(currentSubset);
+        // 获取统计信息
+        LoadBalancerStats lbStats = getLoadBalancerStats();
+        for (T server: currentSubset) {
+            // 剔除可能已经下线的server
+            if (!candidates.contains(server)) {
+                newSubSet.remove(server);
+            } else {
+                ServerStats stats = lbStats.getSingleServerStat(server);
+                // 判断，如果并发连接数或故障数大于客户端配置的数量，予以剔除
+                if (stats.getActiveRequestsCount() > eliminationConnectionCountThreshold.get()
+                        || stats.getFailureCount() > eliminationFailureCountThreshold.get()) {
+                    newSubSet.remove(server);
+                    candidates.remove(server);
+                }
+            }
+        }
+		// 计算剔除比例
+        int targetedListSize = sizeProp.get();
+        int numEliminated = currentSubset.size() - newSubSet.size();
+        int minElimination = (int) (targetedListSize * eliminationPercent.get());
+        int numToForceEliminate = 0;
+        if (targetedListSize < newSubSet.size()) {
+            // size is shrinking
+            numToForceEliminate = newSubSet.size() - targetedListSize;
+        } else if (minElimination > numEliminated) {
+            numToForceEliminate = minElimination - numEliminated; 
+        }
+        
+        if (numToForceEliminate > newSubSet.size()) {
+            numToForceEliminate = newSubSet.size();
+        }
+
+        if (numToForceEliminate > 0) {
+            List<T> sortedSubSet = Lists.newArrayList(newSubSet);           
+            Collections.sort(sortedSubSet, this);
+            List<T> forceEliminated = sortedSubSet.subList(0, numToForceEliminate);
+            newSubSet.removeAll(forceEliminated);
+            candidates.removeAll(forceEliminated);
+        }
+        
+        // after forced elimination or elimination of unhealthy instances,
+        // the size of the set may be less than the targeted size,
+        // then we just randomly add servers from the big pool
+        if (newSubSet.size() < targetedListSize) {
+            int numToChoose = targetedListSize - newSubSet.size();
+            candidates.removeAll(newSubSet);
+            if (numToChoose > candidates.size()) {
+                // Not enough healthy instances to choose, fallback to use the
+                // total server pool
+                candidates = Sets.newHashSet(zoneAffinityFiltered);
+                candidates.removeAll(newSubSet);
+            }
+            List<T> chosen = randomChoose(Lists.newArrayList(candidates), numToChoose);
+            for (T server: chosen) {
+                newSubSet.add(server);
+            }
+        }
+        currentSubset = newSubSet;       
+        return Lists.newArrayList(newSubSet);            
+    }
+
+    /**
+     * 
+     */
+    private List<T> randomChoose(List<T> servers, int toChoose) {
+        int size = servers.size();
+        if (toChoose >= size || toChoose < 0) {
+            return servers;
+        } 
+        for (int i = 0; i < toChoose; i++) {
+            int index = random.nextInt(size);
+            T tmp = servers.get(index);
+            servers.set(index, servers.get(i));
+            servers.set(i, tmp);
+        }
+        return servers.subList(0, toChoose);        
+    }
+}
+
+```
+
+
+
+### ZonePreferenceServerListFilter
 
 
 
@@ -249,7 +1357,6 @@ public class RibbonClientConfigurationRegistrar implements ImportBeanDefinitionR
 
 
 
-
-
+## Spring Cloud Ribbon的服务列表更新
 
 https://www.jianshu.com/p/f3db11f045cc

@@ -116,20 +116,24 @@ module.exports = {
                 text: 'Spring Cloud',
                 children:[
                     {
-                        text:'SpringCloud 概览',
+                        text:'Spring Cloud Overview',
                         link: '/spring-cloud/spring-cloud-overview.md'
                     },
                     {
-                        text: 'Nacos',
+                        text: 'Spring Cloud Nacos',
                         link: '/spring-cloud/spring-cloud-alibaba-nacos.md'
                     },
                     {
-                        text: 'Sentinel',
+                        text: 'Spring Cloud Sentinel',
                         link: '/spring-cloud/spring-cloud-alibaba-sentinel.md'
                     },
                     {
-                        text: 'Seate',
+                        text: 'Spring Cloud Seate',
                         link: '/spring-cloud/spring-cloud-alibaba-seate.md'
+                    },
+                    {
+                        text: 'Spring Cloud Ribbon',
+                        link: '/spring-cloud/spring-cloud-ribbon/spring-cloud-ribbon.md'  
                     }
                 ]
             },
@@ -260,6 +264,7 @@ module.exports = {
                     text:'常用组件',
                     children:[
                         '/spring-cloud/spring-cloud-openfeign.html',
+                        '/spring-cloud/spring-cloud-ribbon/spring-cloud-ribbon.html'
                     ]
                 }
             ],

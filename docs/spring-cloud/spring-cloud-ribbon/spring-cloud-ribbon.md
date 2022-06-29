@@ -378,7 +378,7 @@ public interface ILoadBalancer {
 	public Server chooseServer(Object key);
 	
 	/**
-	 * 由客户端回调，是某个服务下线
+	 * 由客户端回调，用来标记某个服务下线
 	 */
 	public void markServerDown(Server server);
 
@@ -505,7 +505,7 @@ public abstract class AbstractLoadBalancerRule implements IRule, IClientConfigAw
 
 ### RandomRule
 
-随机选择，这个策略在实现上比较简单，就是先获取服务列表，通过`ThreadLocalRandom`生成一个server数量以内的随机数，然后判断一些对应的server是否存活，如果存活，就直接返回。
+随机选择，这个策略在实现上比较简单，就是先获取服务列表，通过`ThreadLocalRandom`生成一个server数量以内的随机数，然后判断一下对应的server是否存活，如果存活，就直接返回。如果服务已经down掉了，就循环这个过程
 
 下面来看一下核心源码实现：
 
@@ -533,7 +533,7 @@ public class RandomRule extends AbstractLoadBalancerRule {
                // 没有服务，返回null
                 return null;
             }
-
+			// 产生一个随机数
             int index = chooseRandomInt(serverCount);
             server = upList.get(index);
 
@@ -561,17 +561,13 @@ public class RandomRule extends AbstractLoadBalancerRule {
 
 
 
-
-
 ### RoundRobinRule
 
-轮询模式，使用一个整数与server列表的长度进行取余，来完成轮询操作。轮询成功，对整数进行加1操作。
-
-下面来看一下源码实现：
+轮询模式，使用一个整数与server列表的长度进行取余，来完成轮询操作。轮询成功，对整数进行加1操作。下面来看一下源码实现：
 
 ```java
 public class RoundRobinRule extends AbstractLoadBalancerRule {
-
+	// 通过这个变量自增，与server数量取模，来完成轮询逻辑
     private AtomicInteger nextServerCyclicCounter;
 
     public RoundRobinRule() {
@@ -582,7 +578,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         this();
         setLoadBalancer(lb);
     }
-
+	// 这里是核心实现
     public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             log.warn("no load balancer");
@@ -592,7 +588,9 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         Server server = null;
         int count = 0;
         while (server == null && count++ < 10) {
+            // 获取可用的服务列表
             List<Server> reachableServers = lb.getReachableServers();
+            // 获取全部服务列表
             List<Server> allServers = lb.getAllServers();
             int upCount = reachableServers.size();
             int serverCount = allServers.size();
@@ -601,10 +599,11 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
                 log.warn("No up servers available from load balancer: " + lb);
                 return null;
             }
+            // 通过自增取模，来获取下一个server
             int nextServerIndex = incrementAndGetModulo(serverCount);
             server = allServers.get(nextServerIndex);
             if (server == null) {
-                /* Transient. */
+                /* server 为null 说明该服务可能出问题了 */
                 Thread.yield();
                 continue;
             }
@@ -615,7 +614,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
             // server已死，置空
             server = null;
         }
-		// 限制轮询次数了。
+		// 轮询大于10次打印一个warning日志。
         if (count >= 10) {
             log.warn("No available alive servers after 10 tries from load balancer: " + lb);
         }
@@ -640,20 +639,22 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
 
 ### RetryRule
 
-重试策略，针对现有负载均衡策略，添加重试逻辑。
+重试策略，针对现有负载均衡策略，添加重试逻辑。该策略的默认负载逻辑是轮询，可以通过set方法或构造方法进行修改。在给定的时间内无限次重试。
 
 下面来看看核心源码实现(省略了一下不重要的逻辑)：
 
 ```java
 public class RetryRule extends AbstractLoadBalancerRule {
-    // 默认的级联策略是 轮询策略
+    // 默认的级联策略是 轮询策略，该参数可以通过构造函数或set方法进行设置
 	IRule subRule = new RoundRobinRule();
     // 最大重试毫秒数，当总的执行时间超过500毫秒后，停止重试。默认500毫秒
 	long maxRetryMillis = 500;
 
 	/* 选择一个server*/
 	public Server choose(ILoadBalancer lb, Object key) {
+        // 重试开始时间
 		long requestTime = System.currentTimeMillis();
+        // 重试截止时间
 		long deadline = requestTime + maxRetryMillis;
 
 		Server answer = null;
@@ -661,9 +662,7 @@ public class RetryRule extends AbstractLoadBalancerRule {
 		answer = subRule.choose(key);
 		// 如果answer无效 并且 未到deadline，执行重试逻辑
 		if (((answer == null) || (!answer.isAlive())) && (System.currentTimeMillis() < deadline)) {
-
-			InterruptTask task = new InterruptTask(deadline
-					- System.currentTimeMillis());
+			InterruptTask task = new InterruptTask(deadline - System.currentTimeMillis());
 			// 只要执行时间为超过 maxRetryMillis, 就无限次重试。
 			while (!Thread.interrupted()) {
 				answer = subRule.choose(key);
@@ -1025,9 +1024,177 @@ public class ZoneAvoidanceRule extends PredicateBasedRule {
 
 ## Spring Cloud Ribbon的心跳检测机制
 
+`IPing`是心跳检测的顶级定义接口，下面先看看接口定义：
+
+```java
+public interface IPing {   
+    /** 检查给定的服务是否处于存活状态，即在负载平衡时将其视为候选对象 */
+    public boolean isAlive(Server server);
+}
+```
+
+这里的定义也很简单，就是检查给定的服务是否存活。下面来看看类的实现类图：
+
+<img src="../../../.img/spring-cloud-ribbon/image-20220628151228285.png" alt="image-20220628151228285" style="zoom:67%;" />
+
+- NoOpPing： 什么都不做
+- PingConstant：通过配置参数设置服务存活状态
+- DummyPing： 总是认为存活
+- PingUrl：使用HttpClient构造一个HttpRequest，发起一个Get调用，如果成功，证明服务存活
+
+
+
+下面就开始一一解析
+
+### NoOpPing
+
+从字面上理解，no operation ping ，就是不做任何操作。这个是Ribbon中最简单的实现，基本上没什么用。代码如下：
+
+```java
+public class NoOpPing implements IPing {
+    @Override
+    public boolean isAlive(Server server) {
+        return true;
+    }
+}
+```
+
+
+
+### PingUrl
+
+这个实现也比较简单，对给定的服务发起一个Get请求，然后判断响应是否为200，响应的结果是否服务预期。如果都符合，则服务为存活状态。
+
+```java
+public class PingUrl implements IPing {
+
+    String pingAppendString = "";
+	// 标识是否是https协议，有get/set方法，这里省略了
+    boolean isSecure = false;
+	// 预期的响应结果，有get/set方法，这里省略了
+    String expectedContent = null;
+
+    public PingUrl() {
+    }
+
+    public PingUrl(boolean isSecure, String pingAppendString) {
+        this.isSecure = isSecure;
+        this.pingAppendString = (pingAppendString != null) ? pingAppendString : "";
+    }
+	// 核心实现就在这里了
+    public boolean isAlive(Server server) {
+        // 判断协议类型，拼接url
+        String urlStr   = "";
+        if (isSecure){
+            urlStr = "https://";
+        }else{
+            urlStr = "http://";
+        }
+        urlStr += server.getId();
+        urlStr += getPingAppendString();
+
+        boolean isAlive = false;
+		// 构造HttpRequest， 并发起请求
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpUriRequest getRequest = new HttpGet(urlStr);
+        String content=null;
+        try {
+            HttpResponse response = httpClient.execute(getRequest);
+            content = EntityUtils.toString(response.getEntity());
+            // 判断响应码是否为 200
+            isAlive = (response.getStatusLine().getStatusCode() == 200);
+            if (getExpectedContent()!=null){
+                LOGGER.debug("content:" + content);
+                if (content == null){
+                    isAlive = false;
+                }else{
+                    // 判断响应结果是否和预期一致
+                    if (content.equals(getExpectedContent())){
+                        isAlive = true;
+                    }else{
+                        isAlive = false;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally{
+            // Release the connection.
+            getRequest.abort();
+        }
+        return isAlive;
+    }
+}
+```
+
+
+
+### PingConstant
+
+基于配置的实现。不知道为什么要有这么个实现。
+
+```java
+public class PingConstant implements IPing {
+    // 这个用来标识是否存活， 通过代码设置
+    boolean constant = true;
+	// 设置存活状态
+    public void setConstant(String constantStr) {
+        constant = (constantStr != null) && (constantStr.toLowerCase().equals("true"));
+    }
+	// 设置存活状态
+    public void setConstant(boolean constant) {
+        this.constant = constant;
+    }
+	
+    public boolean isAlive(Server server) {
+        return constant;
+    }
+}
+```
+
+
+
+### DummyPing
+
+该接口继承自AbstractLoadBalancerPing， 其实现也很简单，认为服务总是存活状态。首先看一下父类的实现：
+
+```java
+public abstract class AbstractLoadBalancerPing implements IPing, IClientConfigAware{
+    AbstractLoadBalancer lb;   
+    @Override
+    public boolean isAlive(Server server) {
+        return true;
+    }    
+    public void setLoadBalancer(AbstractLoadBalancer lb){
+        this.lb = lb;
+    }    
+    public AbstractLoadBalancer getLoadBalancer(){
+        return lb;
+    }
+}
+```
+
+再来看看该类的实现：
+
+```java
+public class DummyPing extends AbstractLoadBalancerPing {
+    public DummyPing() { }
+	// 默认返回true，即所有的服务都存活
+    public boolean isAlive(Server server) {
+        return true;
+    }
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+    }
+}
+```
+
+
+
 ## Spring Cloud Ribbon的服务列表
 
-`ServerList`是服务列表组件的顶级接口定义，里边只定义了两个方法，包括获取原始的服务列表，以及更新后的服务列表。
+该组件主要提供获取服务列表的功能。`ServerList`是服务列表组件的顶级接口定义，里边只定义了两个方法，包括获取原始的服务列表，以及更新后的服务列表。
 
 ```java
 public interface ServerList<T extends Server> {
@@ -1042,13 +1209,19 @@ public interface ServerList<T extends Server> {
 
 <img src="../../../.img/spring-cloud-ribbon/image-20220614170722800.png" alt="image-20220614170722800" style="zoom:67%;" />
 
-这里StaticServerList是ServerList的一个简单实现，NacosServerList是Nacos的实现。下面主要讲解StaticServerList以及ConfigurationBasedServerList。
+- **StaticServerList**： 静态的服务列表维护类。说白了就是写死的。
+
+- **ConfigurationBasedServerList:** 基于读取Archaius配置文件来维护ServerList
+
+- **NacosServerList：**
+
+这里边StaticServerList是Spring Cloud提供的一个实现，NacosServerList是Nacos提供的实现。而ConfigurationBasedServerList是Ribbon提供的实现。下面我们来一一讲解。
 
 
 
 ### StaticServerList
 
-静态服务列表，见名知意，这个服务列表在配置完成后，就不会有变动了，实现如下：
+静态服务列表，见名知意，这个服务列表在配置完成后，就不会有变动了。说白了就是基于配置固定的。实现如下：
 
 ```java
 public class StaticServerList<T extends Server> implements ServerList<T> {
@@ -1071,13 +1244,10 @@ public class StaticServerList<T extends Server> implements ServerList<T> {
 
 ### ConfigurationBasedServerList
 
-基于配置的服务列表。
-
-ConfigurationBasedServerList继承自AbstractServerList，而AbstractServerList由实现了ServerList接口，下面来看看AbstractServerList类实现扩展了那些功能：
+这个服务管理类是Ribbon提供的服务管理类。由继承关系可知，ConfigurationBasedServerList继承自AbstractServerList，而AbstractServerList由实现了ServerList接口，下面我们就来看看AbstractServerList类扩展了那些功能：
 
 ```java
 public abstract class AbstractServerList<T extends Server> implements ServerList<T>, IClientConfigAware {   
-     
     public AbstractServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws ClientException{
         try {
             String niwsServerListFilterClassName = niwsClientConfig
@@ -1085,29 +1255,68 @@ public abstract class AbstractServerList<T extends Server> implements ServerList
                             CommonClientConfigKey.NIWSServerListFilterClassName,
                             ZoneAffinityServerListFilter.class.getName())
                     .toString();
-
-            AbstractServerListFilter<T> abstractNIWSServerListFilter = 
-                    (AbstractServerListFilter<T>) ClientFactory.instantiateInstanceWithClientConfig(niwsServerListFilterClassName, niwsClientConfig);
+            AbstractServerListFilter<T> abstractNIWSServerListFilter = (AbstractServerListFilter<T>) 
+                ClientFactory.instantiateInstanceWithClientConfig(niwsServerListFilterClassName, niwsClientConfig);
             return abstractNIWSServerListFilter;
         } catch (Throwable e) {
-            throw new ClientException(
-                    ClientException.ErrorType.CONFIGURATION,
-                    "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
-                            + niwsClientConfig
-                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName), e);
+            ...
         }
     }
 }
+```
 
+首先，该类实现了`IClientConfigAware`接口，说明他具有获取`IClientConfig`的能力。另外，他还提供了一个`getFilterImpl`方法，该方法用来获取服务列表过滤器，如果不配置，默认使用的是`ZoneAffinityServerListFilter`，如果需要配置指定的过滤器可以使用如下配置：
+
+```properties
+<clientName>.<nameSpace>.NIWSServerListFilterClassName=className
+```
+
+看完了父类，咱们接着看本类的实现
+
+```java
+public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
+
+	private IClientConfig clientConfig;
+		
+	@Override
+	public List<Server> getInitialListOfServers() {
+	    return getUpdatedListOfServers();
+	}
+
+	@Override
+	public List<Server> getUpdatedListOfServers() {
+        String listOfServers = clientConfig.get(CommonClientConfigKey.ListOfServers);
+        return derive(listOfServers);
+	}
+
+	@Override
+	public void initWithNiwsConfig(IClientConfig clientConfig) {
+	    this.clientConfig = clientConfig;
+	}
+	
+	protected List<Server> derive(String value) {
+	    List<Server> list = Lists.newArrayList();
+		if (!Strings.isNullOrEmpty(value)) {
+			for (String s: value.split(",")) {
+				list.add(new Server(s.trim()));
+			}
+		}
+        return list;
+	}
+}
+```
+
+实现也很简单，可以看到`getInitialListOfServers()`方法调用的是`getUpdatedListOfServers()`方法，而`getUpdatedListOfServers()`直接从客户端配置中加载配置的服务列表。可以使用如下方法配置服务列表：
+
+```properties
+<clientName>.<nameSpace>.listOfServers= host1:port1,host2:port2
 ```
 
 
 
+### NacosServerList
 
-
-
-
-
+略
 
 
 
@@ -1151,6 +1360,12 @@ public abstract class AbstractServerListFilter<T extends Server> implements Serv
 
 <img src="../../../.img/spring-cloud-ribbon/image-20220615094039643.png" alt="image-20220615094039643" style="zoom:60%;" />
 
+
+
+- ZoneAffinityServerListFilter:
+
+
+
 这里面ZonePreferenceServerListFilter是SpringCloud的实现，其余为Ribbon内部的实现。下面就来看实现源码。
 
 
@@ -1164,7 +1379,7 @@ public abstract class AbstractServerListFilter<T extends Server> implements Serv
 ```java
 public class ZoneAffinityServerListFilter<T extends Server> extends
         AbstractServerListFilter<T> implements IClientConfigAware {
-	// 区域相关， 默认false
+	// 区域亲和性， 默认false
     private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
     // 区域排除， 默认false
     private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
@@ -1174,6 +1389,7 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
             // 这里调用过滤条件
             List<T> filteredServers = Lists.newArrayList(Iterables.filter(
                     servers, this.zoneAffinityPredicate.getServerOnlyPredicate()));
+            // 判断是否需要进行区域亲和性过滤
             if (shouldEnableZoneAffinity(filteredServers)) {
                 return filteredServers;
             } else if (zoneAffinity) {
@@ -1181,37 +1397,11 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
             }
         }
         return servers;
-    }
-	
-    private boolean shouldEnableZoneAffinity(List<T> filtered) {    
-        if (!zoneAffinity && !zoneExclusive) {
-            return false;
-        }
-        if (zoneExclusive) {
-            return true;
-        }
-        LoadBalancerStats stats = getLoadBalancerStats();
-        if (stats == null) {
-            return zoneAffinity;
-        } else {
-            ZoneSnapshot snapshot = stats.getZoneSnapshot(filtered);
-            double loadPerServer = snapshot.getLoadPerServer();
-            int instanceCount = snapshot.getInstanceCount();            
-            int circuitBreakerTrippedCount = snapshot.getCircuitTrippedCount();
-            if (((double) circuitBreakerTrippedCount) / instanceCount >= blackOutServerPercentageThreshold.get() 
-                    || loadPerServer >= activeReqeustsPerServerThreshold.get()
-                    || (instanceCount - circuitBreakerTrippedCount) < availableServersThreshold.get()) {
-                return false;
-            } else {
-                return true;
-            }
-            
-        }
-    }
+    }    
 }          
 ```
 
-这里使用的过滤条件在`ZoneAffinityPredicate`里面，可以看到，就是对比了一下区域名称是否相同。
+可以看到，这里首先调用ZoneAffinityPredicate.getServerOnlyPredicate()方法进行过滤，然后调用shouldEnableZoneAffinity()方法判断是否真的需要返回过滤的数据
 
 ```java
 public class ZoneAffinityPredicate extends AbstractServerPredicate {
@@ -1229,7 +1419,36 @@ public class ZoneAffinityPredicate extends AbstractServerPredicate {
 }
 ```
 
+在ZoneAffinityPredicate里会对server的zone进行判断，只有相同的zone才会被选出来。
 
+```java
+private boolean shouldEnableZoneAffinity(List<T> filtered) {    
+    if (!zoneAffinity && !zoneExclusive) {
+        return false;
+    }
+    if (zoneExclusive) {
+        return true;
+    }
+    LoadBalancerStats stats = getLoadBalancerStats();
+    if (stats == null) {
+        return zoneAffinity;
+    } else {
+        ZoneSnapshot snapshot = stats.getZoneSnapshot(filtered);
+        double loadPerServer = snapshot.getLoadPerServer();
+        int instanceCount = snapshot.getInstanceCount();            
+        int circuitBreakerTrippedCount = snapshot.getCircuitTrippedCount();
+        if (((double) circuitBreakerTrippedCount)/instanceCount>=blackOutServerPercentageThreshold.get() 
+            || loadPerServer >= activeReqeustsPerServerThreshold.get()
+            || (instanceCount - circuitBreakerTrippedCount) < availableServersThreshold.get()) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+}
+```
+
+在这个方法中主要是对一些统计数据进行判定，如果目标zone的server统计数据不太好，达到断路的标准，则不会返回该zone的server。
 
 ### ServerListSubsetFilter
 
@@ -1274,8 +1493,8 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
                 }
             }
         }
-		// 计算剔除比例
-        int targetedListSize = sizeProp.get();
+		// 计算需要剔除的数量
+        int targetedListSize = sizeProp.get(); // sizeProp 默认20
         int numEliminated = currentSubset.size() - newSubSet.size();
         int minElimination = (int) (targetedListSize * eliminationPercent.get());
         int numToForceEliminate = 0;
@@ -1289,19 +1508,19 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
         if (numToForceEliminate > newSubSet.size()) {
             numToForceEliminate = newSubSet.size();
         }
-
+		// 如果需要剔除的数量大于0， 执行剔除
         if (numToForceEliminate > 0) {
-            List<T> sortedSubSet = Lists.newArrayList(newSubSet);           
+            List<T> sortedSubSet = Lists.newArrayList(newSubSet);  
+            // 排序，末尾淘汰
             Collections.sort(sortedSubSet, this);
             List<T> forceEliminated = sortedSubSet.subList(0, numToForceEliminate);
             newSubSet.removeAll(forceEliminated);
             candidates.removeAll(forceEliminated);
         }
         
-        // after forced elimination or elimination of unhealthy instances,
-        // the size of the set may be less than the targeted size,
-        // then we just randomly add servers from the big pool
+        // 在剔除不健康的服务和强制剔除后，如果剩余的服务数量小于目标集合数量(默认20)，则从原始服务列表中随机加过来一些。
         if (newSubSet.size() < targetedListSize) {
+            // 计算需要选择的数量
             int numToChoose = targetedListSize - newSubSet.size();
             candidates.removeAll(newSubSet);
             if (numToChoose > candidates.size()) {
@@ -1310,24 +1529,26 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
                 candidates = Sets.newHashSet(zoneAffinityFiltered);
                 candidates.removeAll(newSubSet);
             }
+            // 选择指定数量的列表
             List<T> chosen = randomChoose(Lists.newArrayList(candidates), numToChoose);
             for (T server: chosen) {
+                // 添加到目标集合中
                 newSubSet.add(server);
             }
         }
-        currentSubset = newSubSet;       
+        currentSubset = newSubSet;
+        // 返回过滤后的结果
         return Lists.newArrayList(newSubSet);            
     }
 
-    /**
-     * 
-     */
+    /** 选择指定数量的服务列表 */
     private List<T> randomChoose(List<T> servers, int toChoose) {
         int size = servers.size();
         if (toChoose >= size || toChoose < 0) {
             return servers;
         } 
         for (int i = 0; i < toChoose; i++) {
+            // 生成一个随机数，并与i做交换
             int index = random.nextInt(size);
             T tmp = servers.get(index);
             servers.set(index, servers.get(i));
@@ -1343,20 +1564,268 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
 
 ### ZonePreferenceServerListFilter
 
+该过滤器是Spring Cloud中的实现，该类继承了ZoneAffinityServerListFilter，并重写了getFilteredListOfServers方法。
 
+```java
+public class ZonePreferenceServerListFilter extends ZoneAffinityServerListFilter<Server> {
 
+	private String zone;
 
+	@Override
+	public List<Server> getFilteredListOfServers(List<Server> servers) {
+		List<Server> output = super.getFilteredListOfServers(servers);
+        // 如果size相同，则认为服务可能没有执行过滤
+		if (this.zone != null && output.size() == servers.size()) {
+			List<Server> local = new ArrayList<>();
+			for (Server server : output) {
+				if (this.zone.equalsIgnoreCase(server.getZone())) {
+					local.add(server);
+				}
+			}
+			if (!local.isEmpty()) {
+				return local;
+			}
+		}
+		return output;
+	}
+}
+```
 
-
-
-
-
-
+这里会对父类过滤出来的结果记性判断，如果父类返回的结果没有按区域进行亲和性过滤，那么这里会在过滤一次，如果过滤后的结果为空，则返回父类的结果，否则返回原始结果。
 
 
 
 
 
 ## Spring Cloud Ribbon的服务列表更新
+
+该组件主要提供对服务列表的更新操作。
+
+该组件的顶级接口为`ServerListUpdater`，下面来看看该接口定义了那些方法：
+
+```java
+public interface ServerListUpdater {
+
+    /** 一个内部接口，实际用来执行服务列表更新的操作 */
+    public interface UpdateAction {
+        void doUpdate();
+    }
+
+    /**
+     *开始服务列表更新的动作，这个接口是幂等的
+     */
+    void start(UpdateAction updateAction);
+
+    /**
+     * 停止服务列表更新的动作
+     */
+    void stop();
+
+    /**
+     * 返回最后更新的时间
+     */
+    String getLastUpdate();
+
+    /**
+     * 距最后一次更新，过去了多少毫秒
+     */
+    long getDurationSinceLastUpdateMs();
+
+    /**
+     * 返回丢失的更新周期数
+     */
+    int getNumberMissedCycles();
+
+    /**
+     * 返回使用的线程数
+     */
+    int getCoreThreads();
+}
+```
+
+这里比较重要的方法只有两个，即`UpdateAction`和`start`方法
+
+在Ribbon中， ServerListUpdater的实现只有一个，即`PollingServerListUpdater`，这里就不在给出类图了，在们直接看它的实现。
+
+### PollingServerListUpdater
+
+
+
+首先来看看构造函数及内部累的实现，对PollingServerListUpdater有一个简单的了解
+
+```java
+public class PollingServerListUpdater implements ServerListUpdater {
+    
+    private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; // msecs;
+    private static int LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
+	// 该属性表示更新任务是否在运行中
+    private final AtomicBoolean isActive = new AtomicBoolean(false);
+    // 记录最后一次更新服务的时间
+    private volatile long lastUpdated = System.currentTimeMillis();
+    // 
+    private final long initialDelayMs;
+    private final long refreshIntervalMs;
+    private volatile ScheduledFuture<?> scheduledFuture;
+    
+    
+    public PollingServerListUpdater() {
+        this(LISTOFSERVERS_CACHE_UPDATE_DELAY, LISTOFSERVERS_CACHE_REPEAT_INTERVAL);
+    }
+
+    public PollingServerListUpdater(IClientConfig clientConfig) {
+        this(LISTOFSERVERS_CACHE_UPDATE_DELAY, getRefreshIntervalMs(clientConfig));
+    }
+
+    public PollingServerListUpdater(final long initialDelayMs, final long refreshIntervalMs) {
+        this.initialDelayMs = initialDelayMs;
+        this.refreshIntervalMs = refreshIntervalMs;
+    }
+
+	private static class LazyHolder {
+        private final static String CORE_THREAD = "DynamicServerListLoadBalancer.ThreadPoolSize";
+        private final static DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
+        private static Thread _shutdownThread;
+
+        static ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
+
+        static {
+            int coreSize = poolSizeProp.get();
+            ThreadFactory factory = (new ThreadFactoryBuilder())
+                    .setNameFormat("PollingServerListUpdater-%d")
+                    .setDaemon(true)
+                    .build();
+            _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(coreSize, factory);
+            poolSizeProp.addCallback(new Runnable() {
+                @Override
+                public void run() {
+                    _serverListRefreshExecutor.setCorePoolSize(poolSizeProp.get());
+                }
+
+            });
+            _shutdownThread = new Thread(new Runnable() {
+                public void run() {
+                    logger.info("Shutting down the Executor Pool for PollingServerListUpdater");
+                    shutdownExecutorPool();
+                }
+            });
+            Runtime.getRuntime().addShutdownHook(_shutdownThread);
+        }
+
+        private static void shutdownExecutorPool() {
+            if (_serverListRefreshExecutor != null) {
+                _serverListRefreshExecutor.shutdown();
+
+                if (_shutdownThread != null) {
+                    try {
+                        Runtime.getRuntime().removeShutdownHook(_shutdownThread);
+                    } catch (IllegalStateException ise) { // NOPMD
+                        // this can happen if we're in the middle of a real
+                        // shutdown,
+                        // and that's 'ok'
+                    }
+                }
+
+            }
+        }
+    }
+    
+ 
+    
+    
+    
+    
+}
+```
+
+
+
+
+
+首先来看start方法的实现
+
+
+
+```java
+public class PollingServerListUpdater implements ServerListUpdater {
+    
+    private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; // msecs;
+    private static int LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
+
+    private final AtomicBoolean isActive = new AtomicBoolean(false);
+    private volatile ScheduledFuture<?> scheduledFuture;
+    
+    
+    public PollingServerListUpdater() {
+        this(LISTOFSERVERS_CACHE_UPDATE_DELAY, LISTOFSERVERS_CACHE_REPEAT_INTERVAL);
+    }
+
+    public PollingServerListUpdater(IClientConfig clientConfig) {
+        this(LISTOFSERVERS_CACHE_UPDATE_DELAY, getRefreshIntervalMs(clientConfig));
+    }
+
+    public PollingServerListUpdater(final long initialDelayMs, final long refreshIntervalMs) {
+        this.initialDelayMs = initialDelayMs;
+        this.refreshIntervalMs = refreshIntervalMs;
+    }
+
+    
+    
+    @Override
+    public synchronized void start(final UpdateAction updateAction) {
+        if (isActive.compareAndSet(false, true)) {
+            final Runnable wrapperRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (!isActive.get()) {
+                        if (scheduledFuture != null) {
+                            scheduledFuture.cancel(true);
+                        }
+                        return;
+                    }
+                    try {
+                        updateAction.doUpdate();
+                        lastUpdated = System.currentTimeMillis();
+                    } catch (Exception e) {
+                        logger.warn("Failed one update cycle", e);
+                    }
+                }
+            };
+
+            scheduledFuture = getRefreshExecutor().scheduleWithFixedDelay(
+                    wrapperRunnable,
+                    initialDelayMs,
+                    refreshIntervalMs,
+                    TimeUnit.MILLISECONDS
+            );
+        } else {
+            logger.info("Already active, no-op");
+        }
+    }    
+    
+    
+    
+    
+}
+```
+
+
+
+## Spring Cloud Ribbon中重要的组件
+
+
+
+### IClientConfig
+
+客户端配置
+
+### LoadBalancerStatus
+
+服务相关数据统计
+
+
+
+
+
+
 
 https://www.jianshu.com/p/f3db11f045cc

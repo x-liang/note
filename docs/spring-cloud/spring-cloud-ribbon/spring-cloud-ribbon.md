@@ -1651,7 +1651,7 @@ public interface ServerListUpdater {
 
 
 
-首先来看看构造函数及内部累的实现，对PollingServerListUpdater有一个简单的了解
+首先来看看构造函数及内部类的实现，对PollingServerListUpdater有一个简单的了解
 
 ```java
 public class PollingServerListUpdater implements ServerListUpdater {
@@ -1662,16 +1662,18 @@ public class PollingServerListUpdater implements ServerListUpdater {
     private final AtomicBoolean isActive = new AtomicBoolean(false);
     // 记录最后一次更新服务的时间
     private volatile long lastUpdated = System.currentTimeMillis();
-    // 
+    // 定时任务首次执行的延迟时间
     private final long initialDelayMs;
+    // 一次执行终止和下一次执行开始之间的延迟
     private final long refreshIntervalMs;
+    // 定时任务的返回值类型
     private volatile ScheduledFuture<?> scheduledFuture;
     
-    
+    // 默认的延迟时间及间隔时间
     public PollingServerListUpdater() {
         this(LISTOFSERVERS_CACHE_UPDATE_DELAY, LISTOFSERVERS_CACHE_REPEAT_INTERVAL);
     }
-
+	// 默认的延迟时间，配置的间隔时间
     public PollingServerListUpdater(IClientConfig clientConfig) {
         this(LISTOFSERVERS_CACHE_UPDATE_DELAY, getRefreshIntervalMs(clientConfig));
     }
@@ -1681,6 +1683,7 @@ public class PollingServerListUpdater implements ServerListUpdater {
         this.refreshIntervalMs = refreshIntervalMs;
     }
 
+    // 这个内部类主要用来配置定时任务的线程池，及结束任务的方法
 	private static class LazyHolder {
         private final static String CORE_THREAD = "DynamicServerListLoadBalancer.ThreadPoolSize";
         private final static DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
@@ -1689,19 +1692,22 @@ public class PollingServerListUpdater implements ServerListUpdater {
         static ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
 
         static {
+            // 核心线程数
             int coreSize = poolSizeProp.get();
+            // 自定义工厂
             ThreadFactory factory = (new ThreadFactoryBuilder())
                     .setNameFormat("PollingServerListUpdater-%d")
                     .setDaemon(true)
                     .build();
+            // 初始化线程池
             _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(coreSize, factory);
             poolSizeProp.addCallback(new Runnable() {
                 @Override
                 public void run() {
                     _serverListRefreshExecutor.setCorePoolSize(poolSizeProp.get());
                 }
-
             });
+            // 暂停线程
             _shutdownThread = new Thread(new Runnable() {
                 public void run() {
                     logger.info("Shutting down the Executor Pool for PollingServerListUpdater");
@@ -1714,26 +1720,16 @@ public class PollingServerListUpdater implements ServerListUpdater {
         private static void shutdownExecutorPool() {
             if (_serverListRefreshExecutor != null) {
                 _serverListRefreshExecutor.shutdown();
-
                 if (_shutdownThread != null) {
                     try {
                         Runtime.getRuntime().removeShutdownHook(_shutdownThread);
                     } catch (IllegalStateException ise) { // NOPMD
-                        // this can happen if we're in the middle of a real
-                        // shutdown,
-                        // and that's 'ok'
+                       
                     }
                 }
-
             }
         }
-    }
-    
- 
-    
-    
-    
-    
+    }  
 }
 ```
 

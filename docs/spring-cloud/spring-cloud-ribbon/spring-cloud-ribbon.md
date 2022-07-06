@@ -363,7 +363,7 @@ public PropertiesFactory propertiesFactory() {
 
 ## Spring Cloud Ribbon的负载均衡器
 
-负载均衡器的作用就是协调其他组件，完成负载均衡的调度管理功能。Ribbon中负载均衡器的接口定义为`ILoadBalancer`
+负载均衡器的作用就是协调其他组件，完成负载均衡的调度管理功能。Ribbon中负载均衡器的核心接口定义为`ILoadBalancer`，提供了对服务器操作的一组方法。
 
 ```java
 public interface ILoadBalancer {
@@ -419,6 +419,7 @@ public abstract class AbstractLoadBalancer implements ILoadBalancer {
     
     /**
      * 获取loadBalancer的统计信息
+     * 子类可以根据server的健康状态来获取健康的server
      */
     public abstract LoadBalancerStats getLoadBalancerStats();    
 }
@@ -432,9 +433,62 @@ public abstract class AbstractLoadBalancer implements ILoadBalancer {
 
 ### NoOpLoadBalancer
 
+这个就是我未做任何实现的实现，方法返回的不是null，就是空列表。源码就不在这里粘了。
+
 
 
 ### BaseLoadBalancer
+
+这个负载均衡器是Ribbon中最基础的一个负载均衡器，提供了负载均衡的基本能力。其他的负载均衡器都是在此基础上进行扩展的。
+
+首先来看看该负载均衡器中的一些基础属性：
+
+```java
+// 默认的负载均衡规则，轮询
+private final static IRule DEFAULT_RULE = new RoundRobinRule();
+// 默认的心跳检查策略
+private final static SerialPingStrategy DEFAULT_PING_STRATEGY = new SerialPingStrategy();
+private static final String DEFAULT_NAME = "default";
+private static final String PREFIX = "LoadBalancer_";
+// 负载均衡规则
+protected IRule rule = DEFAULT_RULE;
+// 心跳检查策略
+protected IPingStrategy pingStrategy = DEFAULT_PING_STRATEGY;
+// 心跳检查
+protected IPing ping = null;
+// 所有 server 列表
+protected volatile List<Server> allServerList = Collections.synchronizedList(new ArrayList<Server>());
+// 可用的 server 列表
+protected volatile List<Server> upServerList = Collections.synchronizedList(new ArrayList<Server>());
+
+protected ReadWriteLock allServerLock = new ReentrantReadWriteLock();
+protected ReadWriteLock upServerLock = new ReentrantReadWriteLock();
+
+protected String name = DEFAULT_NAME;
+// 定时器，用于启动心跳任务
+protected Timer lbTimer = null;
+// ping 间隔时间，可以通过配置修改，<clientName>.<nameSpace>.NFLoadBalancerPingInterval
+protected int pingIntervalSeconds = 10;
+// 每次ping的最长时间，可通过配置修改，<>.<>.NFLoadBalancerMaxTotalPingTime
+protected int maxTotalPingTimeSeconds = 5;
+protected Comparator<Server> serverComparator = new ServerComparator();
+// 表示Ping 是否正在进行
+protected AtomicBoolean pingInProgress = new AtomicBoolean(false);
+// 统计信息
+protected LoadBalancerStats lbStats;
+
+private volatile Counter counter = Monitors.newCounter("LoadBalancer_ChooseServer");
+
+private PrimeConnections primeConnections;
+
+private volatile boolean enablePrimingConnections = false;
+
+private IClientConfig config;
+// 一个监听器列表
+private List<ServerListChangeListener> changeListeners = new CopyOnWriteArrayList<ServerListChangeListener>();
+
+private List<ServerStatusChangeListener> serverStatusListeners = new CopyOnWriteArrayList<ServerStatusChangeListener>();
+```
 
 
 
@@ -688,7 +742,7 @@ public class RetryRule extends AbstractLoadBalancerRule {
 
 ### ClientConfigEnabledRoundRobinRule
 
-该负载均衡策略内部使用的是轮询策略。这里没什么好说的。
+该负载均衡策略内部使用的是轮询策略。这里没什么好说的。这里使用了一个组合模式
 
 下面看看源码实现：
 
@@ -846,6 +900,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
         }
         Server server = null;
         while (server == null) {
+            // 定时任务计算出的权重列表
             List<Double> currentWeights = accumulatedWeights;
             if (Thread.interrupted()) {
                 return null;
@@ -856,7 +911,9 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 return null;
             }
             int serverIndex = 0;
+            // 获取到权重的最大值
             double maxTotalWeight = currentWeights.size() == 0 ? 0 : currentWeights.get(currentWeights.size() - 1); 
+            // 判断权重是否有效，
             if (maxTotalWeight < 0.001d || serverCount != currentWeights.size()) {
                 // 如果权重不可用的话，这里选择轮询策略
                 server =  super.choose(getLoadBalancer(), key);
@@ -877,14 +934,16 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 }
                 server = allList.get(serverIndex);
             }
-			// 老套路
+			// 老套路，如果server 为null 就再来一遍
             if (server == null) {
                 Thread.yield();
                 continue;
             }
+            // 如果server 存活着，直接返回
             if (server.isAlive()) {
                 return (server);
             }
+            // 到这里，说明server已经死了。设为null
             server = null;
         }
         return server;
@@ -943,7 +1002,7 @@ public class BestAvailableRule extends ClientConfigEnabledRoundRobinRule {
 
 ### ZoneAvoidanceRule
 
-这个是Ribbon中最终要的一个负载均衡策略，该策略是Spring Cloud自动装配是的默认选项。
+这个是Ribbon中最重要的一个负载均衡策略，该策略是Spring Cloud自动装配是的默认选项。
 
 该类继承自`PredicateBasedRule`，老规矩，先来看看父类的定义：
 
@@ -955,6 +1014,7 @@ public abstract class PredicateBasedRule extends ClientConfigEnabledRoundRobinRu
     @Override
     public Server choose(Object key) {
         ILoadBalancer lb = getLoadBalancer();
+        // 注意 getPredicate() 是一个抽象方法
         Optional<Server> server = getPredicate().chooseRoundRobinAfterFiltering(lb.getAllServers(), key);
         if (server.isPresent()) {
             return server.get();
@@ -970,12 +1030,15 @@ public abstract class PredicateBasedRule extends ClientConfigEnabledRoundRobinRu
 ```java
 // AbstractServerPredicate#chooseRoundRobinAfterFiltering
 public Optional<Server> chooseRoundRobinAfterFiltering(List<Server> servers, Object loadBalancerKey) {
+    // 获取符合条件的server集合
     List<Server> eligible = getEligibleServers(servers, loadBalancerKey);
     if (eligible.size() == 0) {
         return Optional.absent();
     }
+    // 这里实现了一个轮询功能
     return Optional.of(eligible.get(incrementAndGetModulo(eligible.size())));
 }
+// 轮询的具体实现
 private int incrementAndGetModulo(int modulo) {
     for (;;) {
         int current = nextIndex.get();
@@ -986,14 +1049,53 @@ private int incrementAndGetModulo(int modulo) {
 }
 ```
 
-可以看到该方法首先调用`getEligibleServers`方法过滤出合适的server列表，然后通过轮询的方式选择了一个server。那么过滤逻辑的实现是什么呢，下面来看看ZoneAvoidanceRule的实现。
+可以看到该方法首先调用`getEligibleServers`方法过滤出合适的server列表，然后通过一个简单的轮询来选择了一个server进行返回，那么这个符合条件的server集合是如何选出的呢？下面来看看代码：
 
-先来看一下构造函数以及抽象实现方法：
+```java
+// AbstractServerPredicate#getEligibleServers
+private final Predicate<Server> serverOnlyPredicate =  new Predicate<Server>() {
+    @Override
+    public boolean apply(@Nullable Server input) {                    
+        return AbstractServerPredicate.this.apply(new PredicateKey(input));
+    }
+};
+
+public List<Server> getEligibleServers(List<Server> servers, Object loadBalancerKey) {
+    if (loadBalancerKey == null) {
+        return ImmutableList.copyOf(Iterables.filter(servers, this.getServerOnlyPredicate()));            
+    } else {
+        List<Server> results = Lists.newArrayList();
+        for (Server server: servers) {
+            if (this.apply(new PredicateKey(loadBalancerKey, server))) {
+                results.add(server);
+            }
+        }
+        return results;            
+    }
+}
+
+public Predicate<Server> getServerOnlyPredicate() {
+    return serverOnlyPredicate;
+}
+```
+
+观察上面的方法，不管loadBalancerKey是否为null，最后都是把server封装到PredicateKey的实例中(区别在于如果loadBalancerKey不为null的话，会把loadBalancerKey也封装到PredicateKey中)，然后调用this.apply()方法进行判断，但是apply方法，在这个类中并没有实现，所以这个任务就落到子类中。下面来看看AbstractServerPredicate的实现类图：
+
+![image-20220706102437731](.image/spring-cloud-ribbon/image-20220706102437731.png)
+
+这里就不卖关子了，在ZoneAvoidanceRule中，使用了ZoneAvoidancePredicate和AvailabilityPredicate两个实现类，另外也使用了一个在AbstractServerPredicate内部实现的内部类。
+
+CompositePredicate是一个组合模式的实现
+
+ZoneAffinityPredicate在服务列表过滤器中有使用到，具体的信息可以参考过滤器ZoneAffinityServerListFilter。
+
+下面我们就来看看ZoneAvoidanceRule是如何使用Predicate的。首先来看看构造函数以及抽象实现方法：
 
 ```java
 public class ZoneAvoidanceRule extends PredicateBasedRule {
 
-    private static final Random random = new Random();    
+    private static final Random random = new Random(); 
+    // 组合模式
     private CompositePredicate compositePredicate;
     
     public ZoneAvoidanceRule() {
@@ -1004,11 +1106,11 @@ public class ZoneAvoidanceRule extends PredicateBasedRule {
     }
     
     private CompositePredicate createCompositePredicate(ZoneAvoidancePredicate p1, AvailabilityPredicate p2) {
+        // 在这里构造成最终使用的Predicate
         return CompositePredicate.withPredicates(p1, p2)
                              .addFallbackPredicate(p2)
                              .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
                              .build();
-        
     }
 
     @Override
@@ -1018,7 +1120,47 @@ public class ZoneAvoidanceRule extends PredicateBasedRule {
 }
 ```
 
+再来看看CompositePredicate的核心代码实现：
 
+```java
+public class CompositePredicate extends AbstractServerPredicate {
+
+    private AbstractServerPredicate delegate;
+    
+    private List<AbstractServerPredicate> fallbacks = Lists.newArrayList();
+        
+    private int minimalFilteredServers = 1;
+    
+    private float minimalFilteredPercentage = 0;    
+    
+    @Override
+    public boolean apply(@Nullable PredicateKey input) {
+        return delegate.apply(input);
+    }
+
+    @Override
+    public List<Server> getEligibleServers(List<Server> servers, Object loadBalancerKey) {
+        List<Server> result = super.getEligibleServers(servers, loadBalancerKey);
+        Iterator<AbstractServerPredicate> i = fallbacks.iterator();
+        while (!(result.size() >= minimalFilteredServers && result.size() > (int) (servers.size() * minimalFilteredPercentage))
+                && i.hasNext()) {
+            AbstractServerPredicate predicate = i.next();
+            result = predicate.getEligibleServers(servers, loadBalancerKey);
+        }
+        return result;
+    }
+}
+```
+
+到这里ZoneAvoidanceRule的实现流程大致就清晰了。首先调用服务选择会从chose方法进入，在chose方法中有这样一条语句，`getPredicate().chooseRoundRobinAfterFiltering(lb.getAllServers(), key);`，这里会返回CompositePredicate对象，里面组合了两个Predicate，分别是ZoneAvoidancePredicate和AvailabilityPredicate，然后调用CompositePredicate中的过滤方法，最终会通过这两个Predicate中的apply方法进行判定。
+
+下面我们就正式来分析过滤逻辑
+
+**ZoneAvoidancePredicate**
+
+
+
+**AvailabilityPredicate**
 
 
 

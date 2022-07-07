@@ -2,7 +2,7 @@
 
 
 
-## 负载均衡
+## 负载均衡简介
 
 负载均衡，英文名称为Load Balance，其含义就是指将负载（工作任务）进行平衡、分摊到多个操作单元上进行运行，例如FTP服务器、Web服务器、企业核心应用服务器和其它主要任务服务器等，从而协同完成工作任务。
 
@@ -103,404 +103,6 @@ public @interface LoadBalanced {
 ```
 
 可以看到在LoadBalanced的定义上添加了`@Qualifier`注解，由此实现了对`RestTemplate`对象的标记。下面我们就来看看，Spring Cloud Ribbon是如何实现客户端的负载均衡的。
-
-## Spring Cloud Ribbon自动装配
-
-根据Spring Boot的自动装配原则，我们直接去查看spring-cloud-netflix-ribbon-2.2.9.RELEASE.jar包下的META_INF目录中的spring.factories文件：
-
-```properties
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.springframework.cloud.netflix.ribbon.RibbonAutoConfiguration
-```
-
-可以看到，Ribbon的自动装配类为`RibbonAutoConfiguration`，下面我们来看一下`RibbonAutoConfiguration`的定义：
-
-```java
-@Configuration
-@Conditional(RibbonAutoConfiguration.RibbonClassesConditions.class)
-@RibbonClients
-@AutoConfigureAfter(name = "org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration")
-@AutoConfigureBefore({ LoadBalancerAutoConfiguration.class, AsyncLoadBalancerAutoConfiguration.class })
-@EnableConfigurationProperties({ RibbonEagerLoadProperties.class, ServerIntrospectorProperties.class })
-@ConditionalOnProperty(value = "spring.cloud.loadbalancer.ribbon.enabled", havingValue = "true", matchIfMissing = true)
-public class RibbonAutoConfiguration {
-
-}
-```
-
-
-
-### RibbonAutoConfiguration上的注解
-
-下面来挨个分析这个自动装配类上标记的注解：
-
-#### @Configuration： 
-
-标明这个一个配置类
-
-#### @Conditional
-
-自动装配的条件，条件类为`RibbonAutoConfiguration.RibbonClassesConditions.class`
-
-```java
-static class RibbonClassesConditions extends AllNestedConditions {
-    RibbonClassesConditions() {
-        // 该参数表示解析该注解的时机是在向容器中注入bean的时候记性解析。
-        super(ConfigurationPhase.PARSE_CONFIGURATION);
-    }
-
-    @ConditionalOnClass(IClient.class)
-    static class IClientPresent {    }
-
-    @ConditionalOnClass(RestTemplate.class)
-    static class RestTemplatePresent {    }
-
-    @SuppressWarnings("deprecation")
-    @ConditionalOnClass(AsyncRestTemplate.class)
-    static class AsyncRestTemplatePresent {    }
-
-    @ConditionalOnClass(Ribbon.class)
-    static class RibbonPresent {    }
-}
-```
-
-该条件装配类继承自`AllNestedConditions`，表示该类定义的所有内部类的条件注解都必须满足。即当前环境必须存在这几个类：IClient、RestTemplate、AsyncRestTemplate、Ribbon。
-
-#### @RibbonClients
-
-```java
-@Configuration(proxyBeanMethods = false)
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE })
-@Documented
-@Import(RibbonClientConfigurationRegistrar.class)
-public @interface RibbonClients {
-	RibbonClient[] value() default {};
-	Class<?>[] defaultConfiguration() default {};
-}
-```
-
-该注解引入了`RibbonClientConfigurationRegistrar.class`类，该类负责对`@RibbonClients`及`@RibbonClient`两种注解的解析。
-
-```java
-public class RibbonClientConfigurationRegistrar implements ImportBeanDefinitionRegistrar {
-
-	@Override
-	public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
-		// 解析@RibbonClients
-        Map<String, Object> attrs = metadata.getAnnotationAttributes(RibbonClients.class.getName(), true);
-		if (attrs != null && attrs.containsKey("value")) {
-			AnnotationAttributes[] clients = (AnnotationAttributes[]) attrs.get("value");
-			for (AnnotationAttributes client : clients) {
-				registerClientConfiguration(registry, getClientName(client), client.get("configuration"));
-			}
-		}
-		if (attrs != null && attrs.containsKey("defaultConfiguration")) {
-			String name;
-			if (metadata.hasEnclosingClass()) {
-				name = "default." + metadata.getEnclosingClassName();
-			} else {
-				name = "default." + metadata.getClassName();
-			}
-			registerClientConfiguration(registry, name, attrs.get("defaultConfiguration"));
-		}
-        // 解析@RibbonClients
-		Map<String, Object> client = metadata.getAnnotationAttributes(RibbonClient.class.getName(), true);
-		String name = getClientName(client);
-		if (name != null) {
-            // 注册客户端配置
-			registerClientConfiguration(registry, name, client.get("configuration"));
-		}
-	}
-
-	private String getClientName(Map<String, Object> client) {
-		if (client == null) {
-			return null;
-		}
-		String value = (String) client.get("value");
-		if (!StringUtils.hasText(value)) {
-			value = (String) client.get("name");
-		}
-		if (StringUtils.hasText(value)) {
-			return value;
-		}
-		throw new IllegalStateException("Either 'name' or 'value' must be provided in @RibbonClient");
-	}
-
-	private void registerClientConfiguration(BeanDefinitionRegistry registry, Object name,
-			Object configuration) {
-		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(RibbonClientSpecification.class);
-		builder.addConstructorArgValue(name);
-		builder.addConstructorArgValue(configuration);
-		registry.registerBeanDefinition(name + ".RibbonClientSpecification", builder.getBeanDefinition());
-	}
-}
-```
-
-从上面的代码可以看到，最后注册的bean的类型都是`RibbonClientSpecification`类型。
-
-#### @AutoConfigureAfter
-
-这个注解是用来控制自动装配类的加载顺序的，先加载该注解中引入的自动配置类，在加载当前的自动配置类。该注解中引入的自动装配类`EurekaClientAutoConfiguration`是用来自动装配Eureka的，目前没有用到。
-
-
-
-#### @AutoConfigureBefore
-
-控制自动装配类的加载顺序，在加载完当前自动装配类后在记载该注解中的自动装配类。该注解中引入的连个配置类LoadBalancerAutoConfiguration.class, AsyncLoadBalancerAutoConfiguration.class 后面在介绍。
-
-
-
-#### @EnableConfigurationProperties
-
-这个是用来启用配置项的。
-
-
-
-#### @ConditionalOnProperty
-
-启用条件，默认是启用的。
-
-
-
-
-
-### RibbonAutoConfiguration
-
-上面讲解了一些自动动装配类`RibbonAutoConfiguration`上的条件注解，下面来看看这个自动装配类注入了那些bean。
-
-```java
-@Autowired(required = false)
-private List<RibbonClientSpecification> configurations = new ArrayList<>();
-
-@Autowired
-private RibbonEagerLoadProperties ribbonEagerLoadProperties;
-```
-
-这两个自动注入的属性是通过上面的注解加载的，configurations是在解析@RibbonClients注解时注入的bean，而ribbonEagerLoadProperties是激活的配置类。
-
-
-
-```java
-@Bean
-@ConditionalOnMissingBean
-public SpringClientFactory springClientFactory() {
-    SpringClientFactory factory = new SpringClientFactory();
-    factory.setConfigurations(this.configurations);
-    return factory;
-}
-```
-
-TODO  
-
-
-
-```java
-@Bean
-@ConditionalOnMissingBean(LoadBalancerClient.class)
-public LoadBalancerClient loadBalancerClient() {
-    return new RibbonLoadBalancerClient(springClientFactory());
-}
-```
-
-这里加载LoadBalancerClient的实例，默认实现为`RibbonLoadBalancerClient`
-
-
-
-
-
-注入RestTemplate的定制器，
-
-```java
-@Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(HttpRequest.class)
-@ConditionalOnRibbonRestClient
-protected static class RibbonClientHttpRequestFactoryConfiguration {
-
-    @Autowired
-    private SpringClientFactory springClientFactory;
-
-    @Bean
-    public RestTemplateCustomizer restTemplateCustomizer(
-        final RibbonClientHttpRequestFactory ribbonClientHttpRequestFactory) {
-        return restTemplate -> restTemplate
-            .setRequestFactory(ribbonClientHttpRequestFactory);
-    }
-
-    @Bean
-    public RibbonClientHttpRequestFactory ribbonClientHttpRequestFactory() {
-        return new RibbonClientHttpRequestFactory(this.springClientFactory);
-    }
-
-}
-```
-
-
-
-
-
-注入PropertiesFactory
-
-```java
-@Bean
-@ConditionalOnMissingBean
-public PropertiesFactory propertiesFactory() {
-   return new PropertiesFactory();
-}
-```
-
-
-
-
-
-
-
-### LoadBalancerAutoConfiguration
-
-
-
-
-
-## Spring Cloud Ribbon的负载均衡器
-
-负载均衡器的作用就是协调其他组件，完成负载均衡的调度管理功能。Ribbon中负载均衡器的核心接口定义为`ILoadBalancer`，提供了对服务器操作的一组方法。
-
-```java
-public interface ILoadBalancer {
-	/**
-	 * 添加新的服务列表
-	 */
-	public void addServers(List<Server> newServers);
-	
-	/**
-	 * 根据key通过负载均衡器选个一个服务
-	 */
-	public Server chooseServer(Object key);
-	
-	/**
-	 * 由客户端回调，用来标记某个服务下线
-	 */
-	public void markServerDown(Server server);
-
-	/**
-	 * 获取可用的服务列表
-     */
-    public List<Server> getReachableServers();
-
-    /**
-     * 获取所有服务列表，包含可用和不可用
-     */
-	public List<Server> getAllServers();
-}
-```
-
-其直接抽象实现为`AbstractLoadBalancer`，只是定义了两个新的方法，并没有什么具体的实现。
-
-```java
-public abstract class AbstractLoadBalancer implements ILoadBalancer {
-    
-    public enum ServerGroup{
-        ALL,
-        STATUS_UP,
-        STATUS_NOT_UP        
-    }
-        
-    /**
-     * 定义一个空参数的chooseServer()
-     */
-    public Server chooseServer() {
-    	return chooseServer(null);
-    }
-
-    /**
-     * 根据服务分组获取服务列表
-     */
-    public abstract List<Server> getServerList(ServerGroup serverGroup);
-    
-    /**
-     * 获取loadBalancer的统计信息
-     * 子类可以根据server的健康状态来获取健康的server
-     */
-    public abstract LoadBalancerStats getLoadBalancerStats();    
-}
-```
-
-下面来看看LoadBalancer的实现类图：
-
-<img src="../../../.img/spring-cloud-ribbon/image-20220613100308276.png" alt="image-20220613100308276" style="zoom:60%;" />
-
-
-
-### NoOpLoadBalancer
-
-这个就是我未做任何实现的实现，方法返回的不是null，就是空列表。源码就不在这里粘了。
-
-
-
-### BaseLoadBalancer
-
-这个负载均衡器是Ribbon中最基础的一个负载均衡器，提供了负载均衡的基本能力。其他的负载均衡器都是在此基础上进行扩展的。
-
-首先来看看该负载均衡器中的一些基础属性：
-
-```java
-// 默认的负载均衡规则，轮询
-private final static IRule DEFAULT_RULE = new RoundRobinRule();
-// 默认的心跳检查策略
-private final static SerialPingStrategy DEFAULT_PING_STRATEGY = new SerialPingStrategy();
-private static final String DEFAULT_NAME = "default";
-private static final String PREFIX = "LoadBalancer_";
-// 负载均衡规则
-protected IRule rule = DEFAULT_RULE;
-// 心跳检查策略
-protected IPingStrategy pingStrategy = DEFAULT_PING_STRATEGY;
-// 心跳检查
-protected IPing ping = null;
-// 所有 server 列表
-protected volatile List<Server> allServerList = Collections.synchronizedList(new ArrayList<Server>());
-// 可用的 server 列表
-protected volatile List<Server> upServerList = Collections.synchronizedList(new ArrayList<Server>());
-
-protected ReadWriteLock allServerLock = new ReentrantReadWriteLock();
-protected ReadWriteLock upServerLock = new ReentrantReadWriteLock();
-
-protected String name = DEFAULT_NAME;
-// 定时器，用于启动心跳任务
-protected Timer lbTimer = null;
-// ping 间隔时间，可以通过配置修改，<clientName>.<nameSpace>.NFLoadBalancerPingInterval
-protected int pingIntervalSeconds = 10;
-// 每次ping的最长时间，可通过配置修改，<>.<>.NFLoadBalancerMaxTotalPingTime
-protected int maxTotalPingTimeSeconds = 5;
-protected Comparator<Server> serverComparator = new ServerComparator();
-// 表示Ping 是否正在进行
-protected AtomicBoolean pingInProgress = new AtomicBoolean(false);
-// 统计信息
-protected LoadBalancerStats lbStats;
-
-private volatile Counter counter = Monitors.newCounter("LoadBalancer_ChooseServer");
-
-private PrimeConnections primeConnections;
-
-private volatile boolean enablePrimingConnections = false;
-
-private IClientConfig config;
-// 一个监听器列表
-private List<ServerListChangeListener> changeListeners = new CopyOnWriteArrayList<ServerListChangeListener>();
-
-private List<ServerStatusChangeListener> serverStatusListeners = new CopyOnWriteArrayList<ServerStatusChangeListener>();
-```
-
-
-
-### DynamicServerListLoadBalancer
-
-
-
-### ZoneAwareLoadBalancer
-
-
-
-
 
 
 
@@ -1948,6 +1550,407 @@ public class PollingServerListUpdater implements ServerListUpdater {
 
 
 
+
+
+## Spring Cloud Ribbon的负载均衡器
+
+负载均衡器的作用就是协调其他组件，完成负载均衡的调度管理功能。而如何协调组件，完成对server列表的获取、更新、维护、心跳检测、选择等功能，便成为了这个组件的主要工作，接下来就看看Ribbon是如何实现的。首先来看看Ribbon中负载均衡器的顶级接口定义`ILoadBalancer`，该接口提供了对服务器操作的一组方法，包括添加、选择、标记以及获取server列表。
+
+```java
+public interface ILoadBalancer {
+	/**
+	 * 添加新的服务列表
+	 */
+	public void addServers(List<Server> newServers);
+	
+	/**
+	 * 根据key通过负载均衡器选个一个服务，通常情况下是委托给IRule组件
+	 */
+	public Server chooseServer(Object key);
+	
+	/**
+	 * 由客户端回调，用来标记某个服务下线
+	 */
+	public void markServerDown(Server server);
+
+	/**
+	 * 获取可用的服务列表
+     */
+    public List<Server> getReachableServers();
+
+    /**
+     * 获取所有服务列表，包含可用和不可用
+     */
+	public List<Server> getAllServers();
+}
+```
+
+其直接抽象实现为`AbstractLoadBalancer`，只是定义了两个新的方法，并没有什么具体的实现。
+
+```java
+public abstract class AbstractLoadBalancer implements ILoadBalancer {
+    
+    public enum ServerGroup{
+        ALL,
+        STATUS_UP,
+        STATUS_NOT_UP        
+    }
+        
+    /**
+     * 定义一个空参数的chooseServer()
+     */
+    public Server chooseServer() {
+    	return chooseServer(null);
+    }
+
+    /**
+     * 根据服务分组获取服务列表
+     */
+    public abstract List<Server> getServerList(ServerGroup serverGroup);
+    
+    /**
+     * 获取loadBalancer的统计信息
+     * 子类可以根据server的健康状态来获取健康的server
+     */
+    public abstract LoadBalancerStats getLoadBalancerStats();    
+}
+```
+
+下面来看看LoadBalancer的实现类图：
+
+<img src="../../../.img/spring-cloud-ribbon/image-20220613100308276.png" alt="image-20220613100308276" style="zoom:60%;" />
+
+
+
+### NoOpLoadBalancer
+
+这个就是未做任何实现的实现，方法返回的不是null，就是空列表。没什么实际的使用场景，源码就不在这里粘了。
+
+
+
+### BaseLoadBalancer
+
+这个负载均衡器是Ribbon中最基础的一个负载均衡器，提供了负载均衡的基本能力。其他的负载均衡器都是在此基础上进行扩展的。
+
+首先来看看该负载均衡器中的一些基础属性：
+
+```java
+// 默认的负载均衡规则，轮询
+private final static IRule DEFAULT_RULE = new RoundRobinRule();
+// 默认的心跳检查策略， 串行ping
+private final static SerialPingStrategy DEFAULT_PING_STRATEGY = new SerialPingStrategy();
+private static final String DEFAULT_NAME = "default";
+private static final String PREFIX = "LoadBalancer_";
+// 负载均衡规则
+protected IRule rule = DEFAULT_RULE;
+// 心跳检查策略
+protected IPingStrategy pingStrategy = DEFAULT_PING_STRATEGY;
+// 心跳检查
+protected IPing ping = null;
+// 所有 server 列表
+protected volatile List<Server> allServerList = Collections.synchronizedList(new ArrayList<Server>());
+// 可用的 server 列表
+protected volatile List<Server> upServerList = Collections.synchronizedList(new ArrayList<Server>());
+
+protected ReadWriteLock allServerLock = new ReentrantReadWriteLock();
+protected ReadWriteLock upServerLock = new ReentrantReadWriteLock();
+// 负载均衡器的名称，一般情况下为ClientName，若没指定为default
+protected String name = DEFAULT_NAME;
+// 定时器，用于启动心跳任务
+protected Timer lbTimer = null;
+// ping 间隔时间，可以通过配置修改，<clientName>.<nameSpace>.NFLoadBalancerPingInterval
+protected int pingIntervalSeconds = 10;
+// 每次ping的最长时间，可通过配置修改，<clientName>.<nameSpace>.NFLoadBalancerMaxTotalPingTime
+protected int maxTotalPingTimeSeconds = 5;
+// 按照server的id排序
+protected Comparator<Server> serverComparator = new ServerComparator();
+// 表示Ping 是否正在进行
+protected AtomicBoolean pingInProgress = new AtomicBoolean(false);
+// 统计信息
+protected LoadBalancerStats lbStats;
+
+private volatile Counter counter = Monitors.newCounter("LoadBalancer_ChooseServer");
+// 初始链接检查， 用于检查初始检测Server的readyToServer 是否能够提供服务。
+private PrimeConnections primeConnections;
+// 初始检测的开关
+private volatile boolean enablePrimingConnections = false;
+
+private IClientConfig config;
+// 一个监听器列表，到allServerList里面的内容发生变化，会触发此监听器
+private List<ServerListChangeListener> changeListeners = new CopyOnWriteArrayList<ServerListChangeListener>();
+// 当server的isAlive状态发生变化时，触发词监听器。
+private List<ServerStatusChangeListener> serverStatusListeners = new CopyOnWriteArrayList<ServerStatusChangeListener>();
+```
+
+
+
+### DynamicServerListLoadBalancer
+
+
+
+### ZoneAwareLoadBalancer
+
+
+
+
+
+## Spring Cloud Ribbon自动装配
+
+根据Spring Boot的自动装配原则，我们直接去查看spring-cloud-netflix-ribbon-2.2.9.RELEASE.jar包下的META_INF目录中的spring.factories文件：
+
+```properties
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.springframework.cloud.netflix.ribbon.RibbonAutoConfiguration
+```
+
+可以看到，Ribbon的自动装配类为`RibbonAutoConfiguration`，下面我们来看一下`RibbonAutoConfiguration`的定义：
+
+```java
+@Configuration
+@Conditional(RibbonAutoConfiguration.RibbonClassesConditions.class)
+@RibbonClients
+@AutoConfigureAfter(name = "org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration")
+@AutoConfigureBefore({ LoadBalancerAutoConfiguration.class, AsyncLoadBalancerAutoConfiguration.class })
+@EnableConfigurationProperties({ RibbonEagerLoadProperties.class, ServerIntrospectorProperties.class })
+@ConditionalOnProperty(value = "spring.cloud.loadbalancer.ribbon.enabled", havingValue = "true", matchIfMissing = true)
+public class RibbonAutoConfiguration {
+
+}
+```
+
+
+
+### RibbonAutoConfiguration上的注解
+
+下面来挨个分析这个自动装配类上标记的注解：
+
+#### @Configuration： 
+
+标明这个一个配置类
+
+#### @Conditional
+
+自动装配的条件，条件类为`RibbonAutoConfiguration.RibbonClassesConditions.class`
+
+```java
+static class RibbonClassesConditions extends AllNestedConditions {
+    RibbonClassesConditions() {
+        // 该参数表示解析该注解的时机是在向容器中注入bean的时候记性解析。
+        super(ConfigurationPhase.PARSE_CONFIGURATION);
+    }
+
+    @ConditionalOnClass(IClient.class)
+    static class IClientPresent {    }
+
+    @ConditionalOnClass(RestTemplate.class)
+    static class RestTemplatePresent {    }
+
+    @SuppressWarnings("deprecation")
+    @ConditionalOnClass(AsyncRestTemplate.class)
+    static class AsyncRestTemplatePresent {    }
+
+    @ConditionalOnClass(Ribbon.class)
+    static class RibbonPresent {    }
+}
+```
+
+该条件装配类继承自`AllNestedConditions`，表示该类定义的所有内部类的条件注解都必须满足。即当前环境必须存在这几个类：IClient、RestTemplate、AsyncRestTemplate、Ribbon。
+
+#### @RibbonClients
+
+```java
+@Configuration(proxyBeanMethods = false)
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE })
+@Documented
+@Import(RibbonClientConfigurationRegistrar.class)
+public @interface RibbonClients {
+	RibbonClient[] value() default {};
+	Class<?>[] defaultConfiguration() default {};
+}
+```
+
+该注解引入了`RibbonClientConfigurationRegistrar.class`类，该类负责对`@RibbonClients`及`@RibbonClient`两种注解的解析。
+
+```java
+public class RibbonClientConfigurationRegistrar implements ImportBeanDefinitionRegistrar {
+
+	@Override
+	public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+		// 解析@RibbonClients
+        Map<String, Object> attrs = metadata.getAnnotationAttributes(RibbonClients.class.getName(), true);
+		if (attrs != null && attrs.containsKey("value")) {
+			AnnotationAttributes[] clients = (AnnotationAttributes[]) attrs.get("value");
+			for (AnnotationAttributes client : clients) {
+				registerClientConfiguration(registry, getClientName(client), client.get("configuration"));
+			}
+		}
+		if (attrs != null && attrs.containsKey("defaultConfiguration")) {
+			String name;
+			if (metadata.hasEnclosingClass()) {
+				name = "default." + metadata.getEnclosingClassName();
+			} else {
+				name = "default." + metadata.getClassName();
+			}
+			registerClientConfiguration(registry, name, attrs.get("defaultConfiguration"));
+		}
+        // 解析@RibbonClients
+		Map<String, Object> client = metadata.getAnnotationAttributes(RibbonClient.class.getName(), true);
+		String name = getClientName(client);
+		if (name != null) {
+            // 注册客户端配置
+			registerClientConfiguration(registry, name, client.get("configuration"));
+		}
+	}
+
+	private String getClientName(Map<String, Object> client) {
+		if (client == null) {
+			return null;
+		}
+		String value = (String) client.get("value");
+		if (!StringUtils.hasText(value)) {
+			value = (String) client.get("name");
+		}
+		if (StringUtils.hasText(value)) {
+			return value;
+		}
+		throw new IllegalStateException("Either 'name' or 'value' must be provided in @RibbonClient");
+	}
+
+	private void registerClientConfiguration(BeanDefinitionRegistry registry, Object name,
+			Object configuration) {
+		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(RibbonClientSpecification.class);
+		builder.addConstructorArgValue(name);
+		builder.addConstructorArgValue(configuration);
+		registry.registerBeanDefinition(name + ".RibbonClientSpecification", builder.getBeanDefinition());
+	}
+}
+```
+
+从上面的代码可以看到，最后注册的bean的类型都是`RibbonClientSpecification`类型。
+
+#### @AutoConfigureAfter
+
+这个注解是用来控制自动装配类的加载顺序的，先加载该注解中引入的自动配置类，在加载当前的自动配置类。该注解中引入的自动装配类`EurekaClientAutoConfiguration`是用来自动装配Eureka的，目前没有用到。
+
+
+
+#### @AutoConfigureBefore
+
+控制自动装配类的加载顺序，在加载完当前自动装配类后在记载该注解中的自动装配类。该注解中引入的连个配置类LoadBalancerAutoConfiguration.class, AsyncLoadBalancerAutoConfiguration.class 后面在介绍。
+
+
+
+#### @EnableConfigurationProperties
+
+这个是用来启用配置项的。
+
+
+
+#### @ConditionalOnProperty
+
+启用条件，默认是启用的。
+
+
+
+
+
+### RibbonAutoConfiguration
+
+上面讲解了一些自动动装配类`RibbonAutoConfiguration`上的条件注解，下面来看看这个自动装配类注入了那些bean。
+
+```java
+@Autowired(required = false)
+private List<RibbonClientSpecification> configurations = new ArrayList<>();
+
+@Autowired
+private RibbonEagerLoadProperties ribbonEagerLoadProperties;
+```
+
+这两个自动注入的属性是通过上面的注解加载的，configurations是在解析@RibbonClients注解时注入的bean，而ribbonEagerLoadProperties是激活的配置类。
+
+
+
+```java
+@Bean
+@ConditionalOnMissingBean
+public SpringClientFactory springClientFactory() {
+    SpringClientFactory factory = new SpringClientFactory();
+    factory.setConfigurations(this.configurations);
+    return factory;
+}
+```
+
+TODO  
+
+
+
+```java
+@Bean
+@ConditionalOnMissingBean(LoadBalancerClient.class)
+public LoadBalancerClient loadBalancerClient() {
+    return new RibbonLoadBalancerClient(springClientFactory());
+}
+```
+
+这里加载LoadBalancerClient的实例，默认实现为`RibbonLoadBalancerClient`
+
+
+
+
+
+注入RestTemplate的定制器，
+
+```java
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnClass(HttpRequest.class)
+@ConditionalOnRibbonRestClient
+protected static class RibbonClientHttpRequestFactoryConfiguration {
+
+    @Autowired
+    private SpringClientFactory springClientFactory;
+
+    @Bean
+    public RestTemplateCustomizer restTemplateCustomizer(
+        final RibbonClientHttpRequestFactory ribbonClientHttpRequestFactory) {
+        return restTemplate -> restTemplate
+            .setRequestFactory(ribbonClientHttpRequestFactory);
+    }
+
+    @Bean
+    public RibbonClientHttpRequestFactory ribbonClientHttpRequestFactory() {
+        return new RibbonClientHttpRequestFactory(this.springClientFactory);
+    }
+
+}
+```
+
+
+
+
+
+注入PropertiesFactory
+
+```java
+@Bean
+@ConditionalOnMissingBean
+public PropertiesFactory propertiesFactory() {
+   return new PropertiesFactory();
+}
+```
+
+
+
+
+
+
+
+### LoadBalancerAutoConfiguration
+
+
+
+
+
 ## Spring Cloud Ribbon中重要的组件
 
 
@@ -1959,6 +1962,289 @@ public class PollingServerListUpdater implements ServerListUpdater {
 ### LoadBalancerStatus
 
 服务相关数据统计
+
+
+
+## Spring Cloud Ribbon中的监控组件
+
+在Ribbon中，一些负载均衡策略在做负载时，需要根据一些统计信息来做判断，例如平均响应时间，累计失败次数，熔断控制等。基于此，ribbon重实现了一个简版的监控系统，包含如下一些组件，如ribbon-statisticds包，ServerStats以及LoadBalancerStats。接下来逐个击破。
+
+
+
+### 基础工具包
+
+在netflix-statistics包中，ribbon为我们提供了一些基础工具类，该工具包的设计目的时为了简化指标数据收集、逻辑计算等。在该工具包中仅有十个类定义，我们先来看一下整体的类图：
+
+![image-20220707151731227](.image/spring-cloud-ribbon/image-20220707151731227.png)
+
+
+
+#### DataCollector
+
+数据收集，以增量的方式收集数据。该接口非常简单，仅一个增量收集数据的方法。他是数据的唯一来源，其他一切为围绕该接口进行展开。
+
+```java
+public interface DataCollector {
+    /**
+     * 向收集的数据中添加一个值
+     */
+    void noteValue(double val);
+}
+```
+
+#### DistributionMBean
+
+该接口定义了一些获取数据的方式
+
+```java
+public interface DistributionMBean {
+
+    /**  清楚数据 */
+    void clear();
+
+    /** 获取次数 */
+    long getNumValues();
+
+    /** 获取平均值 */
+    double getMean();
+
+    /** 获取方差 */
+    double getVariance();
+
+    /** 获取标准差 */
+    double getStdDev();
+
+    /** 获取最小值 */
+    double getMinimum();
+
+    /** 获取最大值 */
+    double getMaximum();
+}
+```
+
+
+
+
+
+
+
+#### Distribution
+
+分布式系统的累加器，以增量的方式产生观测值。该组件除了实现了DataCollector以外，还实现了DistributionMBean接口
+
+```java
+public class Distribution implements DistributionMBean, DataCollector {
+	// 累加值的次数
+    private long numValues;
+    // 所有值得总和
+    private double sumValues;
+    // 值 平方的总和
+    private double sumSquareValues;
+    // 最大值
+    private double minValue;
+    // 最小值
+    private double maxValue;
+
+    /** 构造函数，创建一个空实例 */
+    public Distribution() {
+        numValues = 0L;
+        sumValues = 0.0;
+        sumSquareValues = 0.0;
+        minValue = 0.0;
+        maxValue = 0.0;
+    }
+
+    /** 累加新值 */
+    public void noteValue(double val) {
+        numValues++;
+        sumValues += val;
+        sumSquareValues += val * val;
+        // 计算最大值、最小值
+        if (numValues == 1) {
+            minValue = val;
+            maxValue = val;
+        } else if (val < minValue) {
+            minValue = val;
+        } else if (val > maxValue) {
+            maxValue = val;
+        }
+    }
+	// 清楚数据
+    public void clear() { ... }
+
+    /** 次数 */
+    public long getNumValues() { return numValues; }
+
+    /** 获取平均值 */
+    public double getMean() {
+        if (numValues < 1) {
+            return 0.0;
+        } else {
+            return sumValues / numValues;
+        }
+    }
+
+    /** 计算方差 */
+    public double getVariance() {
+        if (numValues < 2) {
+            return 0.0;
+        } else if (sumValues == 0.0) {
+            return 0.0;
+        } else {
+            double mean = getMean();
+            return (sumSquareValues / numValues) - mean * mean;
+        }
+    }
+
+    /** 标准差 */
+    public double getStdDev() { return Math.sqrt(getVariance()); }
+
+    /** 最小值 */
+    public double getMinimum() {  return minValue; }
+
+    /** 最大值 */
+    public double getMaximum() { return maxValue; }
+
+    /** 将两个Distribution相加  */
+    public void add(Distribution anotherDistribution) {
+        if (anotherDistribution != null) {
+            numValues += anotherDistribution.numValues;
+            sumValues += anotherDistribution.sumValues;
+            sumSquareValues += anotherDistribution.sumSquareValues;
+            minValue = (minValue < anotherDistribution.minValue) ? minValue
+                    : anotherDistribution.minValue;
+            maxValue = (maxValue > anotherDistribution.maxValue) ? maxValue
+                    : anotherDistribution.maxValue;
+        }
+    }
+}
+```
+
+这里需要注意到一点，该类是线程不安全的。
+
+
+
+#### DataBuffer
+
+该类是Distribution的子类 ，在父类的基础上增加了一个缓冲区，并配合startCollection和endCollection动作，完成对一个周期数据的收集。
+
+```java
+public class DataBuffer extends Distribution {
+	// 锁
+    private final Lock lock;
+    // 缓冲区
+    private final double[] buf;
+    // 周期开始时间戳
+    private long startMillis;
+    // 周期结束时间戳
+    private long endMillis;
+    private int size;
+    // buf中当前写入的位置
+    private int insertPos;
+
+    /** 构造函数，初始化 */
+    public DataBuffer(int capacity) {
+        lock = new ReentrantLock();
+        buf = new double[capacity];
+        startMillis = 0;
+        size = 0;
+        insertPos = 0;
+    }
+
+   // 获取锁
+    public Lock getLock() { return lock; }
+
+    /** 获取缓冲区长度 */
+    public int getCapacity() { return buf.length; }
+
+    /** 获取周期长度 */
+    public long getSampleIntervalMillis() { return (endMillis - startMillis); }
+
+    /** 获取size */
+    public int getSampleSize() { return size; }
+   
+    /** 清空数据 */
+    @Override
+    public void clear() { ... }
+
+    /** 开始周期 */
+    public void startCollection() {
+        clear();
+        startMillis = System.currentTimeMillis();
+    }
+
+    /** 结束周期 */
+    public void endCollection() {
+        endMillis = System.currentTimeMillis();
+        Arrays.sort(buf, 0, size);
+    }
+
+    /** 累加值 */
+    @Override
+    public void noteValue(double val) {
+        super.noteValue(val);
+        buf[insertPos++] = val;
+        if (insertPos >= buf.length) {
+            insertPos = 0;
+            size = buf.length;
+        } else if (insertPos > size) {
+            size = insertPos;
+        }
+    }
+
+    /** 计算分位数 */
+    public double[] getPercentiles(double[] percents, double[] percentiles) {
+        for (int i = 0; i < percents.length; i++) {
+            // 计算百分比统计信息。比如若percents[i] = 50的话
+			// 就是计算buf缓冲区里中位数的值
+			// 90的话：计算90分位数的值（也就是该值比90%的数值都大）
+			// computePercentile是私有方法：根据当前窗口内收集到的数据进行计算分位数
+            percentiles[i] = computePercentile(percents[i]);
+        }
+        return percentiles;
+    }
+
+    private double computePercentile(double percent) {
+        // Some just-in-case edge cases
+        if (size <= 0) {
+            return 0.0;
+        } else if (percent <= 0.0) {
+            return buf[0];
+        } else if (percent >= 100.0) {        // SUPPRESS CHECKSTYLE MagicNumber
+            return buf[size - 1];
+        }
+        double index = (percent / 100.0) * size; // SUPPRESS CHECKSTYLE MagicNumber
+        int iLow = (int) Math.floor(index);
+        int iHigh = (int) Math.ceil(index);
+        assert 0 <= iLow && iLow <= index && index <= iHigh && iHigh <= size;
+        assert (iHigh - iLow) <= 1;
+        if (iHigh >= size) {
+            return buf[size - 1];      // Another edge case
+        } else if (iLow == iHigh) {
+            return buf[iLow];
+        } else {
+            // Interpolate between the two bounding values
+            return buf[iLow] + (index - iLow) * (buf[iHigh] - buf[iLow]);
+        }
+    }
+}
+```
+
+
+
+#### Histogram
+
+histogram 是直方图的意思。他的作用就是把数据分桶，并提供一些统计方法。
+
+
+
+```
+
+```
+
+
+
+
 
 
 

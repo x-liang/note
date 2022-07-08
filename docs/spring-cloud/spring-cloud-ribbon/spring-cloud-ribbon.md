@@ -683,7 +683,7 @@ public Predicate<Server> getServerOnlyPredicate() {
 
 观察上面的方法，不管loadBalancerKey是否为null，最后都是把server封装到PredicateKey的实例中(区别在于如果loadBalancerKey不为null的话，会把loadBalancerKey也封装到PredicateKey中)，然后调用this.apply()方法进行判断，但是apply方法，在这个类中并没有实现，所以这个任务就落到子类中。下面来看看AbstractServerPredicate的实现类图：
 
-![image-20220706102437731](.image/spring-cloud-ribbon/image-20220706102437731.png)
+![image-20220706102437731](../../../.img/spring-cloud-ribbon/image-20220706102437731.png)
 
 这里就不卖关子了，在ZoneAvoidanceRule中，使用了ZoneAvoidancePredicate和AvailabilityPredicate两个实现类，另外也使用了一个在AbstractServerPredicate内部实现的内部类。
 
@@ -1975,7 +1975,7 @@ public PropertiesFactory propertiesFactory() {
 
 在netflix-statistics包中，ribbon为我们提供了一些基础工具类，该工具包的设计目的时为了简化指标数据收集、逻辑计算等。在该工具包中仅有十个类定义，我们先来看一下整体的类图：
 
-![image-20220707151731227](.image/spring-cloud-ribbon/image-20220707151731227.png)
+![image-20220707151731227](../../../.img/spring-cloud-ribbon/image-20220707151731227.png)
 
 
 
@@ -2184,6 +2184,7 @@ public class DataBuffer extends Distribution {
     public void noteValue(double val) {
         super.noteValue(val);
         buf[insertPos++] = val;
+        // 这里当index大于缓冲区长度时，会重新set到0的位置
         if (insertPos >= buf.length) {
             insertPos = 0;
             size = buf.length;
@@ -2241,6 +2242,276 @@ histogram 是直方图的意思。他的作用就是把数据分桶，并提供�
 ```
 
 ```
+
+
+
+#### DataAccumulator
+
+数据累加器。该类是一个抽象类，内部使用了两个缓冲区。
+
+- current：用于添加新数据
+- previous：用于存储上一个周期内换存储收集到的数据
+
+```java
+public abstract class DataAccumulator implements DataCollector {
+
+    private DataBuffer current;
+    private DataBuffer previous;
+    // swap锁，收集数据和交换数据是异步的。
+    private final Object swapLock = new Object();
+    
+    /** 构造方法
+     *  这是唯一的构造方法，必须制定缓冲区的大小。
+     *  他决定了缓冲区的数据承载量，比如设置了10， 那么即使有再多的数据过来，也只缓存最近的10条。 */
+    public DataAccumulator(int bufferSize) {
+        this.current = new DataBuffer(bufferSize);
+        this.previous = new DataBuffer(bufferSize);
+    }
+
+    /** 收集数据的方法 */
+    public void noteValue(double val) {
+        synchronized (swapLock) {
+            Lock l = current.getLock();
+            l.lock();
+            try {
+                current.noteValue(val);
+            } finally {
+                l.unlock();
+            }
+        }
+    }
+}
+```
+
+剩下的就是数据交换了，这个功能也是该扩展的一个核心功能。
+
+```java
+public void publish() {
+    DataBuffer tmp = null;
+    Lock l = null;
+    synchronized (swapLock) {
+        // 交换缓冲区
+        tmp = current;
+        current = previous;
+        previous = tmp;
+        // 开区新的收集周期
+        l = current.getLock();
+        l.lock();
+        try {
+            current.startCollection();
+        } finally {
+            l.unlock();
+        }
+        // 获取老缓冲区的锁
+        l = tmp.getLock();
+        l.lock();
+    }
+    // 在处理老数据之前释放锁
+    try {
+        tmp.endCollection();
+        // 这个是抽象方法，由子类实现。
+        publish(tmp);
+    } finally {
+        l.unlock();
+    }
+}
+```
+
+该方法的主要作用就是对新老缓冲区做一个交换，当然，交换之前需要加锁。交换完成之后，把老的缓冲区中的数据拿去做计算。计算的方法是一个抽象方法，在子类中实现。
+
+#### DataDistribution
+
+该类就是DataAccumulator的实现类了，实现了具体的计算逻辑。
+
+```java
+public class DataDistribution extends DataAccumulator implements DataDistributionMBean {
+
+    private long numValues = 0L;
+    private double mean = 0.0;
+    private double variance = 0.0;
+    private double stddev = 0.0;
+    private double min = 0.0;
+    private double max = 0.0;
+    private long ts = 0L;
+    private long interval = 0L;
+    private int size = 0;
+    private final double[] percents;
+    private final double[] percentiles;
+
+    /** 构造函数 */
+    public DataDistribution(int bufferSize, double[] percents) {
+        super(bufferSize);
+        // 简单的校验
+        assert percentsOK(percents);
+        this.percents = percents;
+        this.percentiles = new double[percents.length];
+    }
+	...
+        
+    /** 计算逻辑 */
+    protected void publish(DataBuffer buf) {
+        ts = System.currentTimeMillis();
+        numValues = buf.getNumValues();
+        mean = buf.getMean();
+        variance = buf.getVariance();
+        stddev = buf.getStdDev();
+        min = buf.getMinimum();
+        max = buf.getMaximum();
+        interval = buf.getSampleIntervalMillis();
+        size = buf.getSampleSize();
+        buf.getPercentiles(percents, percentiles);
+    }
+
+    /** 清理数据 */
+    public void clear() {  ...  }
+	...
+} 
+```
+
+`publish`一次产生**一批新值**，这个时候你若把它持久化下来以后就能参考喽。然后进入到**下一轮**的数据收集，所以说publish的调用节奏决定了它的数据收集的时间窗口。
+
+
+
+#### DataPublisher
+
+这是一个现成的类，他会启动一个定时任务，周期性的调用publish方法。
+
+首先来看看属性和构造方法：
+
+```java
+public class DataPublisher {
+	// 常量，制定线程名
+    private static final String THREAD_NAME = "DataPublisher";
+    // Demo线程
+    private static final boolean DAEMON_THREADS = true;
+    // 执行任务的线程池
+    private static ScheduledExecutorService sharedExecutor = null;
+	// 数据累加器
+    private final DataAccumulator accumulator;
+    // 执行任务的时间间隔
+    private final long delayMillis;
+    // 任务的返回结果
+    private Future<?> future = null;
+
+    /** 构造方法 ，需要指定累加器和线程的执行周期 */
+    public DataPublisher(DataAccumulator accumulator, long delayMillis) {
+        this.accumulator = accumulator;
+        this.delayMillis = delayMillis;
+    }
+}
+```
+
+下面是开启定时任务：
+
+```java
+// 启动定时任务
+public synchronized void start() {
+    if (future == null) {
+        Runnable task = new Runnable() {
+            public void run() {
+                try {
+                    accumulator.publish();
+                } catch (Exception e) {
+                    handleException(e);
+                }
+            }
+        };
+        future = getExecutor().scheduleWithFixedDelay(task, delayMillis, delayMillis,  
+                                                      TimeUnit.MILLISECONDS);
+    }
+}
+
+/** 创建一个线程池 */
+protected synchronized ScheduledExecutorService getExecutor() {
+    if (sharedExecutor == null) {
+        sharedExecutor = Executors.newScheduledThreadPool(1, new PublishThreadFactory());
+    }
+    return sharedExecutor;
+}
+// 线程工厂
+private static final class PublishThreadFactory implements ThreadFactory {
+    PublishThreadFactory() { }
+    public Thread newThread(Runnable r) {
+        Thread t = new Thread(r, THREAD_NAME);
+        t.setDaemon(DAEMON_THREADS);
+        return t;
+    }
+}
+```
+
+
+
+#### 一个简单的使用案例
+
+略
+
+
+
+### ServerStats
+
+**服务状态**。在LoadBalancer中捕获每个服务器(节点)的各种状态，每个Server就对应着一个`ServerStats`实例。ServerStats表示一台Server的状态，各种纬度的统计数据才能使得你最终挑选出一个**最适合**的Server供以使用，以及计算其当前访问压力（并发数）、成功数、失败数、是否熔断、熔断了多久等等。
+
+#### 统计数据/属性
+
+到底统计了哪些数据呢？对Server进行**多维度**的数据统计，均体现在它的成员属性上：
+
+```java
+public class ServerStats {
+    
+    private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; // = 1 minute
+    private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; // = 1000 requests/sec for 1 minute
+    // 接连失败的阈值，默认值3，超过就熔断
+    // 默认配置 niws.loadbalancer.default.connectionFailureCountThreshold，默认值3
+    // 自定义配置：niws.loadbalancer.<c>.connectionFailureCountThreshold
+    private final CachedDynamicIntProperty connectionFailureThreshold;
+    private final CachedDynamicIntProperty circuitTrippedTimeoutFactor;
+    private final CachedDynamicIntProperty maxCircuitTrippedTimeout;
+    private static final DynamicIntProperty activeRequestsCountTimeout = 
+        DynamicPropertyFactory.getInstance()
+        .getIntProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds",
+                        60 * 10);
+    
+    private static final double[] PERCENTS = makePercentValues();
+    
+    private DataDistribution dataDist = new DataDistribution(1, PERCENTS); // in case
+    private DataPublisher publisher = null;
+    private final Distribution responseTimeDist = new Distribution();
+    
+    int bufferSize = DEFAULT_BUFFER_SIZE;
+    int publishInterval = DEFAULT_PUBLISH_INTERVAL;
+    
+    
+    long failureCountSlidingWindowInterval = 1000; 
+    
+    private MeasuredRate serverFailureCounts = new MeasuredRate(failureCountSlidingWindowInterval);
+    private MeasuredRate requestCountInWindow = new MeasuredRate(300000L);
+    
+    Server server;
+    
+    AtomicLong totalRequests = new AtomicLong();
+    
+    @VisibleForTesting
+    AtomicInteger successiveConnectionFailureCount = new AtomicInteger(0);
+    
+    @VisibleForTesting
+    AtomicInteger activeRequestsCount = new AtomicInteger(0);
+
+    @VisibleForTesting
+    AtomicInteger openConnectionsCount = new AtomicInteger(0);
+    
+    private volatile long lastConnectionFailedTimestamp;
+    private volatile long lastActiveRequestsCountChangeTimestamp;
+    private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
+    private volatile long lastAccessedTimestamp;
+    private volatile long firstConnectionTimestamp = 0;
+ }
+```
+
+
+
+### LoadBalancerStats
+
+
 
 
 

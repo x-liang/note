@@ -1977,7 +1977,7 @@ public PropertiesFactory propertiesFactory() {
 
 ![image-20220707151731227](../../../.img/spring-cloud-ribbon/image-20220707151731227.png)
 
-
+这里边基础功能接口基本都是在DataCollector这个分支，在DistributionMBean这个分支定义的都是获取数据的接口。
 
 #### DataCollector
 
@@ -2030,7 +2030,7 @@ public interface DistributionMBean {
 
 #### Distribution
 
-分布式系统的累加器，以增量的方式产生观测值。该组件除了实现了DataCollector以外，还实现了DistributionMBean接口
+分布式系统的累加器，提供了对多维度的数据统计。以增量的方式产生观测值。该组件除了实现了DataCollector以外，还实现了DistributionMBean接口
 
 ```java
 public class Distribution implements DistributionMBean, DataCollector {
@@ -2457,19 +2457,25 @@ private static final class PublishThreadFactory implements ThreadFactory {
 
 ```java
 public class ServerStats {
-    
-    private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; // = 1 minute
-    private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; // = 1000 requests/sec for 1 minute
+    // 默认60s（1分钟）publish一次数据
+    private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; 
+    // 缓冲区大小。这个默认大小可谓非常大呀，就算你QPS是1000，也能抗1分钟
+    private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; 
     // 接连失败的阈值，默认值3，超过就熔断
     // 默认配置 niws.loadbalancer.default.connectionFailureCountThreshold，默认值3
     // 自定义配置：niws.loadbalancer.<c>.connectionFailureCountThreshold
     private final CachedDynamicIntProperty connectionFailureThreshold;
+    // 断路器超时因子，默认10秒
+    // 默认配置 niws.loadbalancer.default.circuitTripTimeoutFactorSeconds
+    // 自定义配置： niws.loadbalancer.<clientName>.circuitTripTimeoutFactorSeconds
     private final CachedDynamicIntProperty circuitTrippedTimeoutFactor;
+    // 断路器最大超时秒数， 默认30s
+    // 默认配置：niws.loadbalancer.default.circuitTripMaxTimeoutSeconds
+    // 自定义配置：niws.loadbalancer.<clientName>.circuitTripMaxTimeoutSeconds 
     private final CachedDynamicIntProperty maxCircuitTrippedTimeout;
     private static final DynamicIntProperty activeRequestsCountTimeout = 
         DynamicPropertyFactory.getInstance()
-        .getIntProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds",
-                        60 * 10);
+        .getIntProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 60 * 10);
     
     private static final double[] PERCENTS = makePercentValues();
     
@@ -2480,29 +2486,40 @@ public class ServerStats {
     int bufferSize = DEFAULT_BUFFER_SIZE;
     int publishInterval = DEFAULT_PUBLISH_INTERVAL;
     
-    
+    // 失败次数统计时间窗。默认值1000ms
     long failureCountSlidingWindowInterval = 1000; 
-    
+    // 上一秒失败次数（上一秒是因为failureCountSlidingWindowInterval默认自是1000ms)
     private MeasuredRate serverFailureCounts = new MeasuredRate(failureCountSlidingWindowInterval);
+    // 一个窗口期内的请求总数，窗口期默认为5分钟（300秒） 
     private MeasuredRate requestCountInWindow = new MeasuredRate(300000L);
     
     Server server;
-    
+    // 总的请求数量，每次请求结束/错误时就会+1。
     AtomicLong totalRequests = new AtomicLong();
-    
+    // 连续（successive）请求异常数量（这个连续发生在Retry重试期间）。
+    // 在重试期间，但凡有一次成功了，就会把此参数置为0（失败的话此参数就一直加）
+	// 说明：只有在异常类型是callErrorHandler.isCircuitTrippingException(e)的时候，才会算作失败，才会+1 
+	// 默认情况下只有SocketException/SocketTimeoutException这两种异常才算失败哦~
     @VisibleForTesting
     AtomicInteger successiveConnectionFailureCount = new AtomicInteger(0);
-    
+    // 活跃请求数量（正在请求的数量，它能反应该Server的负载、压力）。 
+	// 但凡只要开始执行Sever了，就+1
+	// 但凡只要请求完成了/出错了，就-1
+	// 注意：它有时间窗口的概念，后面讲具体逻辑
     @VisibleForTesting
     AtomicInteger activeRequestsCount = new AtomicInteger(0);
 
     @VisibleForTesting
     AtomicInteger openConnectionsCount = new AtomicInteger(0);
-    
+    // 最后一次失败的时间戳。至于什么叫失败，参考successiveConnectionFailureCount对失败的判断逻辑
     private volatile long lastConnectionFailedTimestamp;
+	// 简单的说就是activeRequestsCount的值最后变化的时间戳
     private volatile long lastActiveRequestsCountChangeTimestamp;
+    // 断路器断电总时长（连续失败>=3次，增加20~30秒。具体增加多少秒，后面有计算逻辑）。
     private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
+    // 最后访问时间戳。和lastActiveRequestsCountChangeTimestamp的区别是，它增/减都update一下，而lastAccessedTimestamp只有在增的时候才会update一下。
     private volatile long lastAccessedTimestamp;
+    // 首次连接时间戳，只会记录首次请求进来时的时间。
     private volatile long firstConnectionTimestamp = 0;
  }
 ```
@@ -2517,7 +2534,7 @@ public class ServerStats {
 
 
 
-
+## Spring Cloud Ribbon 配置总结
 
 
 

@@ -24,7 +24,7 @@ JUnit 5 = JUnit Platform + JUnit Jupiter + JUnit Vintage
 </dependencyManagement>
 ```
 
-## Junit指南
+## Junit基础
 
 首先来一个hello world
 
@@ -291,15 +291,29 @@ class OrderedTestsDemo {
 
 #### 类的执行顺序
 
+略
 
 
 
+### 测试实例的生命周期
+
+默认情况下，Junit在执行每个测试方法之前，都会创建一个全新的实例。这主要是为了避免由于可变测试实例状态导致意外情况发生。如果希望使用同一个实例运行所有测试方法，可以使用`@TestInstance`注解，该注解中需要提供一个参数，Lifecycle.PER_CLASS 表示只创建一个实例来执行所有测试，Lifecycle.PER_METHOD表示执行每个测试方法都创建一个实例。
+
+#### @AfterEach/@BeforeEach
+
+在每个测试方法开始前/结束后，执行该方法
 
 
 
+#### @AfterAll/@BeforeAll
+
+在每个实例初始化后，销毁前执行一次。这里需要注意一下，如果生命周期指定为了Lifecycle.PER_METHOD，则方法必须为static方法，如果是其他的，则没有此要求。
 
 
 
+### 构造函数和方法的依赖注入
+
+从Junit5开始，支持一些构造函数和方法的依赖注入。
 
 
 

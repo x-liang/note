@@ -313,13 +313,147 @@ class OrderedTestsDemo {
 
 ### 构造函数和方法的依赖注入
 
-从Junit5开始，支持一些构造函数和方法的依赖注入。
+从Junit5开始，支持一些构造函数和方法的依赖注入。目前有三个内置的解析器
+
+- TestInfoParameterResolver：用于主持TestInfo类型的参数
+- RepetitionInfoParameterResolver：用于支持RepetitionInfo类型参数
+- TestReporterParameterResolver：用于支持TextReporter类型参数
+
+测试的时候，通过构造函数进行注入，会报错，在测试方法上进行注入则没有问题。
+
+
+
+
+
+### 测试接口和默认方法
+
+
+
+### 重复测试
+
+@RepeatedTest， 该注解中有两个属性，value指定重复执行次数，name用来指定展示信息的格式。在重复测试用例中，我们还可以注入一个RepetitionInfo类型的参数，来查询当前重复次数以及重复总数的信息。
+
+```java
+public class TestJunit {
+    @RepeatedTest(value = 10, name = RepeatedTest.LONG_DISPLAY_NAME)
+    public void test01(TestReporter reporter, TestInfo info, RepetitionInfo repetitionInfo){
+        reporter.publishEntry(repetitionInfo.getCurrentRepetition()+"");
+    }
+}
+```
+
+
+
+### 参数化测试
+
+@ParameterizedTest
+
+针对同一个测试方法，我们可能会需要不同的测试参数时，就可以使用该注解。
+
+
+
+#### 参数来源
+
+##### @ValueSource
+
+最简单的参数来源
+
+##### @NullSource
+
+传入一个null值
+
+##### @EmptySource
+
+传入一个空值，该注解主要针对String，List，Set，Map，数组等类型。
+
+##### @NullAndEmptySource
+
+@NullSource和@EmptySource的组合
+
+##### @EnumSource
+
+枚举参数，会遍历枚举中的值进行传入
+
+
+
+##### @MethodSource
+
+指定一个方法，并返回参数集合
+
+```java
+@ParameterizedTest
+@MethodSource("stringProvider")
+void testWithExplicitLocalMethodSource(String argument) {
+    assertNotNull(argument);
+}
+
+static Stream<String> stringProvider() {
+    return Stream.of("apple", "banana");
+}
+```
+
+
+
+##### @CsvSource
+
+```java
+@ParameterizedTest
+@CsvSource({
+    "apple,         1",
+    "banana,        2",
+    "'lemon, lime', 0xF1",
+    "strawberry,    700_000"
+})
+void testWithCsvSource(String fruit, int rank) {
+    assertNotNull(fruit);
+    assertNotEquals(0, rank);
+}
+```
+
+##### @CsvFileSource
+
+```java
+@ParameterizedTest
+@CsvFileSource(resources = "/two-column.csv", numLinesToSkip = 1)
+void testWithCsvFileSourceFromClasspath(String country, int reference) {
+    assertNotNull(country);
+    assertNotEquals(0, reference);
+}
+
+@ParameterizedTest
+@CsvFileSource(files = "src/test/resources/two-column.csv", numLinesToSkip = 1)
+void testWithCsvFileSourceFromFile(String country, int reference) {
+    assertNotNull(country);
+    assertNotEquals(0, reference);
+}
+
+@ParameterizedTest(name = "[{index}] {arguments}")
+@CsvFileSource(resources = "/two-column.csv", useHeadersInDisplayName = true)
+void testWithCsvFileSourceAndHeaders(String country, int reference) {
+    assertNotNull(country);
+    assertNotEquals(0, reference);
+}
+```
+
+
+
+#### 参数转换
+
+
+
+#### 参数聚合
+
+TODO
 
 
 
 
 
 
+
+## @ExtendWith
+
+该注解是Junit5中提供的扩展SPI，目前典型的实现有`MockitoExtension`、`SpringExtension`。
 
 
 

@@ -28,7 +28,7 @@ Java 虚拟机在执行 Java 程序的过程中会把它管理的[内存](https:
 
 分析 JVM 内存结构，主要就是分析 JVM 运行时数据存储区域。JVM 的运行时数据区主要包括：**堆、栈、方法区、程序计数器**等。而 JVM 的优化问题主要在线程共享的数据区中：**堆、方法区**。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/jvm-memory.png" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/jvm-memory.png" alt="img" style="zoom:100%;" />
 
 ### 程序计数器
 
@@ -194,7 +194,7 @@ JVM虚拟机栈的大小可以通过参数来指定    **-Xss size**
 > 1.  MetaSpaceSize：初始化元空间大小，控制发生GC阈值
 > 2.  MaxMetaspaceSize ： 限制元空间大小上限，防止异常占用过多物理内存
 >
-> <img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220510230231970.png" alt="image-20220510230231970" style="zoom:50%;float:left" />
+> <img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220510230231970.png" alt="image-20220510230231970" style="zoom:50%;" />
 
 
 
@@ -204,7 +204,7 @@ JVM虚拟机栈的大小可以通过参数来指定    **-Xss size**
 
 注：JDK8以后，常量池保存在堆中。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/jvm-memory-method-constant.png" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/jvm-memory-method-constant.png" alt="img" style="zoom:100%;" />
 
 优点：
 
@@ -621,11 +621,11 @@ System.out.println(x1 == x2);
 
 Java 8 中的存储位置：
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220511132237266.png" alt="image-20220511132237266" style="zoom:40%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220511132237266.png" alt="image-20220511132237266" style="zoom:40%;" />
 
 java 6 中的存储位置：
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220511132330620.png" alt="image-20220511132330620" style="zoom:40%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220511132330620.png" alt="image-20220511132330620" style="zoom:40%;" />
 
 将串池转移到堆内存后，更有利于内存的回收
 
@@ -937,7 +937,7 @@ class GcObject{
 
 如果采用的是引用计数算法：
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/b9e5ecd5d1cfb1d045541c1f6e25e92c_720w.jpg" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/b9e5ecd5d1cfb1d045541c1f6e25e92c_720w.jpg" alt="img" style="zoom:100%;" />
 
 再回到前面代码GcDemo的main方法共分为6个步骤：
 
@@ -950,7 +950,7 @@ class GcObject{
 
 接下来继续结果图：
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/3c1246661a548f933cd886070f6c1af1_720w.jpg" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/3c1246661a548f933cd886070f6c1af1_720w.jpg" alt="img" style="zoom:100%;" />
 
 - Step5：栈帧中obj1不再指向Java堆，GcObject实例1的引用计数减1，结果为1；
 - Step6：栈帧中obj2不再指向Java堆，GcObject实例2的引用计数减1，结果为1。
@@ -973,7 +973,7 @@ class GcObject{
 
 关于**可达性**的对象，便是能与GC Roots构成连通图的对象，如下图：
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/22f72b18415405c3e0207925a8de74fa_720w.jpg" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/22f72b18415405c3e0207925a8de74fa_720w.jpg" alt="img" style="zoom:100%;" />
 
 从上图，reference1、reference2、reference3都是GC Roots，可以看出：
 
@@ -997,7 +997,8 @@ class GcObject{
 #### 引用类型
 
 在JVM中，引用类型主要分为强引用（Strong Reference）、软引用（Soft Reference）、弱引用（Weak Reference）、虚引用（Phantom Reference）这 4 种引用强度依次逐渐减弱。除强引用外，其他 3 种引用均可以在 java.lang.ref 包中找到它们的身影。如下图，显示了这 3 种引用类型对应的类，开发人员可以在应用程序中直接使用它们。
-![在这里插入图片描述](../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/900fb2c037474f0b8951e22328807b13.png)
+
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/900fb2c037474f0b8951e22328807b13.png" alt="在这里插入图片描述" style="zoom:110%;" />
 
 Reference 子类中只有终结器引用是包内可见的，其他 3 种引用类型均为 public，可以在应用程序中直接使用
 
@@ -1151,7 +1152,7 @@ public class WeakReferenceDemo {
 
 - 清除：清除的过程将遍历堆中所有的对象，将没有标记的对象全部清除掉。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NjdWFtYW4=,size_16,color_FFFFFF,t_70.png" alt="在这里插入图片描述" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NjdWFtYW4=,size_16,color_FFFFFF,t_70.png" alt="在这里插入图片描述" style="zoom:100%;" />
 
 优点：
 
@@ -1262,7 +1263,7 @@ JVM在进行垃圾回收时，并不是只使用某一种算法，而是所有�
 
 **Java堆中内存划分：**
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/f113a034a345248ac88c8e7174038ed8.png" alt="Java堆划分" style="zoom:60%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/f113a034a345248ac88c8e7174038ed8.png" alt="Java堆划分" style="zoom:60%;" />
 
 注：在JDK9中开始采用G1回收器，开始采用了新的内存模型，弱化了分新生代和老年代的概念。
 
@@ -1390,7 +1391,7 @@ JVM的相关参数：
 
 事实上，这六种垃圾搜集器只有六种选择，因为有的垃圾搜集器由于具体实现的方式等一系列原因无法在一起工作，如下图。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/24191821-c3e4d156f40e46e7aa8f5c23ae017903.jpg" alt="img" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/24191821-c3e4d156f40e46e7aa8f5c23ae017903.jpg" alt="img" style="zoom:100%;" />
 
 针对上图，红的就是串行搜集器，绿的是并行搜集器，唯一一个黄的是并发搜集器。上面三个是新生代的搜集器，下面三个是年老代的搜集器。两者之间有连线，则表示两者可以配合工作。
 
@@ -1598,7 +1599,7 @@ G1垃圾收集器也是以关注延迟为目标、服务器端应用的垃圾收
 
 如下图所示：
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/40093686972_25da5b859f_z.jpg" alt="G1分区示意图" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/40093686972_25da5b859f_z.jpg" alt="G1分区示意图" style="zoom:100%;" />
 
 
 
@@ -1622,13 +1623,13 @@ G1同样可以通过`-Xms`/`-Xmx`来指定堆空间大小。当发生年轻代�
 
 整个年轻代内存会在初始空间`-XX:G1NewSizePercent`(默认整堆5%)与最大空间`-XX:G1MaxNewSizePercent`(默认60%)之间动态变化，且由参数目标暂停时间`-XX:MaxGCPauseMillis`(默认200ms)、需要扩缩容的大小以及分区的已记忆集合(RSet)计算得到。当然，G1依然可以设置固定的年轻代大小(参数`-XX:NewRatio`、`-Xmn`)，但同时暂停目标将失去意义。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220512164944416.png" alt="image-20220512164944416" style="zoom:80%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/image-20220512164944416.png" alt="image-20220512164944416" style="zoom:80%;" />
 
 ##### G1的分区模型
 
 G1对内存的使用以分区(Region)为单位，而对对象的分配则以卡片(Card)为单位。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/40093686872_ce639c1121_z.jpg" alt="G1的分区模型" style="zoom:100%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/40093686872_ce639c1121_z.jpg" alt="G1的分区模型" style="zoom:100%;" />
 
 
 
@@ -1692,7 +1693,7 @@ RSet在内部使用Per Region Table(PRT)记录分区的引用情况。由于RSet
 
 当达到IHOP阈值-XX:InitiatingHeapOccupancyPercent(老年代占整堆比，默认45%)时，便会触发并发标记周期。**整个并发标记周期将由初始标记(Initial Mark)、根分区扫描(Root Region Scanning)、并发标记(Concurrent Marking)、重新标记(Remark)、清除(Cleanup)几个阶段组成。**其中，初始标记(随年轻代收集一起活动)、重新标记、清除是STW的，而并发标记如果来不及标记存活对象，则可能在并发标记过程中，G1又触发了几次年轻代收集。
 
-<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/563799-20180510163645191-1911681386.png" alt="img" style="zoom:80%;float:left" />
+<img src="../../../.img/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/563799-20180510163645191-1911681386.png" alt="img" style="zoom:80%;" />
 
 **初始标记（Initial Mark）**
 

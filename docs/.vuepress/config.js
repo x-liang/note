@@ -196,6 +196,24 @@ module.exports = {
                         ]
                     }
                 ]
+            },
+            {
+                text:'工具包',
+                children:[
+                    {
+                        text: '测试',
+                        children:[
+                            {
+                                text:'Junit 5',
+                                link: '/tools/junit/junit5.md'
+                            },
+                            {
+                                text:'Junit 4',
+                                link: '/tools/junit/junit4.md'
+                            }
+                        ]
+                    }
+                ]
             }
         ],
         // 配置左侧边栏
@@ -229,7 +247,11 @@ module.exports = {
                     collapsible: true,
                     children:[
                         '/java/java-jvm/JVM概览.html',
-                        '/java/java-jvm/JVM类加载器.html'
+                        '/java/java-jvm/JVM内存结构.html',
+                        '/java/java-jvm/JVM垃圾回收.html',
+                        '/java/java-jvm/JVM类文件结构.html',
+                        '/java/java-jvm/JVM类加载器.html',
+                        '/java/java-jvm/JVM内存模型.html'
                     ]
                 }
             ],
@@ -297,7 +319,17 @@ module.exports = {
                     ]
                 }
 
+            ],
+            '/tools':[
+                {
+                    test:'',
+                    collapsible:true,
+                    children:[
+                        '/tools/junit/junit5.md'
+                    ]
+                }
             ]
+
         },
         sidebarDepth: 2
     })

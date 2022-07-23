@@ -1098,7 +1098,7 @@ Log4j2提供了两种实现日志的方式，一个是通过AsyncAppender，一�
 
 AsyncLogger 才是log4j2 的重头戏，也是官方推荐的异步方式。它可以调用Logger.log 返回的更快。你可以有两种选择：全局异步和混合异步。
 
-全局异步就是，所有日志都异步的记录，在配置文件上不用做任何改动，只需要添加一个 log4j2.component.properties 配置到 resources；
+- **全局异步**就是，所有日志都异步的记录，在配置文件上不用做任何改动，只需要添加一个 log4j2.component.properties 配置到 resources；
 
 
 ```properties
@@ -1109,28 +1109,105 @@ Log4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelec
 
 
 
+- **混合异步**就是，你可以在应用中同时使用同步日志和异步日志，这使得日志的配置方式更加灵活，按如下配置主要是添加截图部分即可：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    status="warn" 日志框架本身的输出日志级别，可以修改为debug
+    monitorInterval="5" 自动加载配置文件的间隔时间，不低于 5秒；生产环境中修改配置文件，是热更新，无需重启应用
+ -->
+<configuration status="debug" monitorInterval="5">
+    <!--
+    集中配置属性进行管理
+    使用时通过:${name}
+    -->
+    <properties>
+        <property name="LOG_HOME">D:/logs</property>
+    </properties>
+ 
+    <!-- 日志处理 -->
+    <Appenders>
+        <!-- 控制台输出 appender，SYSTEM_OUT输出黑色，SYSTEM_ERR输出红色 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] [%-5level] %c{36}:%L --- %m%n" />
+        </Console>
+ 
+        <!-- 日志文件输出 appender -->
+        <File name="file" fileName="${LOG_HOME}/myfile.log">
+            <!--<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] %l %c{36} - %m%n" />-->
+            <PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+        </File>
+ 
+        <Async name="Async">
+            <AppenderRef ref="file" />
+        </Async>
+    </Appenders>
+ 
+    <!-- logger 定义 -->
+    <Loggers>
+        <!-- 自定义 logger 对象
+            includeLocation="false" 关闭日志记录的行号信息，开启的话会严重影响异步输出的性能
+            additivity="false" 不再继承 rootlogger对象
+         -->
+        <AsyncLogger name="com.log" level="trace" includeLocation="false" additivity="false">
+            <AppenderRef ref="Console" />
+        </AsyncLogger>
+        <!-- 使用 rootLogger 配置 日志级别 level="trace" -->
+        <Root level="trace">
+            <!-- 指定日志使用的处理器 -->
+            <AppenderRef ref="Console" />
+            <!-- 使用异步 appender -->
+            <AppenderRef ref="Async" />
+        </Root>
+    </Loggers>
+</configuration>
+```
+
+**同时，AsyncLogger 混合异步日志输出需要将log4j2.component.properties 内容进行注释【因为这个是配置AsyncLogger全局异步日志输出】**
+
+如下配置：com.log 日志是异步的， root 日志是同步的。
 
 
 
+> 使用异步日志需要注意的问题：
+>
+> - 如果使用异步日志，AsyncAppender、AsyncLogger 和全局日志，不要同时出现。性能会和AsyncAppender 一致，降至最低。
+>
+>   **三者不要混用**
+>
+> - 设置 includeLocation=false，打印位置信息会急剧降低异步日志的性能，比同步日志还要慢。
+>   
 
 
 
+### Log4j2 的性能
 
+Log4j2 最牛的地方在于异步输出日志时的性能表现，Log4j2 在多线程的环境下吞吐量与 Log4j 和 Logback 的比较如下图。下图比较中 Log4j2 有三种模式：
 
+全局使用异步模式；
 
+部分Logger采用异步模式；
 
+异步Appenderf。
 
+可以看出在前两种模式下，Log4j2 的性能较之 Log4j 和Logback有很大的优势。
 
+![img](../../../.img/log-framework/log-log4j2-perform.png)
 
+**无垃圾记录**
 
+垃圾收集暂停是延迟峰值的常见原因，并且对于许多系统而言，花费大量精力来控制这些暂停。
 
+许多日志库（包括以前版本的Log4j）在稳态日志记录期间分配临时对象，如日志事件对象，字符串，字符数组，字节数组等。这会对垃圾收集器造成压力并增加 GC 暂停发生的概率。
 
+从版本2.6 开始，默认情况下 Log4j 以“无垃圾” 模式运行，其中重用对象和缓冲区，并且尽可能不分配临时对象。还有一个“低垃圾”模式，它不是完全无垃圾，但不使用ThreadLocal 字段。
 
+Log4j 2.6 中的无垃圾日志记录部分通过重用ThreadLocal 字段中的对象来实现，部分通过在将文件转换为字节时重用缓冲区来实现。
 
+有两个单独的系统属性可用于手动控制Log4j 用于避免创建临时对象的机制：
 
+- log4j2.enableThreadlocals  -如果"true"（非Web应用程序的默认值）对象存储在ThreadLocal 字段中并重新使用，否则将为每个日志事件创建新对象。
+- log4j2.enableDirectEncoders -如果将"true" （默认）日志事件转为文本，则将文本转换为字节而不创建临时对象。注意：由于共享缓冲区上的同步，在此模式下多线程应用程序的同步日志记录性能可能更差。
 
-
-
-
-
-https://tanzhang.blog.csdn.net/article/details/110092426?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-110092426-blog-122116968.pc_relevant_multi_platform_whitelistv1&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-110092426-blog-122116968.pc_relevant_multi_platform_whitelistv1&utm_relevant_index=1
+真诚的建议：如果您的应用程序是多线程的并且日志记录性能很重要，请考虑使用异步记录器。

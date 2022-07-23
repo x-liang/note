@@ -190,7 +190,7 @@ module.exports = {
                         children:[
                             {
                                 text:'Tomcat专题',
-                                link:'/middleware/tomcat.md'
+                                link:'/middleware/tomcat/tomcat.md'
                             }
                             
                         ]
@@ -201,17 +201,17 @@ module.exports = {
                 text:'工具包',
                 children:[
                     {
-                        text: '测试',
+                        text: 'Junit 测试框架',
                         children:[
                             {
-                                text:'Junit 5',
+                                text:'Junit 5 使用总结',
                                 link: '/tools/junit/junit5.md'
-                            },
-                            {
-                                text:'Junit 4',
-                                link: '/tools/junit/junit4.md'
                             }
                         ]
+                    },
+                    {
+                        text: 'Java 日志框架',
+                        link: '/tools/log/log-framework.md'
                     }
                 ]
             }
@@ -313,19 +313,20 @@ module.exports = {
             '/middleware/':[
                 {
                     text: 'Tomcat 专题',
-                    collapsible: true,
+                    collapsible: false,
                     children:[
-                        '/middleware/tomcat.md'
+                        '/middleware/tomcat/tomcat.md'
                     ]
                 }
 
             ],
             '/tools':[
                 {
-                    test:'',
-                    collapsible:true,
+                    test:'常用开发工具',
+                    collapsible:false,
                     children:[
-                        '/tools/junit/junit5.md'
+                        '/tools/junit/junit5.md',
+                        '/tools/log/log-framework.md'
                     ]
                 }
             ]

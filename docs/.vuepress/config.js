@@ -221,7 +221,7 @@ module.exports = {
             '/java/': [
                 {
                     text: 'Java 集合',
-                    collapsible: true,
+                    collapsible: false,
                     children: [
                         '/java/java-collection/java-collection-overview.html',
                         '/java/java-collection/java-collection-list.html'
@@ -229,7 +229,7 @@ module.exports = {
                 },
                 {
                     text: 'Java IO 模型',
-                    collapsible: true,
+                    collapsible: false,
                     children:[
                         '/java/java-io/Java IO 前置知识.html',
                         '/java/java-io/Java BIO.md'
@@ -237,28 +237,28 @@ module.exports = {
                 },
                 {
                     text: 'Java 并发编程',
-                    collapsible: true,
+                    collapsible: false,
                     children:[
                         '/java/java-concurrent/Java并发基础.html'
                     ]
                 },
                 {
                     text: 'JVM概览',
-                    collapsible: true,
+                    collapsible: false,
                     children:[
                         '/java/java-jvm/JVM概览.html',
                         '/java/java-jvm/JVM内存结构.html',
                         '/java/java-jvm/JVM垃圾回收.html',
                         '/java/java-jvm/JVM类文件结构.html',
                         '/java/java-jvm/JVM类加载器.html',
-                        '/java/java-jvm/JVM内存模型.html'
+                        '/java/java-jvm/Java内存模型.html'
                     ]
                 }
             ],
             '/spring/':[
                 {
                     text: 'Spring Framework',
-                    collapsible: true,
+                    collapsible: false,
                     children:[
                         'test01',
                         'test02'

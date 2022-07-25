@@ -919,13 +919,417 @@ select count(idcard) from emp; -- 统计的是idcard字段不为null的记录数
 
 对于count聚合函数，统计符合条件的总记录数，还可以通过 count(数字/字符串)的形式进行统计查询，比如：
 
-```
+```sql
 select count(1) from emp;
 ```
 
 > 对于count(*) 、count(字段)、 count(1) 的具体原理，我们在进阶篇中SQL优化部分会详细讲解，此处大家只需要知道如何使用即可。
 
 B. 统计该企业员工的平均年龄
+
+```sql
+select avg(age) from emp;
+```
+
+C. 统计该企业员工的最大年龄
+
+```sql
+select max(age) from emp;
+```
+
+D. 统计该企业员工的最小年龄
+
+```sql
+select min(age) from emp;
+```
+
+E. 统计西安地区员工的年龄之和
+
+```sql
+select sum(age) from emp where workaddress = '西安';
+```
+
+
+
+#### 2.5.5 分组查询
+
+##### 1). 语法
+
+```sql
+SELECT 字段列表 FROM 表名 [ WHERE 条件 ] GROUP BY 分组字段名 [ HAVING 分组 后过滤条件 ];
+```
+
+##### 2). where与having区别
+
+- 执行时机不同：where是分组之前进行过滤，不满足where条件，不参与分组；而having是分组之后对结果进行过滤。
+
+- 判断条件不同：where不能对聚合函数进行判断，而having可以。
+
+> 注意事项:
+>
+> - 分组之后，查询的字段一般为聚合函数和分组字段，查询其他字段无任何意义。
+> - 执行顺序: where > 聚合函数 > having 。
+> - 支持多字段分组, 具体语法为 : group by columnA,columnB
+
+##### 3) 案例
+
+A. 根据性别分组 , 统计男性员工 和 女性员工的数量
+
+```sql
+select gender, count(*) from emp group by gender ; 
+```
+
+B. 根据性别分组 , 统计男性员工 和 女性员工的平均年龄
+
+```sql
+select gender, avg(age) from emp group by gender ; 
+```
+
+C. 查询年龄小于45的员工 , 并根据工作地址分组 , 获取员工数量大于等于3的工作地址
+
+```sql
+select workaddress, count(*) address_count from emp where age < 45 group by workaddress having address_count >= 3;
+```
+
+D. 统计各个工作地址上班的男性及女性员工的数量
+
+```sql
+select workaddress, gender, count(*) '数量' from emp group by gender , workaddress ;
+```
+
+#### 2.5.6 排序查询
+
+排序在日常开发中是非常常见的一个操作，有升序排序，也有降序排序。
+
+##### 1). 语法
+
+```sql
+SELECT 字段列表 FROM 表名 ORDER BY 字段1 排序方式1 , 字段2 排序方式2 ;
+```
+
+##### 2). 排序方式
+
+- ASC : 升序(默认值)
+
+- DESC: 降序
+
+> 注意事项：
+>
+> - 如果是升序, 可以不指定排序方式ASC ;
+>
+> - 如果是多字段排序，当第一个字段值相同时，才会根据第二个字段进行排序 ;
+
+##### 3) 案例
+
+A. 根据年龄对公司的员工进行升序排序
+
+```sql
+select * from emp order by age asc; 
+select * from emp order by age;
+```
+
+B. 根据入职时间, 对员工进行降序排序
+
+```sql
+select * from emp order by entrydate desc;
+```
+
+C. 根据年龄对公司的员工进行升序排序 , 年龄相同 , 再按照入职时间进行降序排序
+
+```sql
+select * from emp order by age asc , entrydate desc;
+```
+
+
+
+#### 2.5.7 分页查询
+
+分页操作在业务系统开发时，也是非常常见的一个功能，我们在网站中看到的各种各样的分页条，后台都需要借助于数据库的分页操作。
+
+##### 1). 语法
+
+```sql
+SELECT 字段列表 FROM 表名 LIMIT 起始索引, 查询记录数 ; 
+```
+
+> 注意事项:
+>
+> - 起始索引从0开始，起始索引 = （查询页码 - 1）* 每页显示记录数。
+>
+> - 分页查询是数据库的方言，不同的数据库有不同的实现，MySQL中是LIMIT。
+>
+> - 如果查询的是第一页数据，起始索引可以省略，直接简写为 limit 10。
+
+
+
+##### 2) 案例:
+
+A. 查询第1页员工数据, 每页展示10条记录
+
+```sql
+select * from emp limit 0,10; 
+select * from emp limit 10;
+```
+
+B. 查询第2页员工数据, 每页展示10条记录 --------> (页码-1)*页展示记录数
+
+```sql
+select * from emp limit 10,10;
+```
+
+
+
+#### 2.5.8 执行顺序
+
+（面试重点）
+
+在讲解DQL语句的具体语法之前，我们已经讲解了DQL语句的完整语法，及编写顺序，接下来，我们要来说明的是DQL语句在执行时的执行顺序，也就是先执行那一部分，后执行那一部分。
+
+![image-20220725193241606](../../../.img/mysql-base/image-20220725193241606.png)
+
+验证：
+
+查询年龄大于15的员工姓名、年龄，并根据年龄进行升序排序。
+
+```
+select name , age from emp where age > 15 order by age asc;
+```
+
+在查询时，我们给emp表起一个别名 e，然后在select 及 where中使用该别名。
+
+```
+select e.name , e.age from emp e where e.age > 15 order by age asc;
+```
+
+执行上述SQL语句后，我们看到依然可以正常的查询到结果，此时就说明： from 先执行, 然后where 和 select 执行。那 where 和 select 到底哪个先执行呢?
+
+此时，此时我们可以给select后面的字段起别名，然后在 where 中使用这个别名，然后看看是否可以执行成功
+
+```sql
+select e.name ename , e.age eage from emp e where eage > 15 order by age asc;
+```
+
+执行上述SQL报错了:
+
+```sql
+mysql> select e.name ename , e.age eage from emp e where eage > 15 order by age asc;
+ERROR 1054 (42S22): Unknown column 'eage' in 'where clause'
+```
+
+由此我们可以得出结论: from 先执行，然后执行 where ， 再执行select 。
+
+接下来，我们再执行如下SQL语句，查看执行效果：
+
+```sql
+select e.name ename , e.age eage from emp e where e.age > 15 order by eage asc;
+```
+
+结果执行成功。 那么也就验证了: order by 是在select 语句之后执行的。
+
+综上所述，我们可以看到DQL语句的执行顺序为： from ... where ... group by ...having ... select ... order by ... limit ...
+
+
+
+> 拓展：
+>
+> where 和 join 执行谁先谁后？
+
+
+
+
+
+### 2.6 DCL
+
+DCL英文全称是**Data Control Language**(数据控制语言)，用来管理数据库用户、控制数据库的访问权限。
+
+
+
+#### 2.6.1 管理用户
+
+##### 1). 查询用户
+
+```
+select * from mysql.user;
+```
+
+查询结果
+
+![image-20220725194331165](../../../.img/mysql-base/image-20220725194331165.png)
+
+其中 Host代表当前用户访问的主机, 如果为localhost, 仅代表只能够在当前本机访问，是不可以远程访问的。 User代表的是访问该数据库的用户名。在MySQL中需要通过Host和User来唯一标识一个用户
+
+##### 2). 创建用户
+
+```
+CREATE USER '用户名'@'主机名' IDENTIFIED BY '密码';
+```
+
+##### 3). 修改用户密码
+
+```
+ALTER USER '用户名'@'主机名' IDENTIFIED WITH mysql_native_password BY '新密码' ; 1
+```
+
+##### 4). 删除用户
+
+```
+DROP USER '用户名'@'主机名' ;
+```
+
+
+
+> 注意事项:
+>
+> - 在MySQL中需要通过用户名@主机名的方式，来唯一标识一个用户。
+>
+> - 主机名可以使用 % 通配。
+>
+> - 这类SQL开发人员操作的比较少，主要是DBA（ Database Administrator 数据库管理员）使用。
+
+
+
+#### 2.6.2 权限控制
+
+MySQL中定义了很多种权限，但是常用的就以下几种：
+
+| 权限                | 说明               |
+| ------------------- | ------------------ |
+| ALL, ALL PRIVILEGES | 所有权限           |
+| SELECT              | 查询数据           |
+| INSERT              | 插入数据           |
+| UPDATE              | 修改数据           |
+| DELETE              | 删除数据           |
+| ALTER               | 修改表             |
+| DROP                | 删除数据库/表/视图 |
+| CREATE              | 创建数据库/表      |
+
+上述只是简单罗列了常见的几种权限描述，其他权限描述及含义，可以直接参考官方文档。
+
+##### 1). 查询权限
+
+```sql
+SHOW GRANTS FOR '用户名'@'主机名' ;
+```
+
+##### 2). 授予权限
+
+```sql
+GRANT 权限列表 ON 数据库名.表名 TO '用户名'@'主机名';
+```
+
+##### 3). 撤销权限
+
+```sql
+REVOKE 权限列表 ON 数据库名.表名 FROM '用户名'@'主机名';
+```
+
+> 注意事项：
+>
+> - 多个权限之间，使用逗号分隔
+>
+> - 授权时， 数据库名和表名可以使用 * 进行通配，代表所有。
+
+
+
+案例:
+
+A. 查询 'heima'@'%' 用户的权限
+
+```sql
+show grants for 'heima'@'%';
+```
+
+B. 授予 'heima'@'%' 用户itcast数据库所有表的所有操作权限
+
+```sql
+grant all on itcast.* to 'heima'@'%'; 
+```
+
+C. 撤销 'heima'@'%' 用户的itcast数据库的所有权限
+
+```sql
+revoke all on itcast.* from 'heima'@'%';
+```
+
+
+
+## 三：函数
+
+函数 是指一段可以直接被另一段程序调用的程序或代码。 也就意味着，这一段程序或代码在MySQL中已经给我们提供了，我们要做的就是在合适的业务场景调用对应的函数完成对应的业务需求即可。
+
+MySQL中的函数主要分为以下四类： 字符串函数、数值函数、日期函数、流程函数。
+
+### 3.1 字符串函数
+
+MySQL中内置了很多字符串函数，常用的几个如下：
+
+| 函数                     | 功能                                                      |
+| ------------------------ | --------------------------------------------------------- |
+| CONCAT(S1,S2,...Sn)      | 字符串拼接，将S1，S2，... Sn拼接成一个字符串              |
+| LOWER(str)               | 将字符串str全部转为小写                                   |
+| UPPER(str)               | 将字符串str全部转为大写                                   |
+| LPAD(str,n,pad)          | 左填充，用字符串pad对str的左边进行填充，达到n个字符串长度 |
+| RPAD(str,n,pad)          | 右填充，用字符串pad对str的右边进行填充，达到n个字符串长度 |
+| TRIM(str)                | 去掉字符串头部和尾部的空格                                |
+| SUBSTRING(str,start,len) | 返回从字符串str从start位置起的len个长度的字符串           |
+
+
+
+
+
+### 3.2 数值函数
+
+常见的数值函数如下：
+
+| 函数       | 功能                               |
+| ---------- | ---------------------------------- |
+| CEIL(x)    | 向上取整                           |
+| FLOOR(x)   | 向下取整                           |
+| MOD(x,y)   | 返回x/y的模                        |
+| RAND()     | 返回0~1内的随机数                  |
+| ROUND(x,y) | 求参数x的四舍五入的值，保留y位小数 |
+|            |                                    |
+|            |                                    |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 四：约束
+
+## 五：多表查询
+
+## 六：事物
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

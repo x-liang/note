@@ -1314,12 +1314,12 @@ MySQL中内置了很多字符串函数，常用的几个如下：
 
 流程函数也是很常用的一类函数，可以在SQL语句中实现条件筛选，从而提高语句的效率。
 
-| 函数                                                         | 功能                                                         |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| IF(value , t , f)                                            | 如果value为true，则返回t，否则返回f                          |
-| IFNULL(value1 , value2)                                      | 如果value1不为空，返回value1，否则返回value2                 |
-| CASE WHEN [ val1 ] THEN [res1] ...<br/>ELSE [ default ] END  | 如果val1为true，返回res1，... 否<br/>则返回default默认值     |
-| CASE [ expr ] WHEN [ val1 ] THEN<br/>[res1] ... ELSE [ default ] END | 如果expr的值等于val1，返回<br/>res1，... 否则返回default默认值 |
+| 函数                                                         | 功能                                                      |
+| ------------------------------------------------------------ | --------------------------------------------------------- |
+| IF(value , t , f)                                            | 如果value为true，则返回t，否则返回f                       |
+| IFNULL(value1 , value2)                                      | 如果value1不为空，返回value1，否则返回value2              |
+| CASE WHEN [ val1 ] THEN [res1] ...<br/>ELSE [ default ] END  | 如果val1为true，返回res1，... 否则返回default默认值       |
+| CASE [ expr ] WHEN [ val1 ] THEN<br/>[res1] ... ELSE [ default ] END | 如果expr的值等于val1，返回res1，... 否则返回default默认值 |
 
 
 
@@ -1333,43 +1333,263 @@ MySQL中内置了很多字符串函数，常用的几个如下：
 
 ## 四：约束
 
+### 4.1 概述
+
+概念：约束是作用于表中字段上的规则，用于限制存储在表中的数据。
+
+目的：保证数据库中数据的正确、有效性和完整性。
+
+分类
+
+| 约束                     | 描述                                                     | 关键字      |
+| ------------------------ | -------------------------------------------------------- | ----------- |
+| 非空约束                 | 限制该字段的数据不能为null                               | NOT NULL    |
+| 唯一约束                 | 保证该字段的所有数据都是唯一、不重复的                   | UNIQUE      |
+| 主键约束                 | 主键是一行数据的唯一标识，要求非空且唯一                 | PRIMARY KEY |
+| 默认约束                 | 保存数据时，如果未指定该字段的值，则采用默认值           | DEFAULT     |
+| 检查约束(8.0.16版本之后) | 保证字段值满足某一个条件                                 | CHECK       |
+| 外键约束                 | 用来让两张表的数据之间建立连接，保证数据的一致性和完整性 | FOREIGN     |
+
+
+
+> 注意：约束是作用于表中字段上的，可以在创建表/修改表的时候添加约束。
+
+
+
+### 4.2 约束演示
+
+上面我们介绍了数据库中常见的约束，以及约束涉及到的关键字，那这些约束我们到底如何在创建表、修改表的时候来指定呢，接下来我们就通过一个案例，来演示一下。
+
+案例需求： 根据需求，完成表结构的创建。需求如下：
+
+| 字段名 | 字段含义   | 字段类型    | 约束条件                  | 约束关键字                  |
+| ------ | ---------- | ----------- | ------------------------- | --------------------------- |
+| id     | ID唯一标识 | int         | 主键，并且自动增长        | PRIMARY KEY, AUTO_INCREMENT |
+| name   | 姓名       | varchar(10) | 不为空，并且唯一          | NOT NULL , UNIQUE           |
+| age    | 年龄       | int         | 大于0，并且小于等于120    | CHECK                       |
+| status | 状态       | char(1)     | 如果没有指定该值，默认为1 | DEFAULT                     |
+| gender | 性别       | char(1)     | 无                        |                             |
+
+对应的建表语句为：
+
+```sql
+CREATE TABLE tb_user( 
+    id int AUTO_INCREMENT PRIMARY KEY COMMENT 'ID唯一标识', 
+    name varchar(10) NOT NULL UNIQUE COMMENT '姓名' , 
+    age int check (age > 0 && age <= 120) COMMENT '年龄' , 
+    status char(1) default '1' COMMENT '状态', 
+    gender char(1) COMMENT '性别' 
+);
+```
+
+在为字段添加约束时，我们只需要在字段之后加上约束的关键字即可，需要关注其语法。我们执行上面的SQL把表结构创建完成，然后接下来，就可以通过一组数据进行测试，从而验证一下，约束是否可以生效。
+
+```sql
+insert into tb_user(name,age,status,gender) values ('Tom1',19,'1','男'), ('Tom2',25,'0','男'); 
+insert into tb_user(name,age,status,gender) values ('Tom3',19,'1','男'); 
+insert into tb_user(name,age,status,gender) values (null,19,'1','男'); 
+insert into tb_user(name,age,status,gender) values ('Tom3',19,'1','男'); 
+insert into tb_user(name,age,status,gender) values ('Tom4',80,'1','男'); 
+insert into tb_user(name,age,status,gender) values ('Tom5',-1,'1','男'); 
+insert into tb_user(name,age,status,gender) values ('Tom5',121,'1','男'); 
+insert into tb_user(name,age,gender) values ('Tom5',120,'男');
+```
+
+上面，我们是通过编写SQL语句的形式来完成约束的指定，那加入我们是通过图形化界面来创建表结构时，又该如何来指定约束呢？ 只需要在创建表的时候，根据我们的需要选择对应的约束即可。
+
+### 4.3 外键约束
+
+略
+
+
+
+
+
 ## 五：多表查询
 
 ## 六：事物
 
+### 6.1 事务简介
+
+事务 是一组操作的集合，它是一个不可分割的工作单位，事务会把所有的操作作为一个整体一起向系统提交或撤销操作请求，即这些操作要么同时成功，要么同时失败。
+
+就比如: 张三给李四转账1000块钱，张三银行账户的钱减少1000，而李四银行账户的钱要增加1000。 这一组操作就必须在一个事务的范围内，要么都成功，要么都失败。
+
+![image-20220728100011856](../../../.img/mysql-base/image-20220728100011856.png)
+
+正常情况: 转账这个操作, 需要分为以下这么三步来完成 , 三步完成之后, 张三减少1000, 而李四增加1000, 转账成功 :
+
+![image-20220728100045032](../../../.img/mysql-base/image-20220728100045032.png)
+
+异常情况: 转账这个操作, 也是分为以下这么三步来完成 , 在执行第三步是报错了, 这样就导致张三减少1000块钱, 而李四的金额没变, 这样就造成了数据的不一致, 就出现问题了。
+
+![image-20220728100122872](../../../.img/mysql-base/image-20220728100122872.png)
+
+为了解决上述的问题，就需要通过数据的事务来完成，我们只需要在业务逻辑执行之前开启事务，执行完毕后提交事务。如果执行过程中报错，则回滚事务，把数据恢复到事务开始之前的状态。
+
+![image-20220728100154176](../../../.img/mysql-base/image-20220728100154176.png)
+
+> 注意： 默认MySQL的事务是自动提交的，也就是说，当执行完一条DML语句时，MySQL会立即隐式的提交事务。
 
 
 
+### 6.2 事务操作
+
+数据准备：
+
+```sql
+drop table if exists account; 
+create table account( 
+    id int primary key AUTO_INCREMENT comment 'ID', 
+    name varchar(10) comment '姓名', 
+    money double(10,2) comment '余额' 
+) comment '账户表'; 
+insert into account(name, money) VALUES ('张三',2000), ('李四',2000);
+```
+
+#### 6.2.1 未控制事务
+
+##### 1). 测试正常情况
+
+```sql
+-- 1. 查询张三余额 
+select * from account where name = '张三'; 
+-- 2. 张三的余额减少1000 
+update account set money = money - 1000 where name = '张三'; 
+-- 3. 李四的余额增加1000 
+update account set money = money + 1000 where name = '李四';
+```
+
+测试完毕之后检查数据的状态, 可以看到数据操作前后是一致的。
 
 
 
+#### 6.2.2 控制事务一
+
+##### 1). 查看/设置事务提交方式
+
+```sql
+SELECT @@autocommit ; 
+SET @@autocommit = 0 ;
+```
+
+##### 2). 提交事务
+
+```sql
+COMMIT;
+```
+
+##### 3). 回滚事务
+
+```sql
+ROLLBACK;
+```
+
+> 注意：上述的这种方式，我们是修改了事务的自动提交行为, 把默认的自动提交修改为了手动提交, 此时我们执行的DML语句都不会提交, 需要手动的执行commit进行提交。
 
 
 
+#### 6.2.3 控制事务二
+
+##### 1). 开启事务
+
+```sql
+START TRANSACTION 或 BEGIN ;
+```
+
+##### 2). 提交事务
+
+```sql
+COMMIT;
+```
+
+##### 3). 回滚事务
+
+```sql
+ROLLBACK;
+```
 
 
 
+##### 4) 案例
+
+```sql
+-- 开启事务 
+start transaction 
+-- 1. 查询张三余额 
+select * from account where name = '张三'; 
+-- 2. 张三的余额减少1000 
+update account set money = money - 1000 where name = '张三'; 
+-- 3. 李四的余额增加1000 
+update account set money = money + 1000 where name = '李四'; 
+-- 如果正常执行完毕, 则提交事务 
+commit; 
+-- 如果执行过程中报错, 则回滚事务 
+--rollback;
+```
+
+### 6.3 事务四大特性
+
+- **原子性（Atomicity）**：事务是不可分割的最小操作单元，要么全部成功，要么全部失败。
+
+- **一致性（Consistency）**：事务完成时，必须使所有的数据都保持一致状态。
+
+- **隔离性（Isolation）**：数据库系统提供的隔离机制，保证事务在不受外部并发操作影响的独立环境下运行。
+
+- **持久性（Durability）**：事务一旦提交或回滚，它对数据库中的数据的改变就是永久的。
+
+上述就是事务的四大特性，简称ACID。 
 
 
 
+### 6.4 并发事务问题
 
+#### 1). 赃读
 
+一个事务读到另外一个事务还没有提交的数据。
 
+![image-20220728135458222](../../../.img/mysql-base/image-20220728135458222.png)
 
+比如B读取到了A未提交的数据。
 
+#### 2). 不可重复读
 
+一个事务先后读取同一条记录，但两次读取的数据不同，称之为不可重复读。
 
+![image-20220728135630025](../../../.img/mysql-base/image-20220728135630025.png)
 
+事务A两次读取同一条记录，但是读取到的数据却是不一样的。
 
+#### 3). 幻读：
 
+一个事务按照条件查询数据时，没有对应的数据行，但是在插入数据时，又发现这行数据已经存在，好像出现了 "幻影"。 
 
+![image-20220728135718177](../../../.img/mysql-base/image-20220728135718177.png)
 
+### 6.5 事务隔离级别
 
+为了解决并发事务所引发的问题，在数据库中引入了事务隔离级别。主要有以下几种：
 
+| 隔离级别              | 脏读 | 不可重复读 | 幻读 |
+| --------------------- | ---- | ---------- | ---- |
+| Read uncommitted      | √    | √          | √    |
+| Read committed        | ×    | √          | √    |
+| Repeatable Read(默认) | ×    | ×          | √    |
+| Serializable          | ×    | ×          | ×    |
 
+#### 1). 查看事务隔离级别
 
+```sql
+SELECT @@TRANSACTION_ISOLATION;
+```
 
+#### 2). 设置事务隔离级别
 
+```sql
+SET [ SESSION | GLOBAL ] TRANSACTION ISOLATION LEVEL { READ UNCOMMITTED | READ COMMITTED | REPEATABLE READ | SERIALIZABLE }
+```
+
+> 注意：事务隔离级别越高，数据越安全，但是性能越低。
 
 
 

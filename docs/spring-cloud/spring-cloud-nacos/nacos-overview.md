@@ -60,7 +60,7 @@ Nacos 能让您从微服务平台建设的视角管理数据中心的所有服�
 
 CAP  C 一致性 A可用性 P 分区容错性
 
-<img src=".image/2.nacos/image-20220427144415173.png" alt="image-20220427144415173" style="zoom:80%;float:left" />
+<img src="../../../.img/nacos-overview/image-20220427144415173.png" alt="image-20220427144415173" style="zoom:80%;float:left" />
 
 
 
@@ -132,11 +132,11 @@ spring.cloud.nacos.discovery.server‐addr=localhost:8848
 
 在微服务架构中，当系统从一个单体应用，被拆分成分布式系统上一个个服务节点后，配置文件也必须跟着迁移 （分割），这样配置就分散了，不仅如此，分散中还包含着冗余，如下图：
 
-<img src=".image/2.nacos/image-20220427155421418.png" alt="image-20220427155421418" style="zoom:80%;float:left" />
+<img src="../../../.img/nacos-overview/image-20220427155421418.png" alt="image-20220427155421418" style="zoom:80%;float:left" />
 
 下图显示了配置中心的功能，配置中心将配置从各应用中剥离出来，对配置进行统一管理，应用自身不需要自己去 管理配置。
 
-<img src=".image/2.nacos/image-20220427155443327.png" alt="image-20220427155443327" style="zoom:80%;float:left" />
+<img src="../../../.img/nacos-overview/image-20220427155443327.png" alt="image-20220427155443327" style="zoom:80%;float:left" />
 
 配置中心的服务流程如下： 
 
@@ -170,7 +170,7 @@ spring.cloud.nacos.discovery.server‐addr=localhost:8848
 
 对于Nacos配置管理，通过Namespace、group、Data ID能够定位到一个配置集。
 
-![image-20220427160310028](.image/2.nacos/image-20220427160310028.png)
+![image-20220427160310028](../../../.img/nacos-overview/image-20220427160310028.png)
 
 - 配置集(Data ID)
 
@@ -194,7 +194,7 @@ spring.cloud.nacos.discovery.server‐addr=localhost:8848
 
 Nacos抽象定义了Namespace、Group、Data ID的概念，具体这几个概念代表什么，取决于我们把它们看成什 么，这里推荐给大家一种用法，如下图：
 
-![image-20220427160651178](.image/2.nacos/image-20220427160651178.png)
+![image-20220427160651178](../../../.img/nacos-overview/image-20220427160651178.png)
 
 Namespace：代表不同环境，如开发、测试、生产环境。 
 
@@ -252,11 +252,11 @@ namespace 的设计是 nacos 基于此做多环境以及多租户（多个用户
 
 从一个租户(用户)的角度来看，如果有多套不同的环境，那么这个时候可以根据指定的环境来创建不同的 namespce，以此来实现多环境的隔离。例如，你可能有开发，测试和生产三个不同的环境，那么使用一套 nacos 集群可以分别建以下三个不同的 namespace。如下图所示： 
 
-![image-20220427161210770](.image/2.nacos/image-20220427161210770.png)
+![image-20220427161210770](../../../.img/nacos-overview/image-20220427161210770.png)
 
 从多个租户(用户)的角度来看，每个租户(用户)可能会有自己的 namespace,每个租户(用户)的配置数据以及注 册的服务数据都会归属到自己的 namespace 下，以此来实现多租户间的数据隔离。例如超级管理员分配了三 个租户，分别为张三、李四和王五。分配好了之后，各租户用自己的账户名和密码登录后，创建自己的命名 空间。如下图所示：
 
-![image-20220427161306720](.image/2.nacos/image-20220427161306720.png)
+![image-20220427161306720](../../../.img/nacos-overview/image-20220427161306720.png)
 
 ##### 命名空间管理
 

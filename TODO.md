@@ -96,7 +96,7 @@ Redisson 分布式锁机制
 
 https://blog.csdn.net/weixin_43001336/article/details/122852708
 
-
+[https://www.cnblogs.com/wangyingshuo/p/14510524.html]: 
 
 
 
@@ -111,3 +111,9 @@ OAuth2
 https://zhuanlan.zhihu.com/p/110127600
 
 https://www.cnblogs.com/chengxy-nds/p/13261131.html
+
+
+
+
+
+[Java应用结构规范-今日头条 (toutiao.com)](https://www.toutiao.com/article/7077444905215214113/)

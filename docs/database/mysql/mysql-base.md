@@ -1371,12 +1371,123 @@ MySQL中内置了很多字符串函数，常用的几个如下：
 | 函数                     | 功能                                                      |
 | ------------------------ | --------------------------------------------------------- |
 | CONCAT(S1,S2,...Sn)      | 字符串拼接，将S1，S2，... Sn拼接成一个字符串              |
+| INXDFG(str,x,y,instr)    | 将字符串str从第x位置，y个字符串长的字串替换为字符串instr  |
 | LOWER(str)               | 将字符串str全部转为小写                                   |
 | UPPER(str)               | 将字符串str全部转为大写                                   |
+| LEFT(str,x)              | 返回字符串str最左边的x个字符                              |
+| RIGHT(str,x)             | 返回字符串str最右边的x个字符                              |
 | LPAD(str,n,pad)          | 左填充，用字符串pad对str的左边进行填充，达到n个字符串长度 |
 | RPAD(str,n,pad)          | 右填充，用字符串pad对str的右边进行填充，达到n个字符串长度 |
 | TRIM(str)                | 去掉字符串头部和尾部的空格                                |
+| LTRIM(str)               | 去掉字符串str左侧的空格                                   |
+| RTRIM(str)               | 去掉字符串str行尾的空格                                   |
 | SUBSTRING(str,start,len) | 返回从字符串str从start位置起的len个长度的字符串           |
+| REPEAT(str,x)            | 返回str重复x次的结果                                      |
+| REPLACE(str，a，b)       | 用字符串b替换字符串str中所有出现的字符串a                 |
+
+
+
+**CONCAT**
+
+任何字符串于null进行链接的结果都将是NULL
+
+```shell
+mysql> select concat('aaa','bbb','ccc'),concat('aaa',null);
++---------------------------+--------------------+
+| concat('aaa','bbb','ccc') | concat('aaa',null) |
++---------------------------+--------------------+
+| aaabbbccc                 | NULL               |
++---------------------------+--------------------+
+1 row in set (0.01 sec)
+```
+
+**INSERT**
+
+```shell
+mysql> select INSERT('beijing2008you',12,3,'me');
++------------------------------------+
+| INSERT('beijing2008you',12,3,'me') |
++------------------------------------+
+| beijing2008me                      |
++------------------------------------+
+1 row in set (0.00 sec)
+```
+
+
+
+**LOWER 和 UPPER**
+
+```shell
+mysql> select LOWER('BEIJING2008'), UPPER('beijing2008');
++----------------------+----------------------+
+| LOWER('BEIJING2008') | UPPER('beijing2008') |
++----------------------+----------------------+
+| beijing2008          | BEIJING2008          |
++----------------------+----------------------+
+1 row in set (0.00 sec)
+```
+
+**LEFT 和 RIGHT**
+
+如果第二个参数是NULL，，那么不返回任何字符串。
+
+```shell
+mysql> select LEFT('beijing2008',7),LEFT('beijing',null),RIGHT('beijing2008',4);
++-----------------------+----------------------+------------------------+
+| LEFT('beijing2008',7) | LEFT('beijing',null) | RIGHT('beijing2008',4) |
++-----------------------+----------------------+------------------------+
+| beijing               | NULL                 | 2008                   |
++-----------------------+----------------------+------------------------+
+1 row in set (0.00 sec)
+```
+
+**LPAD 和 RPAD**
+
+```
+mysql> select lpad('2008',20,'beijing'),rpad('beijing',20,'2008');
++---------------------------+---------------------------+
+| lpad('2008',20,'beijing') | rpad('beijing',20,'2008') |
++---------------------------+---------------------------+
+| beijingbeijingbe2008      | beijing2008200820082      |
++---------------------------+---------------------------+
+1 row in set (0.01 sec)
+```
+
+**LTRIM 和 RTRIM**
+
+```shell
+mysql> select ltrim('  |beijing'),rtrim('beijing|   ');
++---------------------+----------------------+
+| ltrim('  |beijing') | rtrim('beijing|   ') |
++---------------------+----------------------+
+| |beijing            | beijing|             |
++---------------------+----------------------+
+1 row in set (0.01 sec)
+```
+
+**REPEAT**
+
+```shell
+mysql> select repeat('mysql ',3);
++--------------------+
+| repeat('mysql ',3) |
++--------------------+
+| mysql mysql mysql  |
++--------------------+
+1 row in set (0.00 sec)
+```
+
+**REPLACE**
+
+```shell
+mysql> select replace('beijing_2010','_2010','2008');
++----------------------------------------+
+| replace('beijing_2010','_2010','2008') |
++----------------------------------------+
+| beijing2008                            |
++----------------------------------------+
+1 row in set (0.00 sec)
+```
 
 
 

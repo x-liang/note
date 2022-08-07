@@ -1,5 +1,372 @@
 # Maven
 
+## 一：何为Maven
+
+Maven是一个异常强大的构建工具，能够帮助我们自动化构建过程，从清理、编译、测试到生成报告，再到打包和部署。Maven在设计上最大化的消除了构建的重复、抽象了构建声明周期，并且为绝大部分的构建任务提供了以实现的插件。
+
+一言以蔽之，Maven标准化了Java项目的构建过程。
+
+## 二：Maven的安装和配置
+
+### 2.1 安装
+
+没啥好说的，下载、解压、配置环境变量就OK了。
+
+### 2.2 Maven的目录分析
+
+首先来看一下目录结构
+
+```shell
+drwxr-xr-x 1 xuliang 197121     0  1月 12  2022 bin/
+drwxr-xr-x 1 xuliang 197121     0  1月 12  2022 boot/
+drwxr-xr-x 1 xuliang 197121     0  1月 12  2022 conf/
+drwxr-xr-x 1 xuliang 197121     0  1月 12  2022 lib/
+-rw-r--r-- 1 xuliang 197121 17800 11月 14  2021 LICENSE
+-rw-r--r-- 1 xuliang 197121  5141 11月 14  2021 NOTICE
+-rw-r--r-- 1 xuliang 197121  2612 11月 14  2021 README.txt
+```
+
+- bin： 该目录包含了mvn运行的脚本，这些脚本用来配置java命令，准备好classpath和相关的Java系统属性，然后执行Java命令。
+
+- boot：该目录只包含一个文件，该文件为plexus-classworlds-2.5.2.jar。plexus-classworlds是一个类加载器框架，相对于默认的java类加载器，它提供了更加丰富的语法以方便配置，Maven使用该框架加载自己的类库。
+
+- conf：该目录包含了一个非常重要的文件settings.xml。直接修改该文件，就能在机器上全局地定制maven的行为，即对所有用户都生效。一般情况下，我们更偏向于复制该文件至~/.m2/目录下，然后修改该文件，在用户级别定制Maven的行为。
+- lib：该目录包含了所有Maven运行时需要的Java类库，Maven本身是分模块开发的，因此用户能看到诸如maven-core-3.0.jar、maven-model-3.0.jar之类的文件，此外这里还包含一些Maven用到的第三方依赖如commons-cli-1.2.jar、commons-lang-2.6.jar等等。、
+
+
+
+
+### 2.3 Maven安装最佳实践
+
+#### 2.3.1 设置MAVEN_OPTS环境变量
+
+该环境变量可以配置一些JVM运行时参数，Java的默认内存较小，在编译大项目是不能够满足Maven的需要。
+
+通常设置值为-Xms128m -Xmx512m。
+
+#### 2.3.2 配置用户范围的settings.xml
+
+便于统一环境配置，避免多Maven下环境不一致的因素
+
+#### 2.3.3 不要使用IDE内嵌的Maven
+
+存在不稳定因素
+
+
+
+## 三：Maven的使用入门
+
+
+
+## 四：坐标和依赖
+
+
+
+### 4.1 坐标详解
+
+maven坐标通过一些元素进行定义，groupId、artifactId、version、packaging、classifier。首先来看一个示例
+
+```xml
+<groupId>com.xul</groupId>
+<artifactId>colorful</artifactId>
+<packaging>pom</packaging>
+<version>1.0-SNAPSHOT</version>
+<description>个人试验项目</description>
+```
+
+- groupId：实际的项目名称（必须）
+- artifactId：Maven项目下一个模块的名称（必须）
+- version：版本信息（必须）
+- packaging：maven的打包方式(该属性可选，默认为jar)
+- classifier：该元素用来帮助定义构建输出一些附属构件（不能直接定义）
+
+
+
+
+
+### 4.2 依赖配置
+
+先来看一个例子
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.25</version>
+        <type>...</type>
+        <scope>...</scope>
+        <optional>...</optional>
+        <exclusions>
+        	<exclusion>...</exclusion>
+        </exclusions>
+    </dependency>
+</dependencies>
+```
+
+- groupId、artifactId、version：这三个属性是基本坐标，是必要的
+- type：依赖的类型，对应项目坐标定义中的packaging，通常不用声明，默认值为jar
+- scope：依赖的范围
+- optional：标记依赖是否可选
+- exclusions：用来排除传递性依赖
+
+
+
+### 4.3 依赖范围
+
+依赖范围对应到依赖配置的scope属性。用来控制jar包在不同时期（编译、测试、运行）的可见性问题。
+
+Mave有一些几种依赖范围：
+
+- complie：编译依赖范围，默认使用该依赖范围。对于编译，测试，运行三种环境都有效。
+- test：测试依赖范围，仅在编译和运行测试代码是有效。典型的例子Junit
+- provided：已提供依赖范围，对于编译和测试范围有效，在运行时无效。典型例子servlet-api
+- runtime：运行时依赖范围，对于测试和运行时有效，编译主代码是无效，典型例子JDBC驱动。
+- system：系统依赖范围，该依赖不由maven仓库管理，需要配置本地路径，不建议使用。
+- import：导入依赖范围，该依赖不会对环境产生实际的影响。
+
+
+
+### 4.4 依赖的传递性
+
+**maven会自动引入依赖包的间接依赖**
+
+
+
+### 4.5 依赖调节
+
+Maven调节依赖的两大原则：
+
+- 路径优先
+- 声明优先
+
+例如存在如下依赖关系：A->B->C->X(1.0), A->D->X(2.0)，那么本着路径优先的原则，会使用X(2.0)。如果路径相同呢，比如 A-B-Y(1.0)和 A->B->Y(2.0)，在这种情况下，Maven会使用声明优先。在依赖路径长度相等的前提下，在POM中依赖声明的顺序决定了谁会被解析使用，顺序在靠前的那个依赖优胜。
+
+
+
+
+
+### 4.6 可选依赖
+
+对应到依赖配置中的optional选项。
+
+
+
+
+
+## 五：仓库
+
+maven仓库，就是存储jar包的地方。统一管理，减少了磁盘空间的浪费。
+
+
+
+### 5.1 仓库的分类
+
+在Maven中仓库只分为两类：本地方库，远程仓库。
+
+**5.1.1 本地仓库**
+
+就是存储在本地
+
+**5.1.2 远程仓库**
+
+远程仓库分为两种，中央仓库，是Maven核心自带的仓库，如果在本地仓库中缺少所需的构建时，maven就会自动去中央仓库下载。还有一种就是私服，私服架设在局域网内部，可以节省带宽和时间，内部项目还可以发布到私服上。
+
+处理这两种外，还有一些其他的公开仓库，这里不做介绍。
+
+
+
+### 5.2 本地仓库
+
+本地仓库默认在`~/.m2/repository/`文件夹下，可以通过修改settings.xml配置文件进行修改
+
+```xml
+<settings>
+	<localRepository>D:\cache\maven-repository</localRepository>
+</settings>
+```
+
+
+
+如何将一个Maven项目保存到本地仓库呢：
+
+```shell
+mvn clean install
+```
+
+
+
+### 5.3 远程仓库
+
+#### 5.3.1 远程仓库的配置
+
+```xml
+<project>
+	<repositories>
+    	<repository>
+            <!--仓库的id必须唯一，maven中央仓库的id默认为central -->
+        	<id></id>
+            <name></name>
+            <!-- 仓库的url地址，通常都是基于http协议 -->
+            <url></url>
+            <release>
+                <!-- 是否允许在该仓库下载release版本-->
+            	<enable>true</enable>
+                <!-- 检查更新的频率，默认daily，即每天检查一次。其他值包括：
+                never——从不检查，
+                always——每次构建时检查；
+                interval:X——每个X分钟检查一次 -->
+                <updatePolicy>daily</updatePolicy>
+                <!-- 文件的校验策略， 默认warn，其他值包括fail， ignore-->
+                <checksumPolicy>ignore</checksumPolicy>
+            </release>
+            <snapshots>
+                <!-- 是否允许在该仓库下载snapshots版本-->
+            	<enable>false</enable>
+            </snapshots>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+</project>
+```
+
+maven的中央仓库的id默认为central，如果声明了一个id为central的其他仓库，那么他会覆盖中央仓库。
+
+#### 5.3.2 仓库认证配置
+
+有的远程仓库访问需要认证，我们需要在配置文件中配置认证需要的用户名及密码，认证信息必须在settings.xml配置文件中进行配置，如下：
+
+```xml
+<servers>
+    <server>
+      <id>koan</id>
+      <username>chenyao</username>
+      <password>mlamp123456</password>
+    </server>
+  </servers>
+```
+
+这里需要注意的一点是这里的id和仓库配置的id一一对应。换句话说，正是id将认证信息将仓库配置联系在了一起。
+
+
+
+#### 5.3.3 部署至远程仓库
+
+私服仓库的一大作用就是部署组织内部的构件。Maven除了能对项目进行编译、测试、打包之外，还能将项目生成的构件部署到仓库中。首先需要编辑项目的pom.xml配置
+
+```xml
+<project>
+	<distributionManagement>
+        <!-- 稳定版仓库地址-->
+    	<repository>
+            <!-- id 是远程仓库的唯一标识-->
+        	<id></id>
+            <!-- name 主要方便人阅读-->
+            <name></name>
+            <!-- 远程仓库的地址-->
+            <url></url>
+        </repository>
+        <!-- 快照版仓库地址-->
+        <snapshotRepository>
+        	<id></id>
+            <name></name>
+            <url></url>
+        </snapshotRepository>
+    </distributionManagement>
+</project>
+```
+
+私服仓库如果需要认证，可以按照5.3.2节介绍的方式进行配置。
+
+最后执行maven命令，将本地构件发布到远程仓库
+
+```shell
+mvn clean deploy
+```
+
+ 
+
+### 5.4 快照版本
+
+在pom中的版本信息中加上SNAPSHOT，maven就可以识别当前版本为快照版本。在发布快照版本到私服仓库时，maven会自动为构件打上时间戳。当有其他模块依赖该构件的快照版本时，会自动下载最新时间戳的构件。
+
+
+
+
+
+### 5.5 从仓库解析依赖的机制
+
+当本地仓库没有依赖构件的时候，Maven会自动从远程仓库下载；当依赖版本为快照版本时，Maven会自动找到最新的快照版本。解析流程如下：
+
+1） 当依赖范围是system的时候，maven直接从本地文件系统解析构件。
+
+2） 根据依赖坐标计算仓库路径，从本地仓库解析
+
+3）本地仓库不存在，遍历远程仓库，发现后，下载并使用。
+
+4）如果依赖的版本是RELEASE或者LATEST，读取所有远程仓库的数据，合并计算真实版本
+
+5）如果依赖的版本是SNAPSHOT，读取所有远程仓库的元数据，合并计算出最新的快照版本，下载使用
+
+6）如果是时间戳格式的快照版本，重新拼接快照版本信息，再到远程仓库查找。
+
+
+
+> 注意：在指定版本时，不推荐使用RELEASE、LATEST、SNAPSHOT等字样。因为无法预测maven最终解析出的构建的版本信息。
+>
+> 最好直接指定具体的版本信息。
+
+
+
+### 5.6 镜像
+
+镜像仓库就是对另一个仓库的复制品。比如阿里提供的maven仓库。
+
+使用maven的镜像仓库，需要配置settings.xml文件
+
+```xml
+<settings>
+	<mirrors>
+    	<mirror>
+        	<id>ali-maven</id>
+            <!-- mirrirOf 的值为central，表示该配置为中央仓库的镜像 -->
+        	<mirrorOf>central</mirrorOf>
+            <name>阿里云公共仓库</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+        </mirror>
+    </mirrors>
+</settings>
+```
+
+镜像仓库通常结合私服仓库使用。
+
+**镜像的高级配置**
+
+- `<mirrorOf> * <mirrorOf>` ： 匹配所有远程仓库
+- `<mirrorOf> external:* <mirrorOf>`: 匹配所有不在本机上的远程仓库
+- `<mirrorOf> repo1,repo2 <mirrorOf>`：匹配名称为repo1和repo2的远程仓库
+- `<mirrorOf> *,!repo1 <mirrorOf>`：匹配除repo1外的所有远程仓库
+
+
+
+> 注意：镜像仓库会完全覆盖远程仓库，如果镜像仓库无法访问，maven也不会访问远程仓库。
+
+
+
+### 5.7 Maven的搜索服务
+
+
+
+一个非常好用的Maven仓库搜索网站
+
+[Maven 仓库搜索服务](https://mvnrepository.com/)
+
+
+
+
+
+
+
 ### maven 配置详解
 
 [博客地址](https://www.cnblogs.com/hongmoshui/p/10762272.html)

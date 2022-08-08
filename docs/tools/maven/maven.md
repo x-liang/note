@@ -363,9 +363,359 @@ mvn clean deploy
 
 
 
+## 六：Maven的生命周期和插件
 
 
 
+生命周期和插件是maven的两大核心概念。生命周期是maven的抽象，插件则是maven的具体实现，两者协同工作，密不可分。
+
+### 6.1 生命周期
+
+Maven的生命周期就是一为了对所有的构件过程进行抽象和统一。生命周期包括：清理、初始化、编译、测试、打包、集成测试、验证、部署和站点生成等构件步骤。
+
+生命周期只负责抽象各个步骤，具体的实现是有不同的插件来实现的。
+
+
+
+#### 6.1.1 三套生命周期
+
+Maven内部拥有三套相互独立的生命周期，分别为clean、default、site。clean的目的时清理项目，default的目的时构件项目，site的目的时建立项目站点。这三个生命周期相互独立，调用时互不影响。
+
+每个生命周期内部又分为多个阶段(phase)，这些阶段前后依赖，按指定顺序执行。例如clean生命周期，包含pre-clean、clean、post-clean三个阶段。当调用pre-clean时，只有pre-clean执行，调用clean时，pre-clean和clean按顺序执行，当调用post-clean时，pre-clean、clean和post-clean会先后执行。
+
+#### 6.1.2 clean生命周期
+
+clean生命周期主要包含三个阶段：
+
+- pre-clean 执行一些清理前需要完成的工作。
+- clean 执行上次侯建生成的文件
+- post-clean 执行一些清理后需要完成的工作。
+
+#### 6.1.3 default 生命周期
+
+default生命周期定义了项目构件过程需要执行的所有步骤。
+
+- validate
+- initialize
+- generate-sources
+- process-sources 处理项目注资源文件，一般来说是对src/main/resources目录的内容进行变量替换等工作，复制到项目输出的主classpath目录中。
+- generate-resources
+- process-resources
+- compile 编译项目的主源码，一般来说是src/main/java目录下的java文件到项目输出的主classpath目录中。
+- process-classes
+- generate-test-sources
+- process-test-sources 处理项目测试资源文件，主要是对src/test/resources目录的内容
+- generate-test-resources
+- process-test-resources
+- test-complie 编译项目的测试代码
+- process-test-classes
+- test 使用单元测试框架运行测试，测试代码不会给打包部署
+- prepare-package
+- package  接受编译好的代码，打包成可发布的格式，如jar包
+- pre-integration-test
+- integration-test
+- post-integration-test
+- verify
+- install 将包装到maven本地仓库，供本地其他maven项目使用
+- deploy 将最终的包复制到远程仓库，供其他开发人员和项目使用。
+
+
+
+#### 6.1.4 site生命周期
+
+site生命周期主要是建立和发布站点
+
+- pre-site 执行一些在生成项目站点之前需要完成的工作。
+- site 生成项目站点文档
+- post-site 执行一些在生成项目站点之后需要完成的工作
+- site-deploy 将生成的项目站点发布到服务器上
+
+
+
+### 6.2 插件
+
+#### 6.2.1 插件目标
+
+插件目标就是插件需要完成的功能。例如maven-dependency-plugin，这个插件有十几个目标，例如 dependency:analyze，dependency:tree，dependency:list等
+
+maven-compiler-plugin插件的目标，compiler:compile，
+
+maven-surefire-plugin插件的目标 surefire:test。
+
+
+
+#### 6.2.2 插件绑定
+
+就是将maven的生命周期和插件的目标进行绑定，来完成实际的任务。例如maven-compiler-plugin插件的compile目标就是用来完成default生命周期中的compile这一阶段的。
+
+
+
+#### 6.2.3 内置绑定
+
+Maven默认会为一些主要的生命周期阶段绑定产检目标，当执行maven命令时，就会自动执行插件的目标。
+
+maven-clean-plugin插件绑定的生命周期只有一个：clean
+
+maven-site-plugin插件绑定两个生命周期，site:site 和 site:deploy
+
+
+
+default生命周期的绑定关系比较复杂，不同的打包任务，绑定过程也有一些区别，这里先介绍大jar包的绑定关系
+
+| 生命周期阶段           | 插件目标                             | 执行任务                       |
+| ---------------------- | ------------------------------------ | ------------------------------ |
+| process-resources      | maven-resources-plugin:resources     | 复制主资源文件至主输出目录     |
+| compile                | maven-compiler-plugin:compile        | 编译主代码至主输出目录         |
+| process-test-resources | maven-resources-plugin:testResources | 复制测试资源文件至测试输出目录 |
+| test-compile           | maven-compiler-plugin:testCompile    | 编译测试代码至测试输出目录     |
+| test                   | maven-surefire-plugin:test           | 执行测试用例                   |
+| package                | maven-jar-plugin:jar                 | 创建项目jar包                  |
+| install                | maven-install-plugin:install         | 将项目输出构件安装到本地仓库   |
+| deploy                 | maven-deploy-plugin:deploy           | 将项目输出构件部署到远程仓库   |
+
+#### 6.2.4 自定义绑定
+
+例如需要创建项目的源码包，我们需要修改pom文件
+
+```xml
+<build>
+	<plugins>
+    	<plugin>
+        	<groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>2.1.1</version>
+            <executions>
+            	<execution>
+                	<id>attach-sources</id>
+                    <!-- phase标签用来指定声明周期中的特定阶段-->
+                    <phase>verify</phase>
+                    <goals>
+                        <!-- goal标签用来指定插件的目标-->
+                    	<goal>jar-no-fork</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+在build的plugins下声明要使用的插件，包括坐标及版本信息。除此之外，还要配置插件执行配置信息。executions下的每个execution子元素可以用来配置执行的一个任务。phase标签用来指定声明周期的阶段，goals用来指定插件的目标，合起来的意思就是在phase标签声明的生命周期中执行goal标签中声明的插件目标。
+
+这里的phase标签可以不用配置，很多插件在编写是会给定默认的绑定配置，可以通过一些命令进行查询：
+
+```shell
+mvn help:describe -Dplugin=org.apache.maven.plugins:maven-source-plugin:2.1.1 -Ddetail
+```
+
+查询结果如下：
+
+```shell
+source:jar-no-fork
+  Description: This goal bundles all the sources into a jar archive. This
+    goal functions the same as the jar goal but does not fork the build and is
+    suitable for attaching to the build lifecycle.
+  Implementation: org.apache.maven.plugin.source.SourceJarNoForkMojo
+  Language: java
+  Bound to phase: package
+
+  Available parameters:
+```
+
+这里只展示了部分信息，其中Bound to phase: package说明了该目标绑定到了package阶段。
+
+#### 6.2.5 插件配置
+
+配置插件参数，可以调整插件执行任务的逻辑，以满足项目需求。我们可以通过命令行或pom文件的方式来配置参数；
+
+1） 通过命令行进行配置
+
+```shell
+mvn clean package -Dmaven.test.skip=true
+```
+
+通过-D的形式添加一些参数值。
+
+2）通过pom配置文件的形式
+
+```xml
+<build>
+	<plugins>
+    	<plugin>
+        	<groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>2.1</version>
+            <configuration>
+            	<source>1.8</source>
+                <target>1.8</target>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
+
+这里注意，configuration标签位于plugin目录下，意味着是全局配置，当configuration位于execution目录下，则表示改配置专属于某一个执行任务。
+
+
+
+#### 6.2.6 获取插件信息
+
+maven官网提供了常用的插件信息
+
+[Maven 插件列表](https://maven.apache.org/plugins/index.html)
+
+#### 6.2.7 常用插件介绍
+
+
+
+
+
+
+
+## 七：Maven的聚合于继承
+
+### 7.1 聚合
+
+何为聚合，packaging的打包方式为pom，存在modules标签，声明引入的模块。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.xul</groupId>
+    <artifactId>spring-demo</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-SNAPSHOT</version>
+
+    <modules>
+        <module>spring-framework-demo</module>
+        <module>spring-boot-demo</module>
+        <module>spring-boot-toolkit</module>
+        <module>spring-kafka</module>
+        <module>spring-dependence</module>
+        <module>spring-cloud</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <!-- 这里就是为了便于管理项目， 不引入任何依赖-->
+</project>
+```
+
+通常的用法是创建子模块的形式，不过目录也可以使用平行目录，但是在引入module的时候，需要指向正确的目录，如下：
+
+```xml
+<modules>
+    <module>../spring-framework-demo</module>
+    <module>../spring-boot-demo</module>
+    <module>../spring-cloud</module>
+</modules>
+```
+
+### 7.2 继承
+
+#### 7.2.1 parent元素
+
+通过parent标签可以继承父模块pom中定义的一些元素
+
+```xml
+<parent>
+    <artifactId>spring-demo</artifactId>
+    <groupId>com.xul</groupId>
+    <version>1.0-SNAPSHOT</version>
+</parent>
+```
+
+那么那些pom元素可以被继承呢？
+
+- groupId 项目组ID，项目坐标的核心元素
+- version：项目版本信息，项目坐标的核心元素
+- description：项目的描述信息
+- organization：项目的组织信息
+- inceptionYear 项目的创始年份
+- url：项目的URL地址
+- developers：项目的开发者信息
+- contributors：项目的贡献者信息
+- distributionManagement：项目的部署配置信息
+- issueManagement项目的缺陷跟踪系统信息
+- ciManagement：项目的持续集成系统信息
+- scm：项目的版本控制信息
+- mailingLists：项目的邮件列表
+- properties：自定义的maven属性
+- dependencise：项目的依赖配置
+- dependencyManagement：项目的依赖管理配置
+- repositories：项目的仓库配置
+- build：包括项目的源码目录配置，输出目录配置，插件配置，插件管理配置等。
+- reporting：包括项目的报告输出目录配置，报告插件配置等。
+
+
+
+#### 7.2.2 依赖管理
+
+dependencyManagement元素
+
+
+
+#### 7.2.3 插件管理
+
+pluginManagement元素，该元素在build标签下。
+
+插件中的配置信息也会被继承。
+
+
+
+## 八：使用Maven测试
+
+maven使用maven-surefire-plugin插件执行测试用例。
+
+在默认情况下，maven-surefire-plugin插件会自动执行测试源码路径(src/test/java)下所有符合一次命名模式的测试类：
+
+- `**/Test*.java`: 任何目录下所有以Test开头的Java类
+- `**/*Test.java`:任何目录下所有以Test结尾的Java类
+- `**/*TestCase.java`:任何目录下所有以TestCase结尾的Java类
+
+
+
+### 8.1 跳过测试代码
+
+可以使用skipTests参数：
+
+```shell
+mvn clean package -DskipTests
+```
+
+就可以临时跳过测试用例。当然也可以通过pom配置
+
+```xml
+<plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>2.5</version>
+    <configuration>
+    	<sikpTests>true</sikpTests>
+    </configuration>
+</plugin>
+```
+
+
+
+
+
+
+
+
+
+## 最后：配置详解
 
 ### maven 配置详解
 

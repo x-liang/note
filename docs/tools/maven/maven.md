@@ -707,6 +707,42 @@ mvn clean package -DskipTests
 </plugin>
 ```
 
+除了sikpTests参数还可以通过maven.test.skip=true来进行跳过
+
+```shell
+mvn clean package -Dmaven.test.skip=true
+```
+
+但是maven.test.skip参数除了跳过了测试代码运行阶段，还跳过了测试代码的编译阶段，不推荐使用。pom配置的方式：
+
+```xml
+<plugins>
+    <plugin>
+    	<groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.1</version>
+        <configuration>
+            <sikpTests>true</sikpTests>
+        </configuration>
+    </plugin>
+    <plugin>
+    	<groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+            <sikpTests>true</sikpTests>
+        </configuration>
+    </plugin>
+</plugins>
+
+```
+
+因为maven.test.skip同时跳过了测试代码的编译和运行阶段，所以这里需要同时配置两个插件参数。
+
+
+
+### 8.2 动态指定测试用例
+
 
 
 

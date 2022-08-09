@@ -212,6 +212,10 @@ module.exports = {
                     {
                         text: 'Java 日志框架',
                         link: '/tools/log/log-framework.md'
+                    },
+                    {
+                        text:'Maven 使用入门',
+                        link: '/tools/maven/maven.md'
                     }
                 ]
             }
@@ -326,7 +330,8 @@ module.exports = {
                     collapsible:false,
                     children:[
                         '/tools/junit/junit5.md',
-                        '/tools/log/log-framework.md'
+                        '/tools/log/log-framework.md',
+                        '/tools/maven/maven.md'
                     ]
                 }
             ]

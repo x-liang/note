@@ -734,7 +734,6 @@ mvn clean package -Dmaven.test.skip=true
         </configuration>
     </plugin>
 </plugins>
-
 ```
 
 因为maven.test.skip同时跳过了测试代码的编译和运行阶段，所以这里需要同时配置两个插件参数。
@@ -742,6 +741,82 @@ mvn clean package -Dmaven.test.skip=true
 
 
 ### 8.2 动态指定测试用例
+
+指定执行某一个测试类
+
+```shell
+# 仅运行SpecialTest测试类
+mvn test -Dtest=SpecialTest
+# 支持*匹配
+mvn test -Dtest=Special*Test
+# 支持同时指定多个测试类
+mvn test -Dtest=Special*Test,SpecialTest
+```
+
+
+
+### 8.3 自定义包含和排除测试用例
+
+
+
+```xml
+<plugins>
+	<plugin>
+    	<groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+        	<includes>
+                <!-- 两个*号匹配任意路径-->
+            	<include>**/*Tests.java</include>
+            </includes>
+            <excludes>
+            	<exclude>**/*ServiceTest.java</exclude>
+                <exclude>**/TempDaoTests.java</exclude>
+            </excludes>
+        </configuration>
+    </plugin>
+</plugins>
+```
+
+### 8.4 测试覆盖率
+
+cobertura-maven-plugin
+
+### 8.5 重用测试代码
+
+```xml
+<plugins>
+	<plugin>
+    	<groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.2</version>
+        <exectioins>
+        	<exection>
+            	<goals>
+                	<goal>test-jar</goal>
+                </goals>
+            </exection>
+        </exectioins>
+    </plugin>
+</plugins>
+```
+
+添加此配置后，就可以打包测试代码了。test-jar默认绑定到package周期，如果其他项目依赖此测试代码，可以引入
+
+```xml
+<dependency>
+	<groupId></groupId>
+    <artifactId></artifactId>
+    <version></version>
+    <type>test-jar</type>
+    <scope>test</scope>
+</dependency>
+```
+
+
+
+
 
 
 

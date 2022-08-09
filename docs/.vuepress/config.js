@@ -168,17 +168,11 @@ module.exports = {
                 children:[
                     {
                         text:'设计模式',
-                        children:[
-                            {
-                                text:'代理模式',
-                                link:'/quality/design-mode/design-proxy.html'
-                            },
-                            {
-                                text:'装饰器模式',
-                                link:'/quality/design-mode/design-decorator.html'
-                            }
-                            
-                        ]
+                        link:'/quality/design-mode/design-overview.html'
+                    },
+                    {
+                        text: '数据结构',
+                        link: '/quality/data-structure/data-structure-overview.html'
                     }
                 ]
             },
@@ -309,8 +303,21 @@ module.exports = {
                 {
                     text:'设计模式',
                     children:[
+                        '/quality/design-mode/design-overview.html',
                         '/quality/design-mode/design-proxy.html',
-                        '/quality/design-mode/design-decorator.html'
+                        '/quality/design-mode/design-decorator.html',
+                        '/quality/design-mode/design-adapter.html',
+                        '/quality/design-mode/design-chain.html',
+                        '/quality/design-mode/design-composite.html',
+                        '/quality/design-mode/design-strategy.html'
+                    ]
+                },
+                {
+                    text: '数据结构',
+                    children: [
+                        '/quality/data-structure/data-structure-overview.html',
+                        '/quality/data-structure/data-structure-list.html',
+                        '/quality/data-structure/data-structure-tree.html'
                     ]
                 }
             ],

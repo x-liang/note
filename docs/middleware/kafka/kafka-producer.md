@@ -6,7 +6,7 @@
 
 在消息发送的过程中，涉及到了**两个线程——main 线程和 Sender 线程**。在 main 线程中创建了**一个双端队列 RecordAccumulator**。main 线程将消息发送给 RecordAccumulator，Sender 线程不断从 RecordAccumulator 中拉取消息发送到 Kafka Broker。
 
-![image-20220514095233640](../../../.img/kafka-pruducer/image-20220514095233640.png)
+![image-20220514095233640](../../../.img/kafka-producer/image-20220514095233640.png)
 
 ### 生产者重要参数列表
 

@@ -29,7 +29,7 @@ module.exports = {
                         children:[
                             {
                                 text: 'Java IO 基础知识',
-                                link: '/java/java-io/Java IO 前置知识.html'
+                                link: '/java/java-io/java-io-base.html'
                             }
                         ]
                     },
@@ -51,7 +51,7 @@ module.exports = {
                         children:[
                             {
                                 text:'Java 并发基础',
-                                link:'/java/java-concurrent/Java并发基础.html'
+                                link:'/java/java-concurrent/java-concurrent-base.html'
                             }
                         ]
                     },
@@ -173,6 +173,10 @@ module.exports = {
                     {
                         text: '数据结构',
                         link: '/quality/data-structure/data-structure-overview.html'
+                    },
+                    {
+                        text:'Linux 总结',
+                        link: '/quality/linux/linux-overview.html'
                     }
                 ]
             },
@@ -181,13 +185,15 @@ module.exports = {
                 children:[
                     {
                         text:'Tomcat 专题',
-                        children:[
-                            {
-                                text:'Tomcat专题',
-                                link:'/middleware/tomcat/tomcat.md'
-                            }
-                            
-                        ]
+                        link:'/middleware/tomcat/tomcat.md'
+                    },
+                    {
+                        text: 'Kafka 专题',
+                        link: '/middleware/kafka/kafka-overview.md'
+                    },
+                    {
+                        text: 'Redis 专题',
+                        link: '/middleware/redis/redis-overview.md'
                     }
                 ]
             },
@@ -222,22 +228,28 @@ module.exports = {
                     collapsible: false,
                     children: [
                         '/java/java-collection/java-collection-overview.html',
-                        '/java/java-collection/java-collection-list.html'
+                        '/java/java-collection/java-collection-list.html',
+                        '/java/java-collection/java-collection-map.html'
                     ]
                 },
                 {
                     text: 'Java IO 模型',
                     collapsible: false,
                     children:[
-                        '/java/java-io/Java IO 前置知识.html',
-                        '/java/java-io/Java BIO.md'
+                        '/java/java-io/java-io-base.html',
+                        '/java/java-io/java-bio.md',
+                        '/java/java-io/java-nio.md'
                     ]
                 },
                 {
                     text: 'Java 并发编程',
                     collapsible: false,
                     children:[
-                        '/java/java-concurrent/Java并发基础.html'
+                        '/java/java-concurrent/java-concurrent-base.html',
+                        '/java/java-concurrent/java-concurrent-container.html',
+                        '/java/java-concurrent/java-concurrent-lock.html',
+                        '/java/java-concurrent/java-concurrent-pool.html',
+                        '/java/java-concurrent/java-concurrent-tools.html',
                     ]
                 },
                 {
@@ -328,12 +340,31 @@ module.exports = {
                     children:[
                         '/middleware/tomcat/tomcat.md'
                     ]
+                },
+                {
+                    text: 'Kafka 专题',
+                    collapsible: false,
+                    children:[
+                        '/middleware/kafka/kafka-overview.md',
+                        '/middleware/kafka/kafka-consumer.md',
+                        '/middleware/kafka/kafka-producer.md',
+                        '/middleware/kafka/kafka-broker.md',
+                        '/middleware/kafka/spring-kafka.md',
+                    ]
+                },
+                {
+                    text: 'Redis 专题',
+                    collapsible: false,
+                    children:[
+                        '/middleware/redis/redis-overview.md',
+                        '/middleware/redis/redis-cluster.md'
+                    ]
                 }
 
             ],
             '/tools':[
                 {
-                    test:'常用开发工具',
+                    text:'常用开发工具',
                     collapsible:false,
                     children:[
                         '/tools/junit/junit5.md',

@@ -1,5 +1,4 @@
 const { defaultTheme } = require('@vuepress/theme-default')
-
 module.exports = {
     locales:{
         '/':{

@@ -1,14 +1,54 @@
-# 并发中的锁
-
-### Java中的锁
+# Java中的锁
 
 
 
-#### Lock
+## Lock接口
 
-TODO
+Lock是在JDK1.5中添加的，于synchronized相比，Lock接口最大的有点就是对锁获取于释放的可操作性性。
 
-#### AbstractQueueSynchronization
+
+
+Lock接口提供的synchronized不具备的功能。
+
+| 特性               | 描述                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| 尝试非阻塞的获取锁 | 当前线程尝试获取锁，如果这一时刻锁没有被其他线程获取到，则成功获取并持有锁。 |
+| 能被中断的获取锁   | 于synchronized不同，获取到锁的线程能够响应中断，当获取到锁的线程被中断时，中断异常将会被抛出，同事所会被释放。 |
+| 超时获取锁         | 在指定的截止时间之前获取锁，如果截止时间到了仍旧无法获取锁，则返回。 |
+
+
+
+Lock锁的典型使用方式：
+
+```java
+Lock lock = new ReentrantLock();
+lock.lock();
+try{
+}finally{
+    lock.unlock();
+}
+```
+
+在finally中编写释放锁的代码，来保证锁的正常释放。
+
+不要再try块内进行锁的获取，当获取锁异常时，也会导致锁无故释放。
+
+
+
+下面先简单介绍一下Lock提供的接口：
+
+| 方法名                                    | 描述                                                         |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| void lock()                               | 获取锁。调用该方法当前线程将会获取锁，当锁获得后，从该方法返回。 |
+| void lockInterruptibly()                  | 可中断地获取锁，和lock方法的不同之处在于该方法会响应中断，即在<br/>锁的获取中可以中断当前线程 |
+| boolean tryLock()                         | 尝试非阻塞的获取锁，调用该方法后立刻返回，如果能够获取则返回<br/>true,否则返回false |
+| boolean tryLock(long time, TimeUnit unit) | 超时的获取锁，当前线程在以下3种情况下会返回：<br/>①当前线程在超时时间内获得了锁<br/>②当前线程在超时时间内被中断<br/>③超时时间结束，返回false |
+| void unlock()                             | 释放锁                                                       |
+| Condition newCondition()                  | 获取等待通知组件，该组件和当前的锁绑定，当前线程只有获得了锁，<br/>才能调用该组件的waitO方法，而调用后，当前线程将释放锁 |
+
+
+
+## 队列同步器
 
 AbstractQueuedSynchronizer(AQS)，即抽象队列同步器，提供了一套可用于实现锁同步机制的框架，不夸张地说，AQS是JUC同步框架的基石。AQS通过一个FIFO队列维护线程同步状态，实现类只需要继承该类，并重写指定方法即可实现一套线程同步机制。
 
@@ -16,9 +56,9 @@ AQS根据资源互斥级别提供了**独占和共享**两种资源访问模式�
 
 
 
-##### AQS 框架原理
+### AQS 框架原理
 
-AQS的原理并不复杂，AQS维护了一个volatile int state变量和一侧CLH(三个人名缩写)双向队列，队列中的节点持有线程引用，每个节点均可通过getState()，setState()，compareAndSetState()对state进行修改和访问。
+AQS的原理并不复杂，AQS维护了一个volatile int state变量和一个CLH(三个人名缩写)双向队列，队列中的节点持有线程引用，每个节点均可通过getState()，setState()，compareAndSetState()对state进行修改和访问。
 
 ![img](../../../.img/java-concurrent-lock/2479735-20210912120424026-1094893993.png)
 
@@ -26,7 +66,7 @@ AQS的原理并不复杂，AQS维护了一个volatile int state变量和一侧CL
 
 **AQS模板方法**
 
-`AQS`内部封装了队列维护逻辑，采用模版方法的模式提供实现类以下方法：
+`AQS`内部封装了队列维护逻辑，采用模版方法的模式提供实现了以下方法：
 
 ```java
 tryAcquire(int);        // 尝试获取独占锁，可获取返回true，否则false
@@ -40,9 +80,9 @@ isHeldExclusively();    // 判断线程是否独占资源
 
 
 
-##### AQS实现分析
+### AQS实现分析
 
-**同步队列**
+#### 同步队列
 
 同步器依赖内部的同步队列（一个FIFO双向队列）来完成同步状态管理。当前线程获取同步状态是失败时，同步器会将当前线程以及等待状态等信息构建为一个节点（Node）并将其加入到同步队列中。同时会阻塞当前线程。当同步状态释放时，会吧首节点的线程唤醒，使其再次尝试获取同步状态。
 
@@ -50,10 +90,10 @@ isHeldExclusively();    // 判断线程是否独占资源
 
 | 属性类型与名称  | 描述                                                         |
 | --------------- | ------------------------------------------------------------ |
-| int waitStatus  | 等待状态<br />包含如下状态<br />1. CANCELLED： 值为1，由于在同步队列中等待的线程等待超时或者被中断，需要从同步队列中取消等待，节点进入等待状态不会变化<br />2. SIGNAL ：值为-1，后继节点的线程处于等待状态，而当前节点的线程如果释放了同步状态或者被取消，将会通知后继节点，是后继节点的线程得以运行<br />3. CONDITION：值为-2，节点在等待队列中，节点的线程等待在Condition上，当其他线程Condition调用了signal()方法后，该节点将会从等待队列中转移到同步队列中去。加入到同步队列状态的获取中<br />4. PROPAGATE：值为-3，表示下一次共享时同步状态获取将会无条件的传播下去<br />5. INITIAL：值为0，初始化状态<br /> |
+| int waitStatus  | 等待状态<br />包含如下状态<br />1. CANCELLED： 值为1，由于在同步队列中等待的线程等待超时或者被中断，需要<br/>从同步队列中取消等待，节点进入等待状态不会变化<br />2. SIGNAL ：值为-1，后继节点的线程处于等待状态，而当前节点的线程如果释放了<br>同步状态或者被取消，将会通知后继节点，是后继节点的线程得以运行<br />3. CONDITION：值为-2，节点在等待队列中，节点的线程等待在Condition上，当其<br/>他线程Condition调用了signal()方法后，该节点将会从等待队列中转移到同步队列中<br>去。加入到同步队列状态的获取中<br />4. PROPAGATE：值为-3，表示下一次共享时同步状态获取将会无条件的传播下去<br />5. INITIAL：值为0，初始化状态<br /> |
 | Node prev       | 前驱节点，当节点加入同步队列时被设置                         |
 | Node next       | 后继节点                                                     |
-| Node nextWaiter | 等待队列中的后继节点，如果当前节点是共享的，name这个字段是一个SHARED常量，也就是说节点类型(独占和共享)和等待队列中的后继节点共用同一个字段 |
+| Node nextWaiter | 等待队列中的后继节点，如果当前节点是共享的，name这个字段是一个SHARED常量，<br/>也就是说节点类型(独占和共享)和等待队列中的后继节点共用同一个字段 |
 | Thread thread   | 获取同步状态的线程                                           |
 
 
@@ -88,7 +128,7 @@ isHeldExclusively();    // 判断线程是否独占资源
 
 
 
-##### 独占锁分析
+#### 独占锁分析
 
 通过调用同步器的acquire(int arg)方法可以获取同步状态，该方法对中断不敏感。
 
@@ -98,8 +138,12 @@ public final void acquire(int arg) {
     if (!tryAcquire(arg) && 
         // 如获取资源失败，将线程包装为Node添加到队列中阻塞等待
         acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-        // 如阻塞线程被打断
+        // 如果在程序执行期间，程序被中断，这里要做中断补偿。
         selfInterrupt();
+}
+
+static void selfInterrupt() {
+    Thread.currentThread().interrupt();
 }
 ```
 
@@ -131,7 +175,10 @@ private Node addWaiter(Node mode) {
     enq(node);
     return node;
 }
-
+/**
+ * 第一次向链表添加节点时，tail和head都是null，
+ * 这里通过死循环加CAS来保证任务一定完成并且多线程安全，好好体会一下无锁并发。
+ */
 private Node enq(final Node node) {
     // 死循环的方式初始化链表
     for (;;) {
@@ -173,8 +220,7 @@ final boolean acquireQueued(final Node node, int arg) {
                 failed = false;
                 return interrupted;
             }
-            if (shouldParkAfterFailedAcquire(p, node) &&
-                parkAndCheckInterrupt())
+            if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt())
                 interrupted = true;
         }
     } finally {
@@ -219,7 +265,7 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
 private final boolean parkAndCheckInterrupt() {
     // park住当前线程
     LockSupport.park(this);
-    // 被唤醒时返回中断状态
+    // 被唤醒时返回中断状态，这里会清除中断状态
     return Thread.interrupted();
 }
 ```
@@ -264,7 +310,7 @@ private void unparkSuccessor(Node node) {
 
 同样，tryRelease是一个抽象方法。释放资源后，会判断waitStatus状态，唤醒后继节点。
 
-##### 共享锁分析
+#### 共享锁分析
 
 共享锁与独占锁额区别在于在同一时刻是否有多个线程同时获取到同步状态。
 
@@ -297,8 +343,7 @@ private void doAcquireShared(int arg) {
                     return;
                 }
             }
-            if (shouldParkAfterFailedAcquire(p, node) &&
-                parkAndCheckInterrupt())
+            if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt())
                 interrupted = true;
         }
     } finally {
@@ -306,20 +351,22 @@ private void doAcquireShared(int arg) {
             cancelAcquire(node);
     }
 }
-
+/**
+ * propagate 传播
+ * 
+ */
 private void setHeadAndPropagate(Node node, int propagate) {
     Node h = head; // Record old head for check below
     setHead(node);
 	// setHead方法会设置一个新的head，h指向的是旧的head
     // if判断会同时判断old head 和new head，（h重新赋值后会指向新的head）
-    if (propagate > 0 || h == null || h.waitStatus < 0 ||
-        (h = head) == null || h.waitStatus < 0) {
+    if (propagate > 0 || h == null || h.waitStatus < 0 || (h = head) == null || h.waitStatus < 0) {
         Node s = node.next;
         if (s == null || s.isShared())
+            // 这里直接进入锁释放的逻辑，让后面的节点争抢锁。
             doReleaseShared();
     }
 }
-
 ```
 
 重点来看tryAcquireShared方法，这是一个抽象方法，实现由子类完成。这里主要说明一下返回值：
@@ -348,8 +395,7 @@ private void doReleaseShared() {
                     continue;            // loop to recheck cases
                 unparkSuccessor(h);
             }
-            else if (ws == 0 &&
-                     !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+            else if (ws == 0 && !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
                 continue;                // loop on failed CAS
         }
         if (h == head)                   // loop if head changed
@@ -375,10 +421,10 @@ private void unparkSuccessor(Node node) {
 
 
 
-#### 重入锁
+### 重入锁
 
 TODO
 
-#### 读写锁
+### 读写锁
 
 TODO

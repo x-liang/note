@@ -421,10 +421,209 @@ private void unparkSuccessor(Node node) {
 
 
 
-### 重入锁
+## ReentrantLock
 
-TODO
+ReentrantLock，见名知意，就是支出可冲入的锁。它表示该锁能够支持一个线程对 资源的重复加锁。除此之外，该锁还支持获取锁时的公平和非公平性选择。
 
-### 读写锁
+关于公平锁和非公平锁，在绝对时间上来说，先获取锁的线程先被满足，则为公平锁，否则是非公平锁。ReentrantLock提供了一个构造函数，能够控制锁是公平锁还是非公平锁。
 
-TODO
+理论上来讲，非公平锁的效率更高，但是公平锁能够减少饥饿发生的概率。
+
+
+
+### 如何实现锁的重入
+
+锁的冲重入要解决一下两个问题：
+
+- **线程再次获取锁**：锁需要去识别获取锁的线程是否为当前占据锁的线程，如果是，则再次成功获取。 
+
+- **锁的最终释放**：线程重复n次获取了锁，随后在第n次释放该锁后，其他线程能够获取到 该锁。锁的最终释放要求锁对于获取进行计数自增，计数表示当前锁被重复获取的次数，而锁 被释放时，计数自减，当计数等于0时表示锁已经成功释放。
+
+
+
+### ReentrantLock的实现
+
+在ReentrantLock中存在一个Sync的内部类，有关于ReentrantLock所有功能的具体实现，都是在Sync及其子类中完成的，ReentrantLock只是对Sync的一个封装。
+
+下面先来看看ReentrantLock的代码：
+
+```java
+public class ReentrantLock implements Lock, java.io.Serializable {
+    private static final long serialVersionUID = 7373984872572414699L;
+    /** 提供所有实现逻辑的 实现类 内部类 */
+    private final Sync sync;
+
+    /** 无参构造，默认使用的是非公平锁  */
+    public ReentrantLock() {
+        sync = new NonfairSync();
+    }
+
+    /** 有参数构造，用来控制公平锁或 */
+    public ReentrantLock(boolean fair) {
+        sync = fair ? new FairSync() : new NonfairSync();
+    }
+
+    /** 加锁 */
+    public void lock() {
+        sync.lock();
+    }
+
+    /** 可中断加锁 */
+    public void lockInterruptibly() throws InterruptedException {
+        sync.acquireInterruptibly(1);
+    }
+
+    /** 尝试加锁，该方法不会阻塞，立即返回 */
+    public boolean tryLock() {
+        return sync.nonfairTryAcquire(1);
+    }
+
+    /** 尝试加锁，等待指定时间 */
+    public boolean tryLock(long timeout, TimeUnit unit)
+            throws InterruptedException {
+        return sync.tryAcquireNanos(1, unit.toNanos(timeout));
+    }
+
+    /**  释放锁 */
+    public void unlock() {
+        sync.release(1);
+    }
+
+    /** 是否为公平锁 */
+    public final boolean isFair() {
+        return sync instanceof FairSync;
+    }
+}
+```
+
+ReentrantLock直接实现Lock接口，并没有继承AQS，由此也可以看出，起面向的是使用者。
+
+在分析源码之前，先说一下state变量，这个变量在AbstractQueuedSynchronizer里定义，表示当前获取锁的线程持有的资源数量。最开始的时候，state默认为0，在争抢锁的过程中，实际就是修改state的过程，修改成功的线程就表示成功争抢到了锁。再然后就是锁重入，在加锁的时候会判断持有锁的线程和当前线程是否相同，如果相同的话，会对state进行累加操作。释放锁的线程就是对state的减减操作，直到state减到0时，唤醒队列中后续等待的线程。
+
+下面来看看Sync的实现(这里只有核心源码)：
+
+```java
+/**
+ * Sync类直接继承自AbstractQueuedSynchronizer
+ */
+abstract static class Sync extends AbstractQueuedSynchronizer {
+    /** 定义的一个抽象类，有子类实现。公平锁和非公平的差异也是在这个方法的实现中体现的*/
+    abstract void lock();
+	/** 非公平的获取锁 */
+    final boolean nonfairTryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+       	/** 先获取state的状态，如果state==0，说明没有被加锁，这里会直接进行锁的争抢，
+       	注意这里也是公平锁和非公平锁不一样的地方*/
+        int c = getState();
+        if (c == 0) {
+            // 以CAS的方式修改锁，入股修改成功，说明争抢到了锁。
+            if (compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        // 如果state不为0，则判断是不是重入锁。
+        else if (current == getExclusiveOwnerThread()) {
+            // 在争抢到锁后，需要的state加上需要的acquires资源。
+            int nextc = c + acquires;
+            if (nextc < 0) // overflow
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        // 到这里，说明抢锁失败了，嘿嘿。
+        return false;
+    }
+	/** 锁释放的流程 */
+    protected final boolean tryRelease(int releases) {
+        int c = getState() - releases;
+        // 判断线程是否为当前线程
+        if (Thread.currentThread() != getExclusiveOwnerThread())
+            throw new IllegalMonitorStateException();
+        boolean free = false;
+        if (c == 0) {
+            free = true;
+            setExclusiveOwnerThread(null);
+        }
+        // 同一个线程不存在并发的问题，所以这里不需要加锁
+        setState(c);
+        return free;
+    }
+}
+```
+
+在Sync里面有两个重要的方法实现，tryRelease实现了锁的释放逻辑。并且这里考虑到了重入锁的情况。另一个就是nonfairTryAcquire方法，这里主要实现了悲观锁的加锁流程。
+
+还有一个就是抽象方法lock()，这个方法就是加锁的具体流程，但因为公平锁和非公平锁的差异，需要在具体的子类中进行实现。下面就来看看公平锁和非公平锁的实现类：
+
+```java
+/**非公平锁的实现
+ */
+static final class NonfairSync extends Sync {
+	// 加锁方法， 这个方法会阻塞
+    final void lock() {
+        if (compareAndSetState(0, 1))
+            setExclusiveOwnerThread(Thread.currentThread());
+        else
+            acquire(1);
+    }
+	// 加锁方法，这个不会阻塞
+    protected final boolean tryAcquire(int acquires) {
+        return nonfairTryAcquire(acquires);
+    }
+}
+
+/**公平锁的加锁实现类 */
+static final class FairSync extends Sync {
+    // 加锁 阻塞
+    final void lock() {
+        acquire(1);
+    }
+
+    /* 加锁，非阻塞*/
+    protected final boolean tryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) {
+            // 判断队列中是否有等待的线程 && 更改state变量
+            if (!hasQueuedPredecessors() && compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        // 判断是否为重入线程
+        else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0)
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+}
+```
+
+
+
+注意公平锁和非公平锁的加锁流程，区别就在于非公平锁一上来就对state进行修改（插队），而公平锁则乖乖的去排队。
+
+
+
+重入锁的介绍就到此为止了。
+
+
+
+## ReentrantReadWriteLock
+
+读写锁，在同一时刻允许多个读线程进行访问，但是在写线程进行访问时，所有的读线程和其他的写线程均被阻塞。读写锁维护了一对锁，一个读锁和一个写锁，通过分离读锁和写锁，使得并发性相比于一般的写锁有了很大的提升。
+
+读写锁的一些特性：
+
+| 特性       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 公平性选择 | 支持非公平（默认）和公平的锁获取方式，吞吐量还是非公平优于公平。 |
+| 可重入     | 读锁和写锁都可以重进入                                       |
+| 锁降级     | 遵循获取写锁、获取读锁在释放写锁的次序，写锁能够降级为读锁。 |
+
+同ReentrantLock的实现类似，ReentrantReadWriteLock的所有获取锁及释放锁的逻辑都是由类内部Sync及其子类实现的，该类只是对功能做了一个封装。

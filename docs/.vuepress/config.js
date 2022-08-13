@@ -286,15 +286,16 @@ module.exports = {
                     text: '微服务架构',
                     children:[
                         '/spring-cloud/spring-cloud-overview.html',
-                        '/spring-cloud/spring-cloud-alibaba-nacos.html',
-                        '/spring-cloud/spring-cloud-alibaba-sentinel.html',
+                        '/spring-cloud/spring-cloud-nacos/nacos-client-discovery.html',
+                        '/spring-cloud/spring-cloud-nacos/nacos-overview.html',
+                        '/spring-cloud/spring-cloud-sentinel/sentinel-source.html',
                         '/spring-cloud/spring-cloud-alibaba-seate.html'
                     ]
                 },
                 {
                     text:'常用组件',
                     children:[
-                        '/spring-cloud/spring-cloud-openfeign.html',
+                        '/spring-cloud/spring-cloud-openfeign/spring-cloud-openfeign.html',
                         '/spring-cloud/spring-cloud-ribbon/spring-cloud-ribbon.html'
                     ]
                 }

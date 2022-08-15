@@ -1193,6 +1193,245 @@ abstract static class Sync extends AbstractQueuedSynchronizer {
 
 ## LockSupport工具
 
+略
+
+
+
+
+
 
 
 ## Condition接口
+
+对于任意一个Java对象，都拥有一组监视器方法，主要包括wait()、wait(long timeout)、notify()以及notifyAll()方法，这些方法与synchronized同步关键字配合，可以实现等待/通知模式。Condition接口也提供了类似的监视器方法，与Lock配合可以实现等待/通知模式，但是这两者在使用方式以及功能特性上还是有差别的。 
+
+| 对比项                       | Objects Monitor Methods | Condition                                                    |
+| ---------------------------- | ----------------------- | ------------------------------------------------------------ |
+| 前置条件                     | 获取对象的锁            | 调用Lock.lock()获取对象的锁<br/>调用Lock.newCondition()获取condition对象 |
+| 调用方式                     | 直接调用object.wait()   | 直接调用，如condition.await()                                |
+| 等待队列个数                 | 一个                    | 多个                                                         |
+| 当前线程释放锁并进入等待状态 | 支持                    | 支持                                                         |
+|                              |                         |                                                              |
+|                              |                         |                                                              |
+|                              |                         |                                                              |
+| 唤醒队列中的一个线程         | 支持                    | 支持                                                         |
+| 唤醒队列中的全部线程         | 支持                    | 支持                                                         |
+
+
+
+
+
+
+
+
+
+### Condition 示例
+
+
+
+```java
+public class BoundedQueue<T> { 
+    private Object[] items; 
+    // 添加的下标，删除的下标和数组当前数量 
+    private int addIndex, removeIndex, count; 
+    private Lock lock = new ReentrantLock(); 
+    private Condition notEmpty = lock.newCondition(); 
+    private Condition notFull = lock.newCondition(); 
+    public BoundedQueue(int size) { items = new Object[size]; }
+    // 添加一个元素，如果数组满，则添加线程进入等待状态，直到有"空位" 
+    public void add(T t) throws InterruptedException { 
+        lock.lock();  
+		try { 
+    		while (count == items.length) 
+                notFull.await(); 
+            items[addIndex] = t; 
+            if (++addIndex == items.length) 
+                addIndex = 0; 
+            ++count; 
+            notEmpty.signal();
+        } finally { 
+            lock.unlock(); 
+        } 
+    }
+    // 由头部删除一个元素，如果数组空，则删除线程进入等待状态，直到有新添加元素 
+    @SuppressWarnings("unchecked") 
+    public T remove() throws InterruptedException { 
+        lock.lock(); 
+        try { 
+            while (count == 0) 
+                notEmpty.await(); 
+            Object x = items[removeIndex]; 
+            if (++removeIndex == items.length) 
+                removeIndex = 0; 
+            --count; 
+            notFull.signal(); 
+            return (T) x; 
+        } finally { 
+            lock.unlock(); 
+        } 
+    } 
+}
+```
+
+
+
+### Condition的实现分析
+
+ConditionObject是同步器AbstractQueuedSynchronizer的内部类，每个Condition对象都包含着一个队列，该队列是Condition实现等待/通知功能的关键。
+
+下面主要分析Condition的以下几个实现：等待队列、等待、通知。
+
+
+
+#### 等待队列
+
+等待队列是一个FIFO队列，队列中的每个节点都包含一个线程的引用，该线程就是在Condition对象上等待的线程。队列中的节点定义服用了同步器的节点定义，即AbstractQueuedSynchronizer.Node。
+
+一个Condition包含一个等待队列，队列的首节点引用(firstWaiter)和尾结点引用(lastWaiter)。当前线程调用Condition.await()方法时，将会以当前线程构造节点，并加入等待队列中。
+
+![image-20220815142836666](../../../.img/java-concurrent-lock/image-20220815142836666.png)
+
+这里更新节点的过程并没有使用CAS保证，原因在于调用await()方法的线程必定是获取了锁的线程，也就是说该过程是由锁来保证线程安全的。
+
+#### 等待
+
+调用Condition的await()方法，会使当前线程计入等待队列并释放锁，同时线程变为等待状态。从队列的角度看，当调用await()方法时，相当于同步队列的首节点移动到了Condition中的等待队列中。
+
+```java
+public final void await() throws InterruptedException {
+    if (Thread.interrupted())
+        throw new InterruptedException();
+    // 将当前线程构造成节点，并加入等待队列
+    Node node = addConditionWaiter();
+    // 释放同步锁（释放全部锁）
+    int savedState = fullyRelease(node);
+    int interruptMode = 0;
+    // 判断当前节点是否在同步队列中()
+    while (!isOnSyncQueue(node)) {
+        // park 住当前线程
+        LockSupport.park(this);
+        // 检查在等待期间是否有中断发生
+        if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+            break;
+    }
+    // 争抢资源 && 检查中断状态
+    if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+        interruptMode = REINTERRUPT;
+    if (node.nextWaiter != null) // clean up if cancelled
+        unlinkCancelledWaiters();
+    if (interruptMode != 0)
+        reportInterruptAfterWait(interruptMode);
+}
+/**
+ * 将当前线程构造成节点，并加入等待队列
+ */
+private Node addConditionWaiter() {
+    Node t = lastWaiter;
+    // 清除队列中不是等待状态的节点。
+    if (t != null && t.waitStatus != Node.CONDITION) {
+        // 这个方法就是遍历等待队列，删除非等待状态的节点，并维护前后指针。
+        unlinkCancelledWaiters();
+        t = lastWaiter;
+    }
+    // 构造节点
+    Node node = new Node(Thread.currentThread(), Node.CONDITION);
+    // 放到队尾, 这里只存了单向边！
+    if (t == null)
+        firstWaiter = node;
+    else
+        t.nextWaiter = node;
+    lastWaiter = node;
+    return node;
+}
+/**
+ * 释放当前线程的全部的资源
+ */
+final int fullyRelease(Node node) {
+    boolean failed = true;
+    try {
+        int savedState = getState();
+        // 释放资源
+        if (release(savedState)) {
+            failed = false;
+            return savedState;
+        } else {
+            throw new IllegalMonitorStateException();
+        }
+    } finally {
+        // 注意 ！ ！ ！ 如果释放资源失败，这里会将节点状态改为 Node.CANCELLED
+        if (failed)
+            node.waitStatus = Node.CANCELLED;
+    }
+}
+/**
+ * 判断一个节点是否在同步队列上
+ */
+final boolean isOnSyncQueue(Node node) {
+    if (node.waitStatus == Node.CONDITION || node.prev == null)
+        // 这里说明该节点在等待队列上
+        return false;
+    if (node.next != null) // If has successor, it must be on queue
+        return true;
+    // 从tail节点开始向前遍历查找，找到返回true
+    return findNodeFromTail(node);
+}
+/**
+ * 检查在等待期间的中断状态
+ */
+private int checkInterruptWhileWaiting(Node node) {
+    return Thread.interrupted() ?
+        (transferAfterCancelledWait(node) ? THROW_IE : REINTERRUPT) : 0;
+}
+final boolean transferAfterCancelledWait(Node node) {
+    
+    if (compareAndSetWaitStatus(node, Node.CONDITION, 0)) {
+    	// 将节点加到了同步队列的尾端
+        enq(node);
+        return true;
+    }
+    /* 这里一直等待，知道节点出现在同步队列中*/
+    while (!isOnSyncQueue(node))
+        Thread.yield();
+    return false;
+}
+
+```
+
+
+
+#### 通知
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

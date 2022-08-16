@@ -8,9 +8,9 @@ actionLink: /zh/guide/
 features:
 - title: 关于我
   details: 苦逼的程序员
-- title: 成神之路
-  details: 还在成神的路上爬着
-- title: 生活点点滴滴
-  details: 记录生活中美好的时刻，把生命中的点点滴滴都堆积成无法比拟的幸福。
+- title: 关于它
+  details: 码农的菜园子
+- title: SLOGN
+  details: 我们的征途是星辰大海
 footer: Phoenix Licensed | Copyright © 2022-present Phoenix
 ---

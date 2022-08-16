@@ -90,7 +90,7 @@ isHeldExclusively();    // 判断线程是否独占资源
 
 | 属性类型与名称  | 描述                                                         |
 | --------------- | ------------------------------------------------------------ |
-| int waitStatus  | 等待状态<br />包含如下状态<br />1. CANCELLED： 值为1，由于在同步队列中等待的线程等待超时或者被中断，需要<br/>从同步队列中取消等待，节点进入等待状态不会变化<br />2. SIGNAL ：值为-1，后继节点的线程处于等待状态，而当前节点的线程如果释放了<br>同步状态或者被取消，将会通知后继节点，是后继节点的线程得以运行<br />3. CONDITION：值为-2，节点在等待队列中，节点的线程等待在Condition上，当其<br/>他线程Condition调用了signal()方法后，该节点将会从等待队列中转移到同步队列中<br>去。加入到同步队列状态的获取中<br />4. PROPAGATE：值为-3，表示下一次共享时同步状态获取将会无条件的传播下去<br />5. INITIAL：值为0，初始化状态<br /> |
+| int waitStatus  | 等待状态<br />包含如下状态<br />1. CANCELLED： 值为1，由于在同步队列中等待的线程等待超时或者被中断，需要<br/>从同步队列中取消等待，节点进入等待状态不会变化<br />2. SIGNAL ：值为-1，当前节点的后继节点线程处于阻塞状态，如果当前节点的线程如果释放了<br>同步状态或者被取消，那么必须要通知后继节点，使得后继节点的线程得以运行<br />3. CONDITION：值为-2，节点在等待队列中，节点的线程等待在Condition上，当其<br/>他线程调用了Condition的signal()方法后，该节点将会从等待队列中转移到同步队列中<br>去。加入到同步队列状态的获取中<br />4. PROPAGATE：值为-3，表示下一次共享时同步状态获取将会无条件的传播下去<br />5. INITIAL：值为0，初始化状态<br /> |
 | Node prev       | 前驱节点，当节点加入同步队列时被设置                         |
 | Node next       | 后继节点                                                     |
 | Node nextWaiter | 等待队列中的后继节点，如果当前节点是共享的，name这个字段是一个SHARED常量，<br/>也就是说节点类型(独占和共享)和等待队列中的后继节点共用同一个字段 |
@@ -1402,6 +1402,47 @@ final boolean transferAfterCancelledWait(Node node) {
 #### 通知
 
 
+
+
+
+```java
+public final void signal() {
+    // 判断是否为当前线程
+    if (!isHeldExclusively())
+        throw new IllegalMonitorStateException();
+    // 释放首结点
+    Node first = firstWaiter;
+    if (first != null)
+        doSignal(first);
+}
+private void doSignal(Node first) {
+    do {
+        if ( (firstWaiter = first.nextWaiter) == null)
+            lastWaiter = null;
+        first.nextWaiter = null;
+    } while (!transferForSignal(first) && (first = firstWaiter) != null);
+}
+/**
+ * 将一个节点从Condition队列转移到 Sync队列
+ */
+final boolean transferForSignal(Node node) {
+    /* 将节点的状态初始化为0，如果初始化失败，说明节点的状态已经变为CANCELLED */
+    if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
+        return false;
+
+    /*
+     * 将节点放到同步队列中，并修改节点状态。
+     * 如果状态大于0 或者 修改状态失败，这里会unpark线程，让线程去争抢锁，
+     * 当然，大概率会争抢失败(前边还有节点在等待)，但是在这个过程中，会检查节点的状态，
+     * 如果>0,该节点会被删除，如果=0，则会通过CAS将该节点的状态改为SIGNAL
+     */
+    Node p = enq(node);
+    int ws = p.waitStatus;
+    if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
+        LockSupport.unpark(node.thread);
+    return true;
+}
+```
 
 
 

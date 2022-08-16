@@ -4,9 +4,19 @@
 
 
 
-#### ConcurrentHashMap实现总结
+## ConcurrentHashMap
 
-##### JDK1.8中的实现
+### HashMap的并发死链
+
+HashMap的并发死链仅出现在JDK1.7中，该问题在JDK1.8中得以解决。下面只针对JDK1.7进行讨论。
+
+
+
+
+
+
+
+### JDK1.8中的实现
 
 和 jdk1.8 的 HashMap 的实现一样，采用了 Node数组+链表+红黑树的实现方式，抛弃了 jdk1.7中的 Segment 分段锁机制，采用 Synchronized 和 CAS 实现更加细粒度的锁。
 
@@ -368,3 +378,12 @@ final long sumCount() {
 }
 ```
 
+
+
+
+
+## ConcurrentLinkedQueue
+
+
+
+## Java中的阻塞队列

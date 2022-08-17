@@ -10,7 +10,148 @@
 
 HashMap的并发死链仅出现在JDK1.7中，该问题在JDK1.8中得以解决。下面只针对JDK1.7进行讨论。
 
+#### 前置知识
 
+在 JDK1.7 中HashMap的底层数据实现是数组+链表的方式，如下图所示：
+
+<img src="../../../.img/Java-concurrent-container/image-20220817093009544.png" alt="image-20220817093009544" style="zoom:50%;" />
+
+而`HashMap`在数据添加时使用的是头插入，如下图所示：
+
+<img src="../../../.img/Java-concurrent-container/image-20220817093142544.png" alt="image-20220817093142544" style="zoom:50%;" />
+
+`HashMap`正常情况下的扩容实现如下图所示：
+
+<img src="../../../.img/Java-concurrent-container/image-20220817093309461.png" alt="image-20220817093309461" style="zoom: 80%;" />
+
+总结一下，JDK1.7中的HashMap使用数组加链表的方式实现。使用头插法实现新数据的添加，在扩容时会导致链表顺序的反转。正是因为这些基础的实现逻辑，导致了最终的并发死链问题。
+
+#### 并发死链的形成
+
+并发死链第一步：并发扩容。线程T1和线程T2要对HashMap进行扩容操作，此时T1和T2指向的是链表的头结点元素A，而T1和T2的下一个节点，也就是T1.next和T2.next指向的是B节点，如下图所示：
+
+<img src="../../../.img/Java-concurrent-container/image-20220817093918304.png" alt="image-20220817093918304" style="zoom:67%;" />
+
+并发死链第二步，线程T2时间片用完进入休眠状态，而线程T1开始执行扩容操作，一直到线程T1扩容完成后，线程T2才被唤醒，扩容之后的场景如下图所示：
+
+<img src="../../../.img/Java-concurrent-container/image-20220817094113282.png" alt="image-20220817094113282" style="zoom: 80%;" />
+
+从上图可知线程T1执行之后，因为是头插法，所以HashMap的顺序已经发生了改变，但线程T2对于发生的一切是不可知的，所以它的指向元素依然没变，如上图展示的那样，T2指向的是A元素，T2.next指向的节点是B元素。
+
+并发死链第三步，当线程`T1`执行完，而线程`T2`恢复执行时，死循环就建立了，如下图所示：
+
+<img src="../../../.img/Java-concurrent-container/image-20220817094601341.png" alt="image-20220817094601341" style="zoom:67%;" />
+
+因为T1执行完扩容之后B节点的下一个节点是A，而T2线程指向的首节点是A，第二个节点是B，这个顺序刚好和T1扩完容完之后的节点顺序是相反的。T1执行完之后的顺序是B到A，而T2的顺序是A到B，这样A节点和B节点就形成死循环了，这就是HashMap死循环导致的原因。
+
+
+
+#### 一个例子
+
+```java
+public class TestHashMap {
+    public static void main(String[] args) {
+        // 测试 java 7 中哪些数字的 hash 结果相等
+        System.out.println("长度为16时，桶下标为1的key");
+        for (int i = 0; i < 64; i++) {
+            if (hash(i) % 16 == 1) {
+                System.out.println(i);
+            }
+        }
+        System.out.println("长度为32时，桶下标为1的key");
+        for (int i = 0; i < 64; i++) {
+            if (hash(i) % 32 == 1) {
+                System.out.println(i);
+            }
+        }
+        // 1, 35, 16, 50 当大小为16时，它们在一个桶内
+        final HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
+        // 放 12 个元素
+        map.put(2, null);
+        map.put(3, null);
+        map.put(4, null);
+        map.put(5, null);
+        map.put(6, null);
+        map.put(7, null);
+        map.put(8, null);
+        map.put(9, null);
+        map.put(10, null);
+        map.put(16, null);
+        map.put(35, null);
+        map.put(1, null);
+        System.out.println("扩容前大小[main]:"+map.size());
+        new Thread() {
+            @Override
+            public void run() {
+                // 放第 13 个元素, 发生扩容
+                map.put(50, null);
+                System.out.println("扩容后大小[Thread-0]:"+map.size());
+            }
+        }.start();
+        new Thread() {
+            @Override
+            public void run() {
+                // 放第 13 个元素, 发生扩容
+                map.put(50, null);
+                System.out.println("扩容后大小[Thread-1]:"+map.size());
+            }
+        }.start();
+    }
+
+    final static int hash(Object k) {
+        int h = 0;
+        if (0 != h && k instanceof String) {
+            return sun.misc.Hashing.stringHash32((String) k);
+        }
+        h ^= k.hashCode();
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
+    }
+}
+```
+
+**操作流程**
+
+```java
+// 扩容源码
+void transfer(Entry[] newTable, boolean rehash) {
+    int newCapacity = newTable.length;   // 源码590行
+    for (Entry<K,V> e : table) {
+        while(null != e) {
+            Entry<K,V> next = e.next;
+            if (rehash) {   // 源码594行
+                e.hash = null == e.key ? 0 : hash(e.key);
+            }
+            int i = indexFor(e.hash, newCapacity);
+            e.next = newTable[i];
+            newTable[i] = e;
+            e = next;
+        }
+    }
+}
+```
+
+在源码590行加断点
+
+```java
+// 断点条件
+newTable.length==32 &&
+ ( Thread.currentThread().getName().equals("Thread-0")||
+ Thread.currentThread().getName().equals("Thread-1") )
+```
+
+在594行加断点
+
+```java
+// 断点条件
+Thread.currentThread().getName().equals("Thread-0")
+```
+
+按照如下流程执行即可生成死链：
+
+```
+两个线程同时停在了590行 -> 先让Thread-0线程执行到594行 -> 让Thread-1线程执行完成 -> 在执行Thread-0线程。
+```
 
 
 

@@ -153,11 +153,11 @@ Thread.currentThread().getName().equals("Thread-0")
 两个线程同时停在了590行 -> 先让Thread-0线程执行到594行 -> 让Thread-1线程执行完成 -> 在执行Thread-0线程。
 ```
 
+### JDK1.7的实现
 
 
 
-
-### JDK1.8中的实现
+### JDK1.8的实现
 
 和 jdk1.8 的 HashMap 的实现一样，采用了 Node数组+链表+红黑树的实现方式，抛弃了 jdk1.7中的 Segment 分段锁机制，采用 Synchronized 和 CAS 实现更加细粒度的锁。
 

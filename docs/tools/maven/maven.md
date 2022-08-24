@@ -738,6 +738,21 @@ mvn clean package -Dmaven.test.skip=true
 
 因为maven.test.skip同时跳过了测试代码的编译和运行阶段，所以这里需要同时配置两个插件参数。
 
+除了以上的方法外，还可以通过规则来指定某些测试类不编译，下面的配置，可以跳过对HashMapError类的测试执行。
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <version>3.10.1</version>
+    <configuration>
+        <testExcludes>
+            <testExclude>**/HashMapError.java</testExclude>
+        </testExcludes>
+    </configuration>
+</plugin>
+```
+
 
 
 ### 8.2 动态指定测试用例

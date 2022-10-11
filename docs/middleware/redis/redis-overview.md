@@ -121,7 +121,59 @@ make MALLOC=libc
 
 
 
+### 在Windows下安装Redis
+
+#### 安装包下载
+
+3.0之前的版本在微软维护的仓库里   https://github.com/microsoftarchive/redis
+
+4.0及之后的版本在另一个开源仓库里 https://github.com/tporadowski/redis
+
+#### 单机模式
+
+安装包内都是编译好的可执行文件，直接通过redis-server.exe 启动即可
+
+
+
+#### 集群模式
+
+集群部署方式在5.0之前都需要使用ruby脚本得协助，需要安装ruby执行环境
+
+##### 老版本的安装方式
+
+http://t.zoukankan.com/xiaohouzai-p-6920541.html
+
+##### 新版本的安装方式
+
+
+
+
+
+集群安装
+
+redis ruby 插件  下载地址https://rubygems.org/gems/redis
+
+
+
+
+
 ### Redis 配置文件
+
+
+
+密码配置
+
+requirepass 
+
+通过命令行进行配置   config set requirepass password
+
+
+
+验证  auth password
+
+
+
+
 
 
 

@@ -544,5 +544,392 @@ userdel -r gitlab-runner
 
 
 
+脚本
+
+```yaml
+stages:
+  - build
+  - deploy
+  
+build:
+  stage: build
+  tags: 
+    - build
+  only:
+    - master
+  script:
+    - echo "mvn-clean
+    - echo "mvn install"
+    
+deploy:
+  stage: deploy
+  tags:
+    - deploy
+  only:
+    - master
+  script:
+    - echo "hello deploy"
+```
+
+
+
 ## 四：GitLab PipLine
+
+
+
+GitLab CI的每个实例都有一个称为Lint的嵌入式调试工具，该工具可以验证.gitlab--ci.yml文件的内容
+
+
+
+### 4.1 GitLab Pipline 语法
+
+#### 4.1.1 Job
+
+在每个项目中，使用名为.gitlab-ci.yml的YAML文件配置GitLab CI/CD管道。在文件中可以定义一个或多个作业(job)。每个作业必须具有唯一的名称（不能使用关键字），每个作业是独立执行的。作业定义了在约束条件下进行相关操作，每个作业至少要包含一个script。
+
+```yaml
+job1:
+  script:"execute-script-for-jobl"
+job2:
+  script:"execute-script-for-job2"
+```
+
+这里在pipeline中定义了两个作业，每个作业运行不同的命令。命令可以是shell或脚本。
+
+
+
+一个样例
+
+```yaml
+before_script:
+  echo "before-script !!"
+  
+variables:
+  DOMAIN: example.com
+  
+stages:
+  - build
+  - test
+  - codescan
+  - deploy
+  
+build:
+  before_script:
+    - echo "before-script in job"
+  stage: build
+  script:
+    - echo "mvn clean
+    - echo "mvn install"
+    - echo "$DOMAIN"
+  after_script:
+    - echo "after script in buildjob"
+
+unittest:
+  stage: test
+  script:
+    - echo "run test"
+
+deploy:
+  stage: deploy
+  script:
+    - echo "hello deploy"
+    - sleep 2;
+    
+codescan:
+  stage: codescan
+  script:
+    - echo "codescan"
+    - sleep 5;
+    
+after_script:
+  - echo "after-script !!"
+```
+
+
+
+#### 4.1.2 Script
+
+每个作业至少要包含一个script。
+
+```yaml
+job:
+  script:
+    - uname -a
+    - bundle exec rspec
+```
+
+**注意：**有时，script命令需要用单引号或双引号引起来。例如，包含冒号命令(:)，需要加引号，以便被包裹的YML解析器知道来解释整个事情作为一个字符串，而不是一个"键:值"对。使用特殊字符时要小心：`:`，`{`，`}`,`[`,`]`,`,`,`&`,`*`,`#`,`?`,`|`,`-`，`<`，`>`，`=`,`!`，`%`，`@`，```
+
+#### 4.1.3 before_script
+
+用于定义一个命令，该命令在每个作业之前运行。必须是一个数组。指定的script与主脚本中指定的任何脚本串联在一起，并在单个shell中一起执行。
+
+before_script失败导致整个作业失败，其他作业将不再执行。作业失败不会影响after_script运行。
+
+
+
+#### 4.1.4 after_script
+
+用于定义在每个作业（包括失败的作业）之后运行的命令。
+
+这必须是一个数组。
+
+指定的脚本在新的shell中执行，与任何before_script或script脚本分开。
+
+after_script失败不会影响作业失败。
+
+#### 4.1.5 stages
+
+用于定义作业可以使用的阶段，并且是全局定义的。
+
+同一阶段的作业并行运行，不同阶段按顺序执行。
+
+```yaml
+stages:
+  - build
+  - test
+  - codescan
+  - deploy
+```
+
+![image-20221101130132410](../../../.img/gitlab/image-20221101130132410.png)
+
+
+
+#### 4.1.6 .pre&.post
+
+.pre始终是整个管道的第一个运行阶段，.post始终是整个管道的最后一个运行阶段。用户定义的阶段都在两者之间运行。.pre和.post的顺序无法更改。如果管道仅包含.pre或.post阶段的作业，则不会创建管道。
+
+![image-20221101130548178](../../../.img/gitlab/image-20221101130548178.png)
+
+
+
+#### 4.1.7 stage
+
+是按Job定义的，并且依赖于全局定义的stages。它允许将作业分为不同的阶段，并且同一stage作业可以并行执行（取决于特定条件）。
+
+![image-20221101131201855](../../../.img/gitlab/image-20221101131201855.png)
+
+可能遇到的问题：阶段并没有并行运行。在这里我把这两个阶段在同一个runner运行了，所以需要修改runner每次运行的作业数量。默认是1，改为10.
+
+![image-20221101131407013](../../../.img/gitlab/image-20221101131407013.png)
+
+vim /etc/gitlab-runner/config.toml 更改后自动加载无需重启。
+
+```toml
+concurrent 10
+```
+
+
+
+#### 4.1.8 variables
+
+定义变量，pipeline变量、job变量。job变量优先级最大。
+
+
+
+#### 4.1.9 tags
+
+用于从允许运行该项目的所有Runner列表中选择特定的Runner，在Runner注册期间，您可以指定Runner的标签。
+
+![image-20221102084714149](../../../.img/gitlab/image-20221102084714149.png)
+
+
+
+#### 4.1.10 allow_failure
+
+allow_failure允许作业失败，默认值为false。启用后，如果作业失败，该作业将在用户界面中显示橙色警告。但是，管道的逻辑流程将认为作业成功/通过，并且不会被阻塞。假设所有其他作业均成功，则该作业的阶段及其管道将显示相同的橙色警告。但是，关联的提交将被标记为"通过"，而不会发出警告。
+
+![image-20221102085341241](../../../.img/gitlab/image-20221102085341241.png)
+
+#### 4.1.11 when
+
+控制作业的运行
+
+- **on_success：** 前面阶段中的所有作业都成功时才执行作业，默认值。
+- **on_failure：**当前面阶段出现失败时执行。
+- **always：**总是执行作业。
+- **manual：**手动执行作业。
+- **delayed：**延迟执行作业。
+
+![image-20221102085956655](../../../.img/gitlab/image-20221102085956655.png)
+
+
+
+demo
+
+```yaml
+timedrollout:
+  stage: deploy
+  script:
+    - echo 'Rolling out 10% ... '
+  when: delayed
+  start_in: '30'
+```
+
+
+
+#### 4.1.12 retry
+
+
+
+- 配置在失败的情况下重试作业的次数。
+- 当作业失败并配置了retry，将再次处理该作业，直到达到retry关键字指定的次数。
+- 如果retry设置为2，并且作业在第二次运行成功（第一次重试)，则不会再次重试。retry值必须是一个正整数，等于或大于0，但小于或等于2（最多两次重试，总共运行3次）。
+
+
+
+**精确匹配错误**
+
+默认情况下，在失败情况下重试作业。max：最大重试次数when：重试失败的错误类型
+
+- always：在发生任何故障时重试（默认）。
+- unknown_failure：当失败原因未知时。
+- script_failure：脚本失败时重试。
+- api_failure：API失败重试。
+- stuck_or_timeout_failure：作业卡住或超时时。
+- runner_system_failure：运行系统发生故障。
+- missing_dependency_failure：如果依赖丢失。
+- runner_unsupported：Runner不受支持。
+- stale_schedule：无法执行延迟的作业。
+- job_execution_timeout：脚本超出了为作业设置的最大执行时间。
+- archived_failure：作业已存档且无法运行。
+- unmet_prerequisites：作业未能完成先决条件任务。
+- scheduler_failure：调度程序未能将作业分配给运行scheduler_failure。
+- data_integrity_failure：检测到结构完整性问题。
+
+
+
+**demo**
+
+```yaml
+unittest:
+  stage: test
+  tags:
+    - build
+  only:
+    - master
+  script:
+    - ech "run test"
+  retry:
+    max: 2
+    when:
+      - script_failure
+```
+
+
+
+#### 4.1.13 timeout
+
+作业级别的超时可以超过项目级别超时，但不能超过Runner特定的超时。
+
+```yaml
+build:
+  script: build.sh
+  timeout: 3 hours 30 minutes
+
+test:
+  script: rspec
+  timeout: 3h 30m
+```
+
+
+
+
+
+#### 4.1.14 parallel
+
+并行作业
+
+- 配置要并行运行的作业实例数，此值必须大于或等于2并且小于或等于50。
+- 这将创建N个并行运行的同一作业实例.它们从job_name 1/N到job_name N/N依次命名。
+
+
+
+#### 实验demo
+
+```yaml
+before script:
+  - echo "before-script!!"
+
+variables:
+  DOMAIN: example.com
+
+stages:
+  - build
+  - test
+  - codescan
+  - deploy
+
+build:
+  inherit:
+    default: true
+    variables: true
+  before script:
+    - echo "before-script in job"
+  stage: build
+  tags:
+    - build
+  only:
+    -master
+  script:
+    - echo "mvnclean
+    - echo "mvn install"
+    - echo "S(DOMAIN)"
+    - false && true exit_code=$?
+    - if [ $exit_code -ne 0 ]; then echo "Previous command failed"; fi;
+    - sleep 2;
+  after script:
+    - echo "after script in job"
+
+unittest:
+  stage: test
+  tags:
+    - build
+  only:
+    - master
+  script:
+    - echo "run test"
+    
+interfacetest:
+  stage: test
+  tags:
+    - build
+  only:
+    - master
+  script:
+    - echo "run test"
+    - sleep 2;    
+    
+deploy:
+  stage: deploy
+  tags:
+    - deploy
+  only:
+    master
+  script:
+    - echo "hello deploy"
+    - sleep 2;
+  when: manual
+  allow_failure: true
+  
+timedrollout:
+  stage: deploy
+  script:
+    - echo 'Rolling out 10% ... '
+  when: delayed
+  start_in: '30'
+
+codescan:
+  stage: codescan
+  tags:
+    - build
+  only:
+    - master
+  script:
+    - echo "codescan"
+    - sleep 5;
+  after_script:
+    - echo "after-script"    
+```
 

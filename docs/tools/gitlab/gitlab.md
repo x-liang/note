@@ -846,7 +846,9 @@ test:
 
 
 
-#### 实验demo
+
+
+> 实验脚本demo
 
 ```yaml
 before script:
@@ -932,4 +934,77 @@ codescan:
   after_script:
     - echo "after-script"    
 ```
+
+
+
+#### 4.1.15 only & except 限制分支标签
+
+简单了解，逐渐被rules替代了
+
+- only和except用分支策略来限制jobs构建：
+  - only定义哪些分支和标签的git项目将会被job执行。
+  - except定义哪些分支和标签的git项目将不会被job执行。
+
+
+
+```yaml
+job:
+  # use regexp
+  only:
+    - /^issue-.*$/
+  # use special keyword
+  except:
+    - branches
+```
+
+
+
+#### 4.1.16 rules 构建规则
+
+- rules允许按顺序评估单个规则，直到匹配并为作业动态提供属性。
+- rules不能only/except与only/except组合使用。
+
+
+
+可用的规则：
+
+- if（如果条件匹配）
+- changes（指定文件发生变化）
+- exists（指定文件存在）
+
+
+
+
+
+| Value                  | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| branches               | 当管道的Git引用是分支时.                                     |
+| tags                   | 当管道的Git引用是标签时，                                    |
+| api                    | 当第二个管道API触发了管道时（不是触发器API)                  |
+| external               | 使用除GitLab以外的CI服务时.                                  |
+| pipelines              | 对于多项目触发器，使用带有CI_JOB_TOKEN的API创建.             |
+| pushes                 | 管道由用户的git push触发.                                    |
+| schedules              | For scheduled pipelines.                                     |
+| triggers               | 对于使用触发令牌创建的管道，                                 |
+| web                    | 对于使用GitLab UI中的"运行管道"按钮创建的管道（在项目的Pipelines下）. |
+| merge_requests         | 创建或更新合并请求时（请参阅管道以了解合并请求）             |
+| external_pull_requests | 在GitHub上创建或请求外部拉取请求时（有关外部拉取请求，请参见管道）. |
+| chat                   | 对于使用GitLab ChatOps命令创建的作业，                       |
+
+
+
+
+
+
+
+
+，
+
+
+
+
+
+
+
+
 

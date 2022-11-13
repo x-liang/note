@@ -959,23 +959,6 @@ job:
 
 
 
-#### 4.1.16 rules 构建规则
-
-- rules允许按顺序评估单个规则，直到匹配并为作业动态提供属性。
-- rules不能only/except与only/except组合使用。
-
-
-
-可用的规则：
-
-- if（如果条件匹配）
-- changes（指定文件发生变化）
-- exists（指定文件存在）
-
-
-
-
-
 | Value                  | Description                                                  |
 | ---------------------- | ------------------------------------------------------------ |
 | branches               | 当管道的Git引用是分支时.                                     |
@@ -995,10 +978,209 @@ job:
 
 
 
+#### 4.1.16 rules 构建规则
 
+- rules允许按顺序评估单个规则，直到匹配并为作业动态提供属性。
+- rules不能only/except与only/except组合使用。
+
+
+
+可用的规则：
+
+- if（如果条件匹配）
+- changes（指定文件发生变化）
+- exists（指定文件存在）
 
 
 ，
+
+##### rules-if-条件匹配
+
+- 如果DOMAIN的值匹配，则需要手动运行。
+- 不匹配on_success。
+- 条件判断从上到下，匹配即停止。
+- 多条件匹配可以使用&& ||
+
+
+
+```yaml
+variables:
+  DOMAIN: example.com
+  
+codescan:
+  stage: codescan
+  tags:
+    - build
+  script:
+    - echo "codescan"
+    - sleep 5;
+  #parallel:5
+  rules:
+    - if: '$DOMAIN =="example.com"
+      when:manual
+	- when:on_success
+```
+
+
+
+##### rules-changes-文件变化
+
+- 接受文件路径数组。
+- 如果提交中Jenkinsfile文件发生的变化则为true。
+
+```yaml
+codescan:
+  stage: codescan
+  tags:
+    - build
+  script:
+    - echo "codescan"
+    - sleep 5;
+  #parallel:5
+  rules:
+    - changes:
+      - Jenkinsfile
+      when:manual
+    - if:'$DOMAIN ="example.com"
+      when:on_success
+    - when:on success
+```
+
+
+
+
+
+##### rules-exists-文件存在
+
+- 接受文件路径数组。
+- 当仓库中存在指定的文件时操作。
+
+
+
+```yaml
+codescan:
+  stage: codescan
+  tags:
+    - build
+  script:
+    - echo "codescan"
+    - sleep 5;
+  #parallel:5
+  rules:
+    - exists:
+      - Jenkinsfile
+      when: manual
+    - changes:
+      - Jenkinsfile
+      when: on_success
+    - if;'$DOMAIN =="example.com"
+      when: on_success
+    - when: on_success
+```
+
+
+
+##### rules-allow_failure-允许失败
+
+
+
+- 使用allow failure: true
+- rules: 在不停止管道本身的情况下允许作业失败或手动作业等待操作。
+
+
+
+```yaml
+job:
+  script: "echo Hello,Rules!"
+  rules:
+    - if:'$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =="master"
+      when: manual
+      allow_failure: true
+```
+
+在此示例中，如果第一个规则匹配，则作业将具有以下when: manual和allow_failure: true。
+
+
+
+#### 4.1.17 workflow
+
+workflow -rules - 管道创建
+
+- 顶级workf1ow关键字适用于整个管道，并将确定是否创建管道。
+- when: 可以设置为always或never, 如果未提供，则默认值always。
+
+```yaml
+variables:
+  DOMAIN: example.com
+  
+workflow:
+  rules:
+    - if: '$DOMAIN "example.com""
+    - when: always
+```
+
+
+
+
+
+##### 4.1.18 cache
+
+缓存
+
+- 存储编译项目所需的运行时依赖项，指定项目工作空间中需要在j0b之间缓存的文件或目录。
+- 全局cache定义在job之外，针对所有job生效。job中cache优先于全局。
+
+**cache：paths**
+
+- 在job build中定义缓存，将会缓存target目录下的所有.jar文件。
+- 当在全局定义了cache:paths会被job中覆盖。以下实例将缓存target目录。
+
+```yaml
+build;
+  script: test
+  cache:
+    paths:
+    - target/*.jar
+```
+
+
+
+```yaml
+cache:
+  paths:
+-my/files
+王
+build:
+script:echo "hello'
+cache;
+key:build
+paths:
+target/
+```
+
+
+
+
+
+
+
+##### 4.1.19 artifacts
+
+
+
+##### 4.1.20 dependencies
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

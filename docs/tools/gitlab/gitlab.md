@@ -1123,7 +1123,7 @@ workflow:
 
 
 
-##### 4.1.18 cache
+#### 4.1.18 cache
 
 缓存
 
@@ -1148,27 +1148,106 @@ build;
 ```yaml
 cache:
   paths:
--my/files
-王
+    - my/files
+    
 build:
-script:echo "hello'
-cache;
-key:build
-paths:
-target/
+  script: echo "hello"
+  cache:
+    key: build
+    paths:
+      - target/
 ```
 
 
 
+**cache: key - 缓存标记**
+
+为缓存做个标记，可以配置job、分支为key来实现分支、作业特定的缓存。为不同job定义了不同的cache:key时，会为每个job分配一个独立的cache。cache:key 变量可以使用任何预定义变量，默认default。从GitLab9.0开始，默认情况下所有内容都在管道和作业之间共享。
+
+按照分支来设置缓存
+
+```yaml
+cache:
+  key: $[CI_COMMIT_REF_SLUG}
+```
+
+
+
+**cache: key: files:**
+
+文件变化自动创建缓存
+
+files:文件发生变化自动重新生成缓存(files最多指定两个文件)，提交的时候检查指定的文件。根据指定的文件生成密钥计算SHA校验和，如果文件未改变值为default。
+
+
+
+```
+cache:
+  key:
+    files:
+      - Gemfile.lock
+      - package.json I
+  paths:
+    - vendor/ruby
+    - node_modules
+```
+
+
+
+**cache: key: prefix:** 
+
+组合生成SHA校验和
+
+prefix: 允许给定prefix的值与指定文件生成的秘钥组合。在这里定义了全局的cache，如果文件发生变化则值为rspec-xxx111111111222222，未发生变化为rspec-default。
+
+![image-20221114123402861](.gitlab.assets/image-20221114123402861.png)
+
+```yaml
+cache:
+  key:
+    files:
+      - Gemfile.lock
+    prefix: $[CIJOB_NAME)
+  paths:
+    - vendor/ruby
+  rspec:
+    script:
+    - bundle exec rspec
+```
+
+
+
+**cache: policy:** - 缓存策略
+
+默认：在执行开始时下载文件，并在结束时重新上传文件。
+
+policy:pull 跳过下载步骤，policy: push 跳过上传步骤
+
+![image-20221114124210197](.gitlab.assets/image-20221114124210197.png)
 
 
 
 
-##### 4.1.19 artifacts
 
 
 
-##### 4.1.20 dependencies
+
+
+#### 4.1.19 artifacts
+
+用于指定在作业成功或者失败时应附加到作业的文件或目录的列表。作业完成后，工件将被发送到GitLab,并可在GitLab UI中下载。
+
+制品，就是Java项目编程完成后的Jar包。其他语言的可能是一些XMl文件，或者HTML文件等。
+
+```yaml
+artifacts:
+  paths:
+    - target/
+```
+
+
+
+#### 4.1.20 dependencies
 
 
 

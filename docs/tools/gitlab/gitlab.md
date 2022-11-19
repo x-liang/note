@@ -1247,6 +1247,35 @@ artifacts:
 
 
 
+**artifacts-制品创建**
+
+```yaml
+default-job:
+  script:
+    - mvn test -U
+  except:
+    - tags
+
+release-job:
+  script:
+    - mvn package -U
+  artifacts:
+  paths:
+    - target/*.war
+  only:
+    - tags
+```
+
+
+
+
+
+
+
+
+
+
+
 #### 4.1.20 dependencies
 
 

@@ -124,11 +124,10 @@ TODO 断言中的内容，在这里补充一下。
 
 判定在特定操作系统上启用或禁用测试方法或测试类
 
-```
+```java
 @EnabledOnOs(MAC)
 @EnabledOnOs({ LINUX, MAC })
 @DisabledOnOs(WINDOWS)
-
 ```
 
 #### 判定Java运行时环境

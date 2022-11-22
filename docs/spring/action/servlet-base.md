@@ -2,7 +2,7 @@
 
 servlet是java web应用开发的核心组件，也是实现springweb mvc的基础，更好的理解servlet，有助于我们更好的理解springweb mvc。
 
-### Servlet API介绍
+## 一、Servlet API介绍
 
 Servlet API有4个包，如下：
 
@@ -19,9 +19,9 @@ Servlet API有4个包，如下：
 
 
 
-#### Servlet各个接口介绍
+### 1.1 Servlet各个接口介绍
 
-##### Servlet接口
+#### 1.1.1 Servlet接口
 
 ```java
 /**
@@ -43,7 +43,7 @@ public interface Servlet {
 }
 ```
 
-##### GenericServlet接口
+#### 1.1.2 GenericServlet接口
 
 GenericServlet抽象类为Servlet接口提供了通用实现，它与任何网络应用层协议无关。
 
@@ -114,7 +114,7 @@ public abstract class GenericServlet implements Servlet, ServletConfig, java.io.
 }
 ```
 
-##### HttpServlet抽象类
+#### 1.1.3 HttpServlet抽象类
 
 HttpServlet类是GenericServlet类的子类。HttpServlet类为Serlvet接口提供了与HTTP协议相关的通用实现，也就是说，HttpServlet对象适合运行在与客户端采用HTTP协议通信的Servlet容器或者Web容器中。
 
@@ -128,7 +128,7 @@ HttpServlet类为所有的请求方式，提供了默认的实现doGet(),doPost(
 
 对于HttpServlet类的具体子类，一般会针对客户端的特定请求方法，覆盖HttpServlet类中的相应的doXXX方法。如果客户端按照GET或POST方式请求访问HttpsServlet，并且这两种方法下，HttpServlet提供相同的服务，那么可以只实现doGet()方法，并且让doPost()方法调用doGet()方法。
 
-##### ServletRequest接口
+#### 1.1.4 ServletRequest接口
 
 ServletRequest表示来自客户端的请求；当Servlet容器接收到客户端要求访问特定Servlet的请求时，容器先解析客户端的原始请求数据，把它包装成一个ServletRequest对象。
 
@@ -149,7 +149,7 @@ getRemoteHost() —— 返回客户端的主机名
 getRemotePort() —— 返回客户端的端口号
 ```
 
-##### HttpServletRequest接口
+#### 1.1.5 HttpServletRequest接口
 
 HttpServletRequest接口是ServletRequest接口的子接口。
 
@@ -165,7 +165,7 @@ getRequestURL() —— 返回HTTP请求的头部的第一行中的URL；
 getQueryString() —— 返回HTTP请求中的查询字符串，即URL中的“？”后面的内容；
 ```
 
-##### ServletResponse接口
+#### 1.1.6 ServletResponse接口
 
 Servlet通过ServletResponse对象来生成响应结果。
 
@@ -198,7 +198,7 @@ Servlet调用ServletOutputStream或PrintWriter对象的flush方法或close方法
 
 如果要设置响应正文的MIME类型和字符编码，必须先调用ServletResponse对象的setContentType()和setCharacterEncoding()方法，然后再调用ServletResponse的getOutputStream()或getWriter()方法，提交缓冲区内的正文数据；只有满足这样的操作顺序，所做的设置才能生效。
 
-##### HttpServletResponse接口
+#### 1.1.7 HttpServletResponse接口
 
 HttpServletResponse接口提供了与HTTP协议相关的一些方法，Servlet可通过这些方法来设置HTTP响应头或向客户端写Cookie。
 
@@ -212,46 +212,127 @@ addCookie() —— 向HTTP响应中加入一个Cookie
 
 在HttpServletResponse接口中定义了一些代表HTTP响应状态代码的静态常量。
 
-##### ServletConfig接口
+#### 1.1.8 ServletConfig接口
 
-Servlet容器初始化Servlet时会向init方法传入一个ServletConfig实例封装了@WebServlet或者xml文件传递给Servlet的配置信息，初始参数为key-vealue形式存储在HashMap中。
+Servlet容器初始化Servlet时会向init方法传入一个ServletConfig实例，封装了@WebServlet或者xml文件传递给Servlet的配置信息，初始参数为key-vealue形式存储在HashMap中。
 
-ServletConfig接口中定义了以下方法：
+- ServeltConfig是Servlet对象的配置存储对象
+- ServletConfig封装了web.xml文件中<servlet></servlet>标签中的配置信息
+- 一个Servlet对象对应一个ServletConfig对象。
+- Servlet对象和ServletConfig对象都是由服务器创建，默认情况下他们都是用户发出第一次请求的时候被创建
+  
 
-```
-getInitParameter(String name) —— 返回匹配的初始化参数值
-getInitParameterNames() —— 返回一个Enumeration对象，里面包含了所有的初始化参数名
-getServletContext() —— 返回一个ServletContext对象
-getServletName() —— 返回Servlet的名字，即web.xml文件中相应<servlet>元素的<servlet-name>子元素的值；如果没有为servlet配置<servlet-name>子元素，则返回Servlet类的名字
+**ServletConfig接口中定义的方法：**
+
+```java
+// 返回匹配的初始化参数值
+public String getInitParameter(String name);
+// 返回一个Enumeration对象，里面包含了所有的初始化参数名
+public Enumeration<String> getInitParameterNames();
+// 返回一个ServletContext对象
+public ServletContext getServletContext();
+// 返回Servlet的名字，即web.xml文件中相应<servlet>元素的<servlet-name>子元素的值；如果没有为servlet配置<servlet-name>子元素，则返回Servlet类的名字
+public String getServletName();
 ```
 
 HttpServlet类继承了GenericServlet类，而GenericServlet类实现了ServletConfig接口，因此HttpServlet或GenericServlet类及子类中都可以直接调用ServletConfig接口中的方法。
 
+**ServletConfig的使用：**
 
-##### ServletContext接口
+先来看一下Servlet的代码：
+
+```java
+public class AServlet extends GenericServlet {
+    @Override
+    public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+        res.setContentType("text/html");
+        PrintWriter out = res.getWriter();
+        //获取该Servlet对象的ServletConfig对象
+        ServletConfig servletConfig = this.getServletConfig();
+		//使用getInitParameterNames()来获取配置信息的名字
+        Enumeration<String> initParameterNames =  servletConfig.getInitParameterNames();
+        //遍历容器将其展示在网页上
+        while (initParameterNames.hasMoreElements()){
+            String name = initParameterNames.nextElement();
+        	//getInitPatameter(String name)获得配置信息的值
+            out.print(name +" "+ this.getInitParameter(name) + "<br>");
+        }
+    }
+}
+```
+
+下面在来看一下web.xml的相关配置
+
+```xml
+<servlet>                                                                  
+    <servlet-name>AServlet</servlet-name>                                  
+    <servlet-class>com.bjpowernode.javaweb.servlet.AServlet</servlet-class>
+    <init-param>                                                           
+        <param-name>测试数据1</param-name>                                     
+        <param-value>一</param-value>                                       
+    </init-param>                                                          
+    <init-param>                                                           
+        <param-name>测试数据2</param-name>                                     
+        <param-value>二</param-value>                                       
+    </init-param>                                                          
+    <init-param>                                                           
+        <param-name>测试数据3</param-name>                                     
+        <param-value>三</param-value>                                       
+    </init-param>                                                          
+</servlet>                                                                 
+<servlet-mapping>                                                          
+    <servlet-name>AServlet</servlet-name>                                  
+    <url-pattern>/a</url-pattern>                                          
+</servlet-mapping>                                                         
+```
+
+再接下来我们启动Tomcat服务器，并通过路径启动AServlet中的服务。
+
+![image-20221121121927861](./.servlet-base.assets/image-20221121121927861.png)
+
+到这里，ServletConfig的内容就很清晰了。
+
+
+
+
+#### 1.1.9 ServletContext接口
 
 ServletContext是Servlet与Servlet容器之间直接通信的接口。
 
 Servlet容器在启动一个Web应用时，会为它创建一个ServletContext对象。每个Web应用都有唯一的ServletContext对象，可以把ServletContext对象形象地理解为Web应用的总管家，同一个Web应用中的所有Servlet对象都共享一个ServletContext，Servlet对象可以通过其访问容器中的各种资源。
 
+- 从上面我们可以知道，一个Servlet对象对应一个ServletConfig，而一个WebApp对应一个ServletContext对象。
+- ServletContext对象在服务器启动的时候被服务器创建，在服务器关闭的时候被销毁。
+- ServletConfig对应的是<servlet></servlet>中的内容，而ServletContext对应的是web.xml中的内容。
+
 ServletContext接口提供的方法可以分为以下几种类型：
 
 用于在web应用范围内存取共享数据的方法：
 
-```
-setAttribute(String name, Object object) —— 把一个Java对象与一个属性名绑定，并存入到ServletContext中；
-getAttribute() —— 返回指定数姓名的属性值
-getAttributeNames() —— 返回一个Enumeration对象，包含所有存放在ServletContext中的属性名
-removeAttributes() —— 从ServletContext中删除匹配的属性
+```java
+// 存（向ServletContext应用域中存数据）
+public void setAttribute(String name, Object value); // map.put(k, v)
+// 取（从ServletContext应用域中取数据）
+public Object getAttribute(String name); // Object v = map.get(k)
+// 删（删除ServletContext应用域中的数据）
+public void removeAttribute(String name); // map.remove(k)
+// 返回一个Enumeration对象，包含所有存放在ServletContext中的属性名
+public Enumeration<String> getAttributeNames();
 ```
 
 访问当前Web应用的资源：
 
-```
-getContextPath() —— 返回当前Web应用的URL入口
-getInitParameter() —— 返回Web应用范围内的匹配的初始化参数值。在web.xml中，直接在<web-app>根元素下定义的<context-param>元素表示应用范围内的初始化参数
-getServletContextName() —— 返回Web应用的名字，即web.xml文件中<display-name>元素的值
-getRequestDispatcher() —— 返回一个用于向其他WEB组件转发请求的RequestDispatcher对象
+```java
+// 获取所有的初始化参数的name
+public Enumeration<String> getInitParameterNames(); 
+// 获取应用的根路径（非常重要），因为在java源代码当中有一些地方可能会需要应用的根路径，这个方法可以动态获取应用的根路径
+public String getContextPath();
+// 返回Web应用范围内的匹配的初始化参数值。在web.xml中，直接在<web-app>根元素下定义的<context-param>元素表示应用范围内的初始化参数
+public String getInitParameter(String name);
+// 返回Web应用的名字，即web.xml文件中<display-name>元素的值
+public String getServletContextName();
+// 返回一个用于向其他WEB组件转发请求的RequestDispatcher对象
+public RequestDispatcher getRequestDispatcher(String path);
 ```
 
 访问Servlet容器中的其他WEB应用：
@@ -268,28 +349,42 @@ getRequestDispatcher() —— 返回一个用于向其他WEB组件转发请求�
 
 访问服务器端的文件系统资源：
 
-```
-getRealPath() —— 根据参数指定的虚拟路径，返回文件系统中的一个真实的路径
-getResources() —— 返回一个映射到参数指定的路径的URL
-getResourceAsStream() —— 返回一个用于读取参数指定的文件的输入流
-getMimeType() —— 返回参数指定的文件MIME类型
+```java
+// 根据参数指定的虚拟路径，返回文件系统中的一个真实的路径
+public void getRealPath();
+// 返回一个映射到参数指定的路径的URL
+public URL getResource(String path);
+// 返回一个用于读取参数指定的文件的输入流
+public InputStream getResourceAsStream(String path); 
+// 返回参数指定的文件MIME类型
+public String getMimeType(String file); 
 ```
 
 输出日志：
 
-```
-log(String msg) —— 向Servlet的日志文件中写日志
-log(String message, Throwable throwable) —— 向Servlet的日志文件中写入错误日志，以及异常的堆栈信息
+```java
+//向Servlet的日志文件中写日志
+public void log(String msg);
+// 向Servlet的日志文件中写入错误日志，以及异常的堆栈信息
+public void log(String message, Throwable throwable);
 ```
 
-##### Servlet相关类的关系
+
+
+
+
+
+
+
+
+#### 1.1.20 Servlet相关类的关系
 
 
 与Servlet主动关联的是三个类，分别是ServletConfig，ServletRequest和ServletResponse。这三个类都是通过容器传递给Servlet的；其中，ServletConfig是在Servlet初始化时传给Servlet的，后两个是在请求到达时调用Servlet传递过来的。
 
 对于Request和Response，以TOMCAT为例，tomcat接到请求首先将会创建org.apache.coyote.Request和org.apache.coyote.Response，这两个类是Tomcat内部使用的描述一次请求和相应的信息类，它们是一个轻量级的类，作用就是在服务器接收到请求后，经过简单解析将这个请求快速分配给后续线程去处理。接下来当交给一个用户线程去处理这个请求时又创建org.apache.catalina.connector.Request和org.apache.catalina.connector.Response对象。这两个对象一直贯穿整个Servlet容器直到要传给Servlet，传给Servlet的是Request和Response的Facade类。
 
-##### Request和Response的转变过程：
+#### 1.1.21 Request和Response的转变过程：
 
 当用户从浏览器向服务器发起的一个请求通常会包含如下信息：
 
@@ -299,13 +394,13 @@ hostname和port用来与服务器建立TCP连接，后面的URL用来选择在�
 
 在Tomcat7中，这种映射工作由专门的一个类完成：org.apache.tomcat.util.http.mapper，这个类保存了tomcat的container容器中的所有子容器的信息。org.apache.catalina.connector.Request类在进入Container容器之前，Mapper将会根据这次请求的hostname和contextpath将host和context容器设置到Request的mappingData属性中，所以当Request进入container容器之前，对于它要访问哪个子容器就已经确定了。
 
-##### Servlet的实际使用
+#### 1.1.22 Servlet的实际使用
 
 我们自己定义的servlet通常去继承HttpServlet或GenericServlet类。采用MVC框架的实现中，其基本原理是将所有的请求都映射到一个Servlet，然后去实现servie方法，这个方法也就是MVC框架的入口。
 
 
 
-### Servlet 生命周期
+## 二、Servlet 生命周期
 
 在 Java 中，对象的生命周期被定义为该对象从创建直到销毁的整个过程。任何对象都有生命周期，Servlet 也不例外。在学习 Servlet 生命周期之前，我们先来看一下 Servlet 的一些常见方法，这些方法非常重要，它们贯穿着 Servlet 整个生命周期！
 
@@ -375,4 +470,4 @@ destory() 方法是 Servlet 容器回收 Servlet 对象之前调用的，且只�
 
 Servlet 对象的创建、对象提供服务、对象的销毁等操作皆由 Servlet 容器来管理，Java 程序员的任务只是负责编写 Servlet 类，无法干涉 Servlet 对象的生命周期。
 
-### Servlet 注解总结
+## 三、Servlet 注解总结

@@ -1614,8 +1614,8 @@ public interface OrderMapper extends BaseMapper<Order> {
 
 ```java
 /**
-     * 测试关联表查询
-     */
+ * 测试关联表查询
+ */
 @Test
 public void testGetOrderAmount(){
 

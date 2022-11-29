@@ -1483,3 +1483,173 @@ protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principal
 	以is和has开头会返回布尔值
 ```
 
+
+
+## 第四章 Web项目集成Shiro
+
+### 1、Web集成原理分析
+
+#### 1.1 web集成的配置
+
+还记得吗，以前我们在没有与WEB环境进行集成的时候，为了生成SecurityManager对象，是通过手动读取配置文件生成工厂对象，再通过工厂对象获取到SecurityManager的。就像下面代码展示的那样
+
+```java
+ /**
+   * @Description 登录方法
+   */
+private Subject shiroLogin(String loginName,String password) {
+    //导入权限ini文件构建权限工厂
+    Factory<SecurityManager> factory = new IniSecurityManagerFactory("classpath:shiro.ini");
+    //工厂构建安全管理器
+    SecurityManager securityManager = factory.getInstance();
+    //使用SecurityUtils工具生效安全管理器
+    SecurityUtils.setSecurityManager(securityManager);
+    //使用SecurityUtils工具获得主体
+    Subject subject = SecurityUtils.getSubject();
+    //构建账号token
+    UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(loginName, password);
+    //登录操作
+    subject.login(usernamePasswordToken);
+    return subject;
+}
+```
+
+不过，现在我们既然说要与WEB集成，那么首先要做的事情就是把我们的shiro.ini这个配置文件交付到WEB环境中，定义shiro.ini文件如下
+
+```ini
+#声明自定义的realm，且为安全管理器指定realms
+[main]
+definitionRealm=com.itheima.shiro.realm.DefinitionRealm
+securityManager.realms=$definitionRealm
+```
+
+##### 1.1.1 新建项目
+
+新建web项目shiro-day01-07web,其中realm、service、resources内容从shiro-day01-06authentication-realm中拷贝即可
+
+![1580538893171](./.shiro-overview.assets/1580538893171.png)
+
+##### 1.1.2 pom.xml配置
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.itheima.shiro</groupId>
+  <artifactId>shiro-day01-07web</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>war</packaging>
+
+  <name>shiro-day01-07web Maven Webapp</name>
+  <!-- FIXME change it to the project's website -->
+  <url>http://www.example.com</url>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.1.3</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.shiro</groupId>
+      <artifactId>shiro-core</artifactId>
+      <version>1.3.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.shiro</groupId>
+      <artifactId>shiro-web</artifactId>
+      <version>1.3.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- tomcat7插件,命令： mvn tomcat7:run -DskipTests -->
+      <plugin>
+        <groupId>org.apache.tomcat.maven</groupId>
+        <artifactId>tomcat7-maven-plugin</artifactId>
+        <version>2.2</version>
+        <configuration>
+          <uriEncoding>utf-8</uriEncoding>
+          <port>8080</port>
+          <path>/platform</path>
+        </configuration>
+      </plugin>
+
+      <!-- compiler插件, 设定JDK版本 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <source>8</source>
+          <target>8</target>
+          <showWarnings>true</showWarnings>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+
+```
+
+##### 1.1.3 web.xml配置
+
+```xml
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0">
+  <display-name>shiro-day01-07web</display-name>
+
+  <!-- 初始化SecurityManager对象所需要的环境-->
+  <context-param>
+    <param-name>shiroEnvironmentClass</param-name>
+    <param-value>org.apache.shiro.web.env.IniWebEnvironment</param-value>
+  </context-param>
+
+  <!-- 指定Shiro的配置文件的位置 -->
+  <context-param>
+    <param-name>shiroConfigLocations</param-name>
+    <param-value>classpath:shiro.ini</param-value>
+  </context-param>
+
+  <!-- 监听服务器启动时，创建shiro的web环境。
+       即加载shiroEnvironmentClass变量指定的IniWebEnvironment类-->
+  <listener>
+    <listener-class>org.apache.shiro.web.env.EnvironmentLoaderListener</listener-class>
+  </listener>
+
+  <!-- shiro的l过滤入口，过滤一切请求 -->
+  <filter>
+    <filter-name>shiroFilter</filter-name>
+    <filter-class>org.apache.shiro.web.servlet.ShiroFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>shiroFilter</filter-name>
+    <!-- 过滤所有请求 -->
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+</web-app>
+
+```
+
+#### 1.2 SecurityManager对象创建
+
+上面我们集成shiro到web项目了，下面我们来追踪下源码，看下SecurityManager对象是如何创建的
+
+（1）我启动了服务器，监听器捕获到了服务器启动事件。我现在所处的位置EnvironmentLoaderListener监听器的入口处

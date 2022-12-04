@@ -117,3 +117,21 @@ https://www.cnblogs.com/chengxy-nds/p/13261131.html
 
 
 [Java应用结构规范-今日头条 (toutiao.com)](https://www.toutiao.com/article/7077444905215214113/)
+
+
+
+
+
+[三分恶 - 博客园 (cnblogs.com)](https://www.cnblogs.com/three-fighter/)
+
+
+
+
+
+[Servlet3.0新特性：异步处理，太好用了！！！ - 腾讯云开发者社区-腾讯云 (tencent.com)](https://cloud.tencent.com/developer/article/1810816)
+
+
+
+servlet监听器
+
+https://blog.csdn.net/qq_52139871/article/details/124792627

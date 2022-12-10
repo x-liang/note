@@ -1,3 +1,24 @@
+---
+# 用来设置该文档是否出现在博客当中, false 不出现
+article: true
+# 是否置顶，也可以使用number， 来排序
+sticky: false
+# 是否收藏图片
+star: false
+# 该文档是否出现在时间线中
+timeline: true
+
+category:
+  - spring cloud
+  - gateway
+
+tag: 
+  - spring cloud
+  - gateway
+
+date: 2022-12-10
+---
+
 # Spring Cloud Gateway
 
 
@@ -9,6 +30,7 @@ Spring Cloud Gateway 作为 Spring Cloud 生态系统中的网关，目标是替
 Zuul 2.x 版本一直跳票，2019 年 5 月，Netflix 终于开源了支持异步调用模式的 Zuul 2.0 版本，真可谓千呼万唤始出来。但是 Spring Cloud 已经不再集成 Zuul 2.x 了，那么是时候了解一下 SpringCloud Gateway 了。
 
 Spring Cloud Gateway 是基于 Spring 生态系统之上构建的 API 网关，包括：Spring 5，Spring Boot 2 和 Project Reactor。Spring Cloud Gateway 旨在提供一种简单而有效的方法来路由到 API，并为它们提供跨领域的关注点，例如：安全性，监视/指标，限流等。由于 Spring 5.0 支持 Netty，Http2，而 Spring boot 2.0 支持 Spring 5.0，因此 Spring Cloud Gateway 支持 Netty 和 Http2 顺理成章。
+
 
 
 

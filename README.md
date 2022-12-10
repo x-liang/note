@@ -50,6 +50,10 @@ Node.js v14+
   ```
 
   运行该命令后，就会启动一个服务，默认在8080端口，就可以通过浏览器进行访问了
+  
+- 使用主题vuepress-theme-hope
+
+  URL：https://vuepress-theme-hope.gitee.io/v2/zh/
 
 ## 编译项目
 

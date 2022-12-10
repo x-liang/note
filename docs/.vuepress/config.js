@@ -1,3 +1,4 @@
+import { info } from "vuepress";
 import { hopeTheme } from "vuepress-theme-hope";
 
 module.exports = {
@@ -23,10 +24,6 @@ module.exports = {
 
         // 配置上边的导航栏
         navbar: [
-            {
-                text: '博客',
-                link: '/article/'
-            },
             {
                 text: 'Java 笔记',
                 children: [
@@ -129,50 +126,52 @@ module.exports = {
             },
             {
                 text: 'Spring Cloud',
+                prefix: '/spring-cloud/',
                 children: [
                     {
                         text: 'Spring Cloud Overview',
-                        link: '/spring-cloud/spring-cloud-overview.md'
+                        link: 'spring-cloud-overview.md'
                     },
                     {
                         text: 'Spring Cloud Nacos',
-                        link: '/spring-cloud/spring-cloud-alibaba-nacos.md'
+                        link: 'spring-cloud-alibaba-nacos.md'
                     },
                     {
                         text: 'Spring Cloud Sentinel',
-                        link: '/spring-cloud/spring-cloud-alibaba-sentinel.md'
+                        link: 'spring-cloud-alibaba-sentinel.md'
                     },
                     {
                         text: 'Spring Cloud Seate',
-                        link: '/spring-cloud/spring-cloud-alibaba-seate.md'
+                        link: 'spring-cloud-alibaba-seate.md'
                     },
                     {
                         text: 'Spring Cloud Ribbon',
-                        link: '/spring-cloud/spring-cloud-ribbon/spring-cloud-ribbon.md'
+                        link: 'spring-cloud-ribbon/spring-cloud-ribbon.md'
                     }
                 ]
             },
             {
                 text: "数据库",
+                prefix: '/database/mysql/',
                 children: [
                     {
                         text: "MySQL",
                         children: [
                             {
                                 text: "MySQL 基础篇",
-                                link: "/database/mysql/mysql-base.html"
+                                link: "mysql-base.html"
                             },
                             {
                                 text: "MySQL 进阶篇",
-                                link: "/database/mysql/mysql-advance.html"
+                                link: "mysql-advance.html"
                             },
                             {
                                 text: "MySQL 运维篇",
-                                link: "/database/mysql/mysql-devops.html"
+                                link: "mysql-devops.html"
                             },
                             {
                                 text: "MySQL 应用篇",
-                                link: "/database/mysql/mysql-apply.html"
+                                link: "mysql-apply.html"
                             }
                         ]
                     }
@@ -305,7 +304,8 @@ module.exports = {
                         '/spring-cloud/spring-cloud-nacos/nacos-client-discovery.html',
                         '/spring-cloud/spring-cloud-nacos/nacos-overview.html',
                         '/spring-cloud/spring-cloud-sentinel/sentinel-source.html',
-                        '/spring-cloud/spring-cloud-alibaba-seate.html'
+                        '/spring-cloud/spring-cloud-alibaba-seate.html',
+                        '/spring-cloud/spring-cloud-gateway/spring-cloud-gateway.html'
                     ]
                 },
                 {
@@ -397,11 +397,15 @@ module.exports = {
             name: "Mr.Phoenix",
             roundAvatar: true,
             description: "我们的征途是星辰大海！",
+            // 自动生成摘要
             autoExcerpt: true,
+            // 热部署， 开启会影响性能，调试样式的时候开启，其他时间关闭就好
             hotReload: true
         },
         plugins: {
+            // 关闭图片预览
             photoSwipe: false,
+            // 开启博客
             blog: true,
             mdEnhance: {
                 /**

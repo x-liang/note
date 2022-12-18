@@ -2436,3 +2436,66 @@ public class ShowAllAdminController extends HttpServlet {
 
 ```
 
+
+
+## 十六、监听器
+
+Listener 用于监听 Java web程序中的事件，例如创建、修改、删除Session、request、context等，并触发响应的事件。
+
+ Listener 对应观察者模式，事件发生的时候会自动触发该事件对应的Listeer。 Listener 主要用于对 Session、request、context 进行监控。servlet2.5 ~ 5.0规范中共有 8 种Listener 。
+
+不同功能的Listener 需要实现不同的 Listener 接口，一个Listener也可以实现多个接口，这样就可以多种功能的监听器一起工作。
+
+8种监听器可以分为三类：
+
+- 监听 Session、request、context 的创建于销毁，分别为
+  - HttpSessionLister
+  - ServletContextListener
+  - ServletRequestListener
+
+- 监听对象属性变化，分别为：
+  - HttpSessionAttributeLister
+  - ServletContextAttributeListener
+  - ServletRequestAttributeListener
+
+- 监听Session 内的对象，
+
+  - HttpSessionBindingListener 
+  - HttpSessionActivationListener。
+
+  与上面六类不同，这两类 Listener 监听的是Session 内的对象，而非 Session 本身，不需要在 web.xml中配置。
+
+
+
+> 在servelt2.5版本之前，需要通过web.xml进行配置。listener配置通常放在servlet前面
+>
+> ```xml
+> <!--监听器 -->  
+> <listener>  
+>     <listener-class>servlet.listener.MyListener</listener-class>  
+> </listener>
+> ```
+>
+> 在servlet3.0版本后，直接使用@WebListener注解即可
+>
+> ```java
+> @WebListener
+> public class MyListener implements ServletContextListener {  
+>   
+>     public void contextDestroyed(ServletContextEvent sce) { }  
+>   
+>     public void contextInitialized(ServletContextEvent sce) { }     
+> } 
+> ```
+
+### 16.1 HttpSessionLister
+
+### 16.2 ServletContextListener
+
+### 16.3 ServletRequestListener
+
+### 16.4 HttpSessionAttributeLister
+
+### 16.5 ServletContextAttributeListener
+
+### 16.6 ServletRequestAttributeListener

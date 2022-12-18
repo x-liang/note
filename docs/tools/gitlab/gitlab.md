@@ -1200,7 +1200,7 @@ cache:
 
 prefix: 允许给定prefix的值与指定文件生成的秘钥组合。在这里定义了全局的cache，如果文件发生变化则值为rspec-xxx111111111222222，未发生变化为rspec-default。
 
-![image-20221114123402861](.gitlab.assets/image-20221114123402861.png)
+![image-20221114123402861](./.gitlab.assets/image-20221114123402861.png)
 
 ```yaml
 cache:
@@ -1223,7 +1223,7 @@ cache:
 
 policy:pull 跳过下载步骤，policy: push 跳过上传步骤
 
-![image-20221114124210197](.gitlab.assets/image-20221114124210197.png)
+![image-20221114124210197](./.gitlab.assets/image-20221114124210197.png)
 
 
 

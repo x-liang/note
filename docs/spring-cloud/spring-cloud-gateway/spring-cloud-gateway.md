@@ -400,3 +400,313 @@ spring:
 ```
 
 该配置表示80%的请求转发给weight_high，20%的请求转发给weight_low
+
+
+
+
+
+## 七、动态路由
+
+
+
+## 八、过滤器
+
+### 8.1 网关过滤器
+
+网关过滤器用于拦截并链式处理 Web 请求，可以实现横切与应用无关的需求，比如：安全、访问超时的设置等。修改传入的 HTTP 请求或传出 HTTP 响应。Spring Cloud Gateway 包含许多内置的网关过滤器工厂一共有 22 个，包括头部过滤器、 路径类过滤器、Hystrix 过滤器和重写请求 URL 的过滤器， 还有参数和状态码等其他类型的过滤器。根据过滤器工厂的用途来划分，可以分为以下几种：Header、Parameter、Path、Body、Status、Session、Redirect、Retry、RateLimiter 和 Hystrix。
+
+![image-20221218170347033](./.spring-cloud-gateway.assets/image-20221218170347033.png)
+
+接下来我们举例说明其中一部分如何使用。
+
+#### 8.1.1 Path 路径过滤器
+
+Path 路径过滤器可以实现 URL 重写，通过重写 URL 可以实现隐藏实际路径提高安全性，易于用户记忆和键入，易于被搜索引擎收录等优点。实现方式如下：
+
+RewritePathGatewayFilterFactory
+
+RewritePath 网关过滤器工厂采用路径正则表达式参数和替换参数，使用 Java 正则表达式来灵活地重写请求路径。
+
+```yaml
+spring:
+  application:
+    name: gateway-server # 应用名称
+  cloud:
+    gateway:
+      # 路由规则
+      routes:
+        - id: product-service # 路由 ID，唯一
+          uri: lb://product-service # lb:// 根据服务名称从注册中心获取服务请求地址
+          predicates: # 断言（判断条件）
+          # 匹配对应 URI 的请求，将匹配到的请求追加在目标 URI 之后
+            - Path=/product/**, /api-gateway/**
+          filters: # 网关过滤器
+            # 将 /api-gateway/product/1 重写为 /product/1
+            - RewritePath=/api-gateway(?<segment>/?.*), $\{segment}
+```
+
+
+
+
+
+### 8.2 全局过滤器
+
+全局过滤器不需要在配置文件中配置，作用在所有的路由上，最终通过 GatewayFilterAdapter 包装成 GatewayFilterChain 可识别的过滤器，它是请求业务以及路由的 URI 转换为真实业务服务请求地址的核心过滤器，不需要配置系统初始化时加载，并作用在每个路由上。
+
+![image-20221218171057170](./.spring-cloud-gateway.assets/image-20221218171057170.png)
+
+
+
+
+
+
+
+
+
+
+
+### 8.3 自定义过滤器
+
+即使 Spring Cloud Gateway 自带许多实用的 GatewayFilter Factory、Gateway Filter、Global Filter ，但是在很多情景下我们仍然希望可以自定义自己的过滤器，实现一些骚操作。
+
+#### 8.3.1 自定义网关过滤器
+
+自定义网关过滤器需要实现以下两个接口 ： GatewayFilter ， Ordered 。
+
+
+
+【1】**创建过滤器**
+
+
+
+CustomGatewayFilter.java
+
+```java
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.Ordered;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+/**
+ * 自定义网关过滤器
+ */
+public class CustomGatewayFilter implements GatewayFilter, Ordered {
+    /**
+     * 过滤器业务逻辑
+     *
+     * @param exchange
+     * @param chain
+     * @return
+     */
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        System.out.println("自定义网关过滤器被执行");
+        return chain.filter(exchange); // 继续向下执行
+    }
+    /**
+     * 过滤器执行顺序，数值越小，优先级越高
+     *
+     * @return
+     */
+    @Override
+    public int getOrder() {
+    	return 0;
+    }
+}
+```
+
+
+
+【2】**注册过滤器**
+
+```java
+import com.yjxxt.filter.CustomGatewayFilter;
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+/**
+ * 网关路由配置类
+ */
+@Configuration
+public class GatewayRoutesConfiguration {
+    @Bean
+    public RouteLocator routeLocator(RouteLocatorBuilder builder) {
+        return builder.routes().route(r -> r
+            // 断言（判断条件）
+            .path("/product/**")
+            // 目标 URI，路由到微服务的地址
+            .uri("lb://product-service")
+            // 注册自定义网关过滤器
+            .filters(new CustomGatewayFilter())
+            // 路由 ID，唯一
+            .id("product-service"))
+            .build();
+    }
+}
+```
+
+
+
+#### 8.3.2 自定义全局过滤器
+
+自定义全局过滤器需要实现以下两个接口 ： GlobalFilter ， Ordered 。通过全局过滤器可以实现权限校验，安全性验证等功能。
+
+【1】**创建过滤器**
+
+实现指定接口，添加 @Component 注解即可。
+
+CustomGlobalFilter.java
+
+```java
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+/**
+ * 自定义全局过滤器
+ */
+@Component
+public class CustomGlobalFilter implements GlobalFilter, Ordered {
+    
+    /**
+     * 过滤器业务逻辑
+     * @param exchange
+     * @param chain
+     * @return
+     */
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        System.out.println("自定义全局过滤器被执行");
+        return chain.filter(exchange); // 继续向下执行
+    }
+    
+    /**
+     * 过滤器执行顺序，数值越小，优先级越高
+     * @return
+     */
+    @Override
+    public int getOrder() {
+    	return 0;
+    }
+}
+```
+
+
+
+#### 8.3.3 统一鉴权
+
+接下来我们在网关过滤器中通过 token 判断用户是否登录，完成一个统一鉴权案例。
+
+【1】**创建过滤器**
+
+AccessFilter.java
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+/**
+ * 权限验证过滤器
+ */
+@Component
+public class AccessFilter implements GlobalFilter, Ordered {    
+    
+    private Logger logger = LoggerFactory.getLogger(AccessFilter.class);
+
+    /**
+     * 过滤器业务逻辑
+     * @param exchange
+     * @param chain
+     * @return
+     */
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 获取请求参数
+        String token = exchange.getRequest().getQueryParams().getFirst("token");
+        // 业务逻辑处理
+        if (null == token) {
+        	logger.warn("token is null...");
+    		ServerHttpResponse response = exchange.getResponse();
+            // 响应类型
+            response.getHeaders().add("Content-Type", "application/json; charset=utf-8");
+            // 响应状态码，HTTP 401 错误代表用户没有访问权限
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            // 响应内容
+            String message = "{\"message\":\"" +
+            HttpStatus.UNAUTHORIZED.getReasonPhrase() + "\"}";
+            DataBuffer buffer = response.bufferFactory().wrap(message.getBytes());
+            // 请求结束，不在继续向下请求
+            return response.writeWith(Mono.just(buffer));
+    	}
+        // 使用 token 进行身份验证
+        logger.info("token is OK!");
+        return chain.filter(exchange);
+	}
+    
+    /**
+     * 过滤器执行顺序，数值越小，优先级越高
+     * @return
+     */
+    @Override
+    public int getOrder() {
+    	return 1;
+    }
+}
+```
+
+
+
+## 九、网关限流
+
+顾名思义，限流就是限制流量，就像你宽带包有 1 个 G 的流量，用完了就没了。通过限流，我们可以很好地控制系统的 QPS，从而达到保护系统的目的。
+
+
+
+### 9.1 为什么需要限流
+
+比如 Web 服务、对外 API，这种类型的服务有以下几种可能导致机器被拖垮：
+
+- 用户增长过快（好事）
+
+- 因为某个热点事件（微博热搜）
+
+- 竞争对象爬虫
+
+- 恶意的请求
+
+这些情况都是无法预知的，不知道什么时候会有 10 倍甚至 20 倍的流量打进来，如果真碰上这种情况，扩容是根本来不及的。
+
+![image-20221218175047145](./.spring-cloud-gateway.assets/image-20221218175047145.png)
+
+从上图可以看出，对内而言：上游的 A、B 服务直接依赖了下游的基础服务 C，对于 A，B 服务都依赖的基础服务 C 这种场景，服务 A 和 B 其实处于某种竞争关系，如果服务 A 的并发阈值设置过大，当流量高峰期来临，有可能直接拖垮基础服务 C 并影响服务 B，即雪崩效应。
+
+### 9.2 限流算法
+
+常见的限流算法有：
+
+- 计数器算法
+
+- 漏桶（Leaky Bucket）算法
+
+- 令牌桶（Token Bucket）算法
+
+### 9.3 计数器法
+
+
+
+
+

@@ -10,7 +10,7 @@
 
 本地事务，也就是传统的**单机事务**。在传统数据库事务中，必须要满足四个原则：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724165045186.png" alt="image-20210724165045186" style="zoom:67%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724165045186.png" alt="image-20210724165045186" style="zoom:67%;" />
 
 
 
@@ -34,7 +34,7 @@
 
 完成上面的操作需要访问三个不同的微服务和三个不同的数据库。
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724165338958.png" alt="image-20210724165338958" style="zoom:67%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724165338958.png" alt="image-20210724165338958" style="zoom:67%;" />
 
 
 
@@ -58,7 +58,7 @@
 > - Availability（可用性）
 > - Partition tolerance （分区容错性）
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724170517944.png" alt="image-20210724170517944" style="zoom:67%" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724170517944.png" alt="image-20210724170517944" style="zoom:67%" />
 
 
 
@@ -74,15 +74,15 @@ Consistency（一致性）：用户访问分布式系统中的任意节点，得
 
 比如现在包含两个节点，其中的初始数据是一致的：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724170704694.png" alt="image-20210724170704694" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724170704694.png" alt="image-20210724170704694" style="zoom:60%;" />
 
 当我们修改其中一个节点的数据时，两者的数据产生了差异：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724170735847.png" alt="image-20210724170735847" style="zoom:60%" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724170735847.png" alt="image-20210724170735847" style="zoom:60%" />
 
 要想保住一致性，就必须实现node01 到 node02的数据 同步：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724170834855.png" alt="image-20210724170834855" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724170834855.png" alt="image-20210724170834855" style="zoom:60%;" />
 
 <br>
 
@@ -92,11 +92,11 @@ Availability （可用性）：用户访问集群中的任意健康节点，必�
 
 如图，有三个节点的集群，访问任何一个都可以及时得到响应：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724170932072.png" alt="image-20210724170932072" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724170932072.png" alt="image-20210724170932072" style="zoom:60%;" />
 
 当有部分节点因为网络故障或其它原因无法访问时，代表节点不可用：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724171007516.png" alt="image-20210724171007516" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724171007516.png" alt="image-20210724171007516" style="zoom:60%;" />
 
 
 
@@ -104,7 +104,7 @@ Availability （可用性）：用户访问集群中的任意健康节点，必�
 
 **Partition（分区）**：因为网络故障或其它原因导致分布式系统中的部分节点与其它节点失去连接，形成独立分区。
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724171041210.png" alt="image-20210724171041210" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724171041210.png" alt="image-20210724171041210" style="zoom:60%;" />
 
 
 
@@ -118,7 +118,7 @@ Availability （可用性）：用户访问集群中的任意健康节点，必�
 
 当节点接收到新的数据变更时，就会出现问题了：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724171546472.png" alt="image-20210724171546472" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724171546472.png" alt="image-20210724171546472" style="zoom:60%;" />
 
 如果此时要保证**一致性**，就必须等待网络恢复，完成数据同步后，整个集群才对外提供服务，服务处于阻塞状态，不可用。
 
@@ -152,7 +152,7 @@ BASE理论是对CAP的一种解决思路，包含三个思想：
 
 但不管是哪一种模式，都需要在子系统事务之间互相通讯，协调事务状态，也就是需要一个**事务协调者(TC)**：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724172123567.png" alt="image-20210724172123567" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724172123567.png" alt="image-20210724172123567" style="zoom:60%;" />
 
 
 
@@ -190,7 +190,7 @@ Seata事务管理中有三个重要的角色：
 
 整体的架构如图：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724172326452.png" alt="image-20210724172326452" style="zoom:60%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724172326452.png" alt="image-20210724172326452" style="zoom:60%;" />
 
 
 
@@ -241,11 +241,11 @@ XA是规范，目前主流数据库都实现了这种规范，实现的原理都
 
 正常情况：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724174102768.png" alt="image-20210724174102768" style="zoom: 67%; " />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724174102768.png" alt="image-20210724174102768" style="zoom: 67%; " />
 
 异常情况：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724174234987.png" alt="image-20210724174234987" style="zoom:67%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724174234987.png" alt="image-20210724174234987" style="zoom:67%;" />
 
 
 
@@ -266,7 +266,7 @@ XA是规范，目前主流数据库都实现了这种规范，实现的原理都
 
 Seata对原始的XA模式做了简单的封装和改造，以适应自己的事务模型，基本架构如图：
 
-<img src="../../.img/spring-cloud-alibaba-seate/image-20210724174424070.png" alt="image-20210724174424070" style="zoom:67%;" />
+<img src="./.spring-cloud-alibaba-seate.assets/image-20210724174424070.png" alt="image-20210724174424070" style="zoom:67%;" />
 
 
 

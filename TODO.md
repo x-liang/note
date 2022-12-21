@@ -135,3 +135,15 @@ https://www.cnblogs.com/chengxy-nds/p/13261131.html
 servlet监听器
 
 https://blog.csdn.net/qq_52139871/article/details/124792627
+
+
+
+Spring 扩展点总结
+
+https://www.cnblogs.com/alvinscript/p/16992622.html
+
+
+
+设计模式
+
+https://www.cnblogs.com/xueSpring/p/13345165.html

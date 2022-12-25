@@ -35,7 +35,7 @@ date: 2022-12-21
 
 3. ConcreteProduct：具体的产品角色。
 
-<img src="./.design-factory.assets/640.png" alt="图片" style="zoom:70%;" />
+<img src="./.design-factory.assets/factory.png" alt="图片" style="zoom:70%;" />
 
 ### 1.2 代码实现
 
@@ -217,7 +217,7 @@ public class HuaweiPhone implements Phone {
 
 
 
-```
+```java
 @Slf4j
 public class IPhone implements Phone {
     @Override
@@ -317,4 +317,190 @@ public class Test {
 
 
 
-## 三、抽象工厂
+## 三、抽象工厂模式
+
+抽象工厂模式提供一个接口，用户创建相关或者依赖对象的家族，而不需要明确指定具体类。
+
+抽象工厂允许客户端使用抽象的接口来创建一组相关的产品，而不需要关系实际产出的具体产品是什么，这样一来客户可以从具体的产品关系中解耦。
+
+### 3.1 模式结构
+
+- **AbstractFactory：** 抽象工厂。抽象工厂定义了一个接口，所有的具体工厂都必须实现此接口，这个接口包含了一组方法用来生产产品。
+
+- **ConcreteFactory：** 具体工厂。具体工厂是用于生产不同产品族。要创建一个产品，客户只需要使用其中一个工厂完全不需要实例化任何产品对象。
+
+- **AbstractProduct：** 抽象产品。这是一个产品家族，每一个具体工厂都能够生产一整组产品。
+
+- **Product：** 具体产品。
+
+<img src="./.design-factory.assets/abstract-factory.png" alt="图片" style="zoom:80%;" />
+
+
+
+### 3.2 模式实现
+
+**AbstractProductA 抽象产品类（电脑）**
+
+```java
+public interface PC {
+    void playGame();
+}
+```
+
+
+
+**ConcreteProductA1 具体产品类（华为电脑）**
+
+```java
+@Slf4j
+public class HuaweiPC implements PC {
+    @Override
+    public void playGame() {
+      log.info("使用华为电脑玩DOTA");
+    }
+}
+```
+
+
+
+**ConcreteProductA2 具体产品类（苹果电脑）**
+
+```java
+@Slf4j
+public class ApplePC implements PC {
+    @Override
+    public void playGame() {
+      log.info("使用苹果电脑玩国际象棋");
+    }
+}
+```
+
+
+
+**AbstractProductB 抽象产品类（手机）**
+
+```java
+public interface Phone {
+    void call(String receiver);
+}
+```
+
+
+
+**ConcreteProductB1 具体产品类（华为手机）**
+
+```java
+@Slf4j
+public class HuaweiPhone implements Phone {
+    @Override
+    public void call(String receiver) {
+        log.info("华为手机拨打{}电话", receiver);
+    }
+}
+```
+
+
+
+**ConcreteProductB2 具体产品类（苹果手机）**
+
+```java
+@Slf4j
+public class IPhone implements Phone {
+    @Override
+    public void call(String receiver) {
+        log.info("苹果手机拨打{}电话", receiver);
+    }
+}
+```
+
+
+
+**AbstractFactory 抽象工厂类**
+
+```java
+public interface AbstractFactory {
+    PC makePC();
+    Phone makePhone();
+}
+```
+
+
+
+**ConcreteFactory 具体工厂类1(华为工厂)**
+
+```java
+public class HuaweiFactory implements AbstractFactory {
+
+    @Override
+    public PC makePC() {
+        return new HuaweiPC();
+    }
+    @Override
+    public Phone makePhone() {
+        return new HuaweiPhone();
+    }
+}
+```
+
+
+
+**ConcreteFactory 具体工厂类2 (苹果工厂)**
+
+```java
+public class AppleFactory implements AbstractFactory {
+
+    @Override
+    public PC makePC() {
+        return new ApplePC();
+    }
+
+    @Override
+    public Phone makePhone() {
+        return new IPhone();
+    }
+}
+```
+
+
+
+**测试类**
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+        AbstractFactory huaweiFactory = new HuaweiFactory();
+        PC huaweiPC = huaweiFactory.makePC();
+        huaweiPC.playGame();
+        Phone huaweiPhone = huaweiFactory.makePhone();
+        huaweiPhone.call("西施");
+
+        AbstractFactory appleFactory = new AppleFactory();
+        PC applePC = appleFactory.makePC();
+        applePC.playGame();
+        Phone iphone = appleFactory.makePhone();
+        iphone.call("程咬金");
+    }
+}
+```
+
+
+
+
+
+### 3.3 总结
+
+抽象工厂模式中主要的优点在于具体类的隔离，是的客户端不需要知道什么被创建了。其缺点在于增加新的产品族比较复杂，需要修改接口及其所有子类。
+
+工厂模式和抽象工厂模式主要区别在于产品，产品种类单一，适合工厂模式。抽象工厂模式适合用于创建多个产品种类，多个产品类型。
+
+
+
+
+
+
+
+
+
+
+

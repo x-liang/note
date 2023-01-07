@@ -26,79 +26,7 @@ module.exports = {
         navbar: [
             {
                 text: 'Java 笔记',
-                children: [
-                    {
-                        text: 'Java 基础',
-                        children: [
-                            {
-                                text: 'Java 基础知识',
-                                link: '/java/java-base/java-base.html'
-                            }
-                        ]
-                    },
-                    {
-                        text: 'Java IO',
-                        children: [
-                            {
-                                text: 'Java IO 基础知识',
-                                link: '/java/java-io/java-io-base.html'
-                            }
-                        ]
-                    },
-                    {
-                        text: 'Java 集合',
-                        children: [
-                            {
-                                text: "Java 集合概览",
-                                link: "/java/java-collection/java-collection-overview.html"
-                            },
-                            {
-                                text: 'Java List集合',
-                                link: '/java/java-collection/java-collection-list.html'
-                            }
-                        ]
-                    },
-                    {
-                        text: 'Java 并发',
-                        children: [
-                            {
-                                text: 'Java 并发基础',
-                                link: '/java/java-concurrent/java-concurrent-base.html'
-                            }
-                        ]
-                    },
-                    {
-                        text: 'JVM 详解',
-                        children: [
-                            {
-                                text: 'JVM概览',
-                                link: '/java/java-jvm/JVM概览.html'
-                            },
-                            {
-                                text: 'JVM内存结构',
-                                link: '/java/java-jvm/JVM内存结构.html'
-                            },
-                            {
-                                text: 'JVM垃圾回收',
-                                link: '/java/java-jvm/JVM垃圾回收.html'
-                            },
-                            {
-                                text: 'JVM类文件结构',
-                                link: '/java/java-jvm/JVM类文件结构.html'
-                            },
-                            {
-                                text: 'JVM类加载器',
-                                link: '/java/java-jvm/JVM类加载器.html'
-                            },
-                            {
-                                text: 'Java内存模型',
-                                link: '/java/java-jvm/JVM内存模型.html'
-                            }
-                        ]
-                    }
-
-
-                ]
+                link: '/java/java-overview.md'
             },
             {
                 text: 'Spring 笔记',
@@ -152,103 +80,58 @@ module.exports = {
             },
             {
                 text: "数据库",
-                prefix: '/database/mysql/',
-                children: [
-                    {
-                        text: "MySQL",
-                        children: [
-                            {
-                                text: "MySQL 基础篇",
-                                link: "mysql-base.html"
-                            },
-                            {
-                                text: "MySQL 进阶篇",
-                                link: "mysql-advance.html"
-                            },
-                            {
-                                text: "MySQL 运维篇",
-                                link: "mysql-devops.html"
-                            },
-                            {
-                                text: "MySQL 应用篇",
-                                link: "mysql-apply.html"
-                            }
-                        ]
-                    }
-                ]
+                link: '/database/database-overview.md',
             },
             {
                 text: '自我修养',
-                children: [
-                    {
-                        text: '设计模式',
-                        link: '/quality/design-mode/design-overview.html'
-                    },
-                    {
-                        text: '数据结构',
-                        link: '/quality/data-structure/data-structure-overview.html'
-                    },
-                    {
-                        text: 'Linux 总结',
-                        link: '/quality/linux/linux-overview.html'
-                    }
-                ]
+                link: "/quality/quality-overview.md"
             },
             {
                 text: '中间件',
-                children: [
-                    {
-                        text: 'Tomcat 专题',
-                        link: '/middleware/tomcat/tomcat.md'
-                    },
-                    {
-                        text: 'Kafka 专题',
-                        link: '/middleware/kafka/kafka-overview.md'
-                    },
-                    {
-                        text: 'Redis 专题',
-                        link: '/middleware/redis/redis-overview.md'
-                    }
-                ]
+                link: "/middleware/middleware-overview.md"
             },
             {
                 text: '工具包',
-                children: [
-                    {
-                        text: 'Junit 测试框架',
-                        children: [
-                            {
-                                text: 'Junit 5 使用总结',
-                                link: '/tools/junit/junit5.md'
-                            }
-                        ]
-                    },
-                    {
-                        text: 'Java 日志框架',
-                        link: '/tools/log/log-framework.md'
-                    },
-                    {
-                        text: 'Maven 使用入门',
-                        link: '/tools/maven/maven.md'
-                    }
-                ]
+                link: "/tools/tools-overview.md"
             }
         ],
         // 配置左侧边栏
         sidebar: {
             '/java/': [
                 {
-                    text: 'Java 集合',
-                    collapsible: false,
+                    text: "Java 总览",
+                    link: '/java/java-overview.md'
+                },
+                {
+                    text: "Java 基础",
+                    collapsible: true,
                     children: [
-                        '/java/java-collection/java-collection-overview.html',
+                        '/java/java-base/java-base.md',
+                        '/java/java-base/java-sql.md',
+                        '/java/java-base/java-time.md',
+                        '/java/java-servlet/java-servlet.md',
+                        '/java/java-base/java-time.md',
+                    ]
+                },
+                {
+                    text: 'Java 8 新特性',
+                    collapsible: true,
+                    children: [
+                        '/java/java-stream/java-lambda.md',
+                        '/java/java-stream/java-stream.md',
+                    ]
+                },
+                {
+                    text: 'Java 集合',
+                    collapsible: true,
+                    children: [
                         '/java/java-collection/java-collection-list.html',
                         '/java/java-collection/java-collection-map.html'
                     ]
                 },
                 {
                     text: 'Java IO 模型',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         '/java/java-io/java-io-base.html',
                         '/java/java-io/java-bio.md',
@@ -257,25 +140,27 @@ module.exports = {
                 },
                 {
                     text: 'Java 并发编程',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         '/java/java-concurrent/java-concurrent-base.html',
                         '/java/java-concurrent/java-concurrent-container.html',
                         '/java/java-concurrent/java-concurrent-lock.html',
                         '/java/java-concurrent/java-concurrent-pool.html',
                         '/java/java-concurrent/java-concurrent-tools.html',
+                        '/java/java-concurrent/java-concurrent-interview.html',
                     ]
                 },
                 {
                     text: 'JVM概览',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         '/java/java-jvm/JVM概览.html',
                         '/java/java-jvm/JVM内存结构.html',
                         '/java/java-jvm/JVM垃圾回收.html',
                         '/java/java-jvm/JVM类文件结构.html',
                         '/java/java-jvm/JVM类加载器.html',
-                        '/java/java-jvm/Java内存模型.html'
+                        '/java/java-jvm/Java内存模型.html',
+                        '/java/java-jvm/JVM调优.html',
                     ]
                 }
             ],
@@ -318,12 +203,26 @@ module.exports = {
             ],
             '/database/': [
                 {
-                    text: 'MySQL',
+                    text: "数据库",
+                    link: "/database/database-overview.md"
+                },
+                {
+                    text: 'MySQL 详解',
+                    collapsible: true,
                     children: [
                         '/database/mysql/mysql-base.html',
                         "/database/mysql/mysql-advance.html",
                         "/database/mysql/mysql-devops.html",
                         "/database/mysql/mysql-apply.html"
+                    ]
+                },
+                {
+                    text: "Redis 详解",
+                    collapsible: true,
+                    children:[
+                        "/database/redis/redis-overview.md",
+                        "/database/redis/redis-base.md",
+                        "/database/redis/redis-cluster.md",
                     ]
                 }
             ],
@@ -337,7 +236,9 @@ module.exports = {
                         '/quality/design-mode/design-adapter.html',
                         '/quality/design-mode/design-chain.html',
                         '/quality/design-mode/design-composite.html',
-                        '/quality/design-mode/design-strategy.html'
+                        '/quality/design-mode/design-strategy.html',
+                        '/quality/design-mode/design-factory.html',
+                        '/quality/design-mode/design-singleton.html',
                     ]
                 },
                 {
@@ -347,9 +248,37 @@ module.exports = {
                         '/quality/data-structure/data-structure-list.html',
                         '/quality/data-structure/data-structure-tree.html'
                     ]
+                },
+                {
+                    text: "操作系统",
+                    collapsible: true,
+                    children: [
+                        "/quality/operating-system/encoding.md",
+                        "/quality/operating-system/encryption-algorithm.md"
+                    ]
                 }
             ],
             '/middleware/': [
+                {
+                    text: "常用工具总结",
+                    link: '/middleware/middleware-overview.md'
+                },
+                {
+                    text: "Mybatis 总结",
+                    collapsible: true,
+                    children: [
+                        "/middleware/mybatis/1.Hello World.md",
+                        "/middleware/mybatis/2.Global Config.md"
+                    ]
+                },
+                {
+                    text: "Shiro 总结",
+                    link: '/middleware/shiro/shiro-overview.md'
+                },
+                {
+                    text: "Sharding-Sphere 总结",
+                    link: '/middleware/sharding-sphere/sharding-sphere.md'
+                },
                 {
                     text: 'Tomcat 专题',
                     collapsible: false,
@@ -375,17 +304,39 @@ module.exports = {
                         '/middleware/redis/redis-overview.md',
                         '/middleware/redis/redis-cluster.md'
                     ]
+                },
+                {
+                    text: "日志的使用",
+                    link: "/middleware/log/log-framework.md"                    
+                },
+                {
+                    text: "Jackson 详解",
+                    link: "/middleware/jackson/jackson-overview.md" 
+                },
+                {
+                    text: "HikariCP 详解",
+                    collapsible: true,
+                    children: [
+                        "/middleware/HikariCP/HikariCP-base.md" ,
+                        "/middleware/HikariCP/HikariCP-source.md" ,
+                    ] 
                 }
 
             ],
             '/tools': [
                 {
+                    text: "常用工具总结",
+                    link: "/tools/tools-overview.md"
+                },
+                {
                     text: '常用开发工具',
                     collapsible: false,
                     children: [
                         '/tools/junit/junit5.md',
-                        '/tools/log/log-framework.md',
-                        '/tools/maven/maven.md'
+                        '/tools/junit/junit4.md',
+                        '/tools/maven/maven.md',
+                        '/tools/git/git.md',
+                        '/tools/gitlab/gitlab.md'
                     ]
                 }
             ]

@@ -21,480 +21,377 @@ date: 2022-12-21
 
 # 工厂模式
 
+## 1、概述
+
+需求：设计一个咖啡店点餐系统。  
+
+设计一个咖啡类（Coffee），并定义其两个子类（美式咖啡【AmericanCoffee】和拿铁咖啡【LatteCoffee】）；再设计一个咖啡店类（CoffeeStore），咖啡店具有点咖啡的功能。
+
+具体类的设计如下：
+
+<img src="./.design-factory.assets/%E5%B7%A5%E5%8E%82%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E5%BC%95%E5%85%A5.png" style="zoom:80%;" />
+
+在java中，万物皆对象，这些对象都需要创建，如果创建的时候直接new该对象，就会对该对象耦合严重，假如我们要更换对象，所有new对象的地方都需要修改一遍，这显然违背了软件设计的开闭原则。如果我们使用工厂来生产对象，我们就只和工厂打交道就可以了，彻底和对象解耦，如果要更换对象，直接在工厂里更换该对象即可，达到了与对象解耦的目的；所以说，工厂模式最大的优点就是：**解耦**。
+
+在本教程中会介绍三种工厂的使用
+
+* 简单工厂模式（不属于GOF的23种经典设计模式）
+* 工厂方法模式
+* 抽象工厂模式
 
 
-## 一、简单工厂模式
 
-简单工厂模式又称之为静态工厂方法，属于创建型模式。在简单工厂模式中，可以根据传递的参数不同，返回不同类的实例。简单工厂模式定义了一个类，这个类专门用于创建其他类的实例，这些被创建的类都有一个共同的父类。
+## 2、简单工厂模式
 
-### 1.1 模式结构
+简单工厂不是一种设计模式，反而比较像是一种编程习惯。
 
-1. Factory：工厂角色。专门用于创建实例类的工厂，提供一个方法，该方法根据传递的参数不同返回不同类的具体实例。
+### 2.1 结构
 
-2. Product：抽象产品角色。为所有产品的父类。
+简单工厂包含如下角色：
 
-3. ConcreteProduct：具体的产品角色。
+* 抽象产品 ：定义了产品的规范，描述了产品的主要特性和功能。
+* 具体产品 ：实现或者继承抽象产品的子类
+* 具体工厂 ：提供了创建产品的方法，调用者通过该方法来获取产品。
 
-<img src="./.design-factory.assets/factory.png" alt="图片" style="zoom:70%;" />
+### 2.2 实现
 
-### 1.2 代码实现
+现在使用简单工厂对上面案例进行改进，类图如下：
 
-**1、Product 抽象产品类**
+<img src="./.design-factory.assets/%E7%AE%80%E5%8D%95%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F.png" style="zoom:70%;" />
 
-```java
-/**
- * @Description Product 抽象产品类
- **/
-public interface Phone {
-
-    void make();
-
-    void call();
-}
-```
-
-**2、Concrete Product 具体产品类**
-
-```java
-/**
- * @Description 华为手机
- **/
-@Slf4j
-public class HuaweiPhone implements Phone {
-    @Override
-    public void make() {
-        log.info("华为手机制作完成");
-    }
-
-    @Override
-    public void call() {
-        log.info("华为手机拨打电话");
-    }
-}
-```
-
-
+工厂类代码如下：
 
 ```java
-/**
- * @Description 苹果手机工厂
- **/
-@Slf4j
-public class IPhone implements Phone{
-    @Override
-    public void make() {
-        log.info("制作iPhone手机");
-    }
+public class SimpleCoffeeFactory {
 
-    @Override
-    public void call() {
-        log.info("iPhone手机拨打电话");
-    }
-}
-```
-
-**3、Factory 工厂角色类**
-
-```java
-/**
- * @Description Factory 工厂角色类
- **/
-@Slf4j
-public class SimpleFactory {
-
-    public Phone createPhone(String brand){
-        Phone phone = null;
-        switch (brand){
-            case "HUAWEI":
-                phone = new HuaweiPhone();
-                break;
-            case "IPHONE":
-                phone = new IPhone();
-                break;
-            default:
-                log.error("暂不支持该品牌手机");
-                break;
+    public Coffee createCoffee(String type) {
+        Coffee coffee = null;
+        if("americano".equals(type)) {
+            coffee = new AmericanoCoffee();
+        } else if("latte".equals(type)) {
+            coffee = new LatteCoffee();
         }
-        return phone;
+        return coffee;
     }
 }
 ```
 
-**4、测试类**
+工厂（factory）处理创建对象的细节，一旦有了SimpleCoffeeFactory，CoffeeStore类中的orderCoffee()就变成此对象的客户，后期如果需要Coffee对象直接从工厂中获取即可。这样也就解除了和Coffee实现类的耦合，同时又产生了新的耦合，CoffeeStore对象和SimpleCoffeeFactory工厂对象的耦合，工厂对象和商品对象的耦合。
 
-```java
-/**
- * @Description 简单工厂模式测试类
- **/
-public class Test {
-
-    public static void main(String[] args) {
-        SimpleFactory factory = new SimpleFactory();
-        Phone huaweiPhone = factory.createPhone("HUAWEI");
-        huaweiPhone.make();
-        huaweiPhone.call();
-
-        Phone iPhone = factory.createPhone("IPHONE");
-        iPhone.make();
-        iPhone.call();
-    }
-}
-```
-
-
-
-### 1.3 优缺点
-
-**优点**
-
-实现了对责任的分隔，提供了专门工厂类创建对象。
-
-用户无需知道具体产品名。
-
-通过配置文件方式，可以在不修改客户端（消费端）代码情况下变更/增加新产品，在一定程序上提高了系统的灵活性。
-
-
-
-**缺点**
-
-由于工厂类集中了所以产品创建逻辑，一旦不能正常工作，整个系统受影响。
-
-使用简单工厂模式将增加系统类的个数，在一定程度上增加了系统的复杂度和理解。
-
-系统扩展困难，一旦添加了新产品就不得不修改工厂逻辑，在产品类型较多时，有可能造成工厂逻辑过于复杂，不利于系统的扩展和维护。
-
-
-
-### 1.4 总结
-
-简单工厂模式的要点就在于当你需要什么，只需要知道正确参数，就可以获取你所需要的对象，无需知道其创建细节。
-
-简单工厂模式最大的优点在于实现对象的创建和对象的分离，但是如果产品过多时，会导致工厂代码复杂。
-
-
-
-## 二、工厂模式
-
-工厂方法模式定义了一个创建对象的接口，但由子类决定要实例化的类是哪一个。工厂方法模式让实例化推迟到子类。
-
-
-
-### 2.1 模式结构
-
-Product ：抽象产品。所有的产品必须实现这个共同的接口，这样一来，使用这些产品的类既可以引用这个接口。
-
-- ConcreteProduct：具体产品。
-- Creator：抽象工厂。它实现了所有操纵产品的方法，但不实现工厂方法。Creator所有的子类都必须要实现factoryMethod()方法。
-- ConcreteCreator：具体工厂。制造产品的实际工厂。它负责创建一个或者多个具体产品。
-
-<img src="./.design-factory.assets/640-1671590075618-3.png" alt="图片" style="zoom:67%;" />
-
-
-
-### 2.2 模式实现
-
-**Product 抽象产品类**
-
-```java
-public interface Phone {
-    void call(String receiver);
-}
-```
-
-
-
-**ConcreteProduct 具体产品类**
-
-```java
-@Slf4j
-public class HuaweiPhone implements Phone {
-    @Override
-    public void call(String receiver) {
-        log.info("华为手机拨打{}电话", receiver);
-    }
-}
-```
-
-
-
-```java
-@Slf4j
-public class IPhone implements Phone {
-    @Override
-    public void call(String receiver) {
-        log.info("iPhone手机拨打{}电话", receiver);
-    }
-}
-```
-
-
-
-**Factory 抽象工厂类**
-
-```java
-public interface Factory {
-    Phone createPhone();
-}
-```
-
-
-
-**ConcreteFactory 具体工厂类**
-
-```java
-/**
- * 生产华为手机的工厂
- */
-public class HuaweiFactory implements Factory {
-    @Override
-    public Phone createPhone() {
-        return new HuaweiPhone();
-    }
-}
-```
-
-
-
-```java
-/**
- * 生产IPhone手机的工厂
- */
-public class IPhoneFactory implements Factory {
-    @Override
-    public Phone createPhone() {
-        return new IPhone();
-    }
-}
-```
-
-
-
-**测试类**
-
-```java
-public class Test {
-
-    public static void main(String[] args) {
-        Factory huaweiFactory = new HuaweiFactory();
-        Phone huaweiPhone = huaweiFactory.createPhone();
-        huaweiPhone.call("貂蝉");
-
-        Factory iponeFactory = new IPhoneFactory();
-        iponeFactory.createPhone().call("小乔");
-    }
-}
-```
-
-
+后期如果再加新品种的咖啡，我们势必要需求修改SimpleCoffeeFactory的代码，违反了开闭原则。工厂类的客户端可能有很多，比如创建美团外卖等，这样只需要修改工厂类的代码，省去其他的修改操作。
 
 ### 2.3 优缺点
 
+**优点：**
 
+封装了创建对象的过程，可以通过参数直接获取对象。把对象的创建和业务逻辑层分开，这样以后就避免了修改客户代码，如果要实现新产品直接修改工厂类，而不需要在原代码中修改，这样就降低了客户代码修改的可能性，更加容易扩展。
 
-**优点**
+**缺点：**
 
-在工厂方法中，用户只需要知道所要的产品的具体工厂，无须关系具体的创建过程，甚至不需要具体产品类的名称。
+增加新产品时还是需要修改工厂类的代码，违背了“开闭原则”。
 
-在系统增加新产品时，我们只需要增加一个具体的产品类和实现工厂，无需对原工厂进行任何修改，很好的符合了“开闭原则”
+### 2.4 扩展
 
+**静态工厂**
 
-
-**缺点**
-
-每次增加一个产品时，都需要增加一个具体类和对象实现工厂，系统中类的个数会成倍增加，在一定程度上增加了系统的复杂度，同时也增加了系统具体类的依赖
-
-
-
-### 2.4 总结
-
-工厂方法模式完全符合“开闭原则”
-
-工厂方法模式使用继承，将对象委托给子类，通过子类实现工厂方法来创建对象
-
-在工厂方法模式中，创建者通常包含依赖于抽象的产品代码，而这些抽象产品是由子类创建的，创建者不需要知道制作哪种具体产品
-
-
-
-
-
-## 三、抽象工厂模式
-
-抽象工厂模式提供一个接口，用户创建相关或者依赖对象的家族，而不需要明确指定具体类。
-
-抽象工厂允许客户端使用抽象的接口来创建一组相关的产品，而不需要关系实际产出的具体产品是什么，这样一来客户可以从具体的产品关系中解耦。
-
-### 3.1 模式结构
-
-- **AbstractFactory：** 抽象工厂。抽象工厂定义了一个接口，所有的具体工厂都必须实现此接口，这个接口包含了一组方法用来生产产品。
-
-- **ConcreteFactory：** 具体工厂。具体工厂是用于生产不同产品族。要创建一个产品，客户只需要使用其中一个工厂完全不需要实例化任何产品对象。
-
-- **AbstractProduct：** 抽象产品。这是一个产品家族，每一个具体工厂都能够生产一整组产品。
-
-- **Product：** 具体产品。
-
-<img src="./.design-factory.assets/abstract-factory.png" alt="图片" style="zoom:80%;" />
-
-
-
-### 3.2 模式实现
-
-**AbstractProductA 抽象产品类（电脑）**
+在开发中也有一部分人将工厂类中的创建对象的功能定义为静态的，这个就是静态工厂模式，它也不是23种设计模式中的。代码如下：
 
 ```java
-public interface PC {
-    void playGame();
-}
-```
+public class SimpleCoffeeFactory {
 
-
-
-**ConcreteProductA1 具体产品类（华为电脑）**
-
-```java
-@Slf4j
-public class HuaweiPC implements PC {
-    @Override
-    public void playGame() {
-      log.info("使用华为电脑玩DOTA");
+    public static Coffee createCoffee(String type) {
+        Coffee coffee = null;
+        if("americano".equals(type)) {
+            coffee = new AmericanoCoffee();
+        } else if("latte".equals(type)) {
+            coffee = new LatteCoffee();
+        }
+        return coffe;
     }
 }
 ```
 
 
 
-**ConcreteProductA2 具体产品类（苹果电脑）**
+
+
+## 3、工厂方法模式
+
+针对上例中的缺点，使用工厂方法模式就可以完美的解决，完全遵循开闭原则。
+
+### 3.1 概念
+
+定义一个用于创建对象的接口，让子类决定实例化哪个产品类对象。工厂方法使一个产品类的实例化延迟到其工厂的子类。
+
+### 3.2 结构
+
+工厂方法模式的主要角色：
+
+* 抽象工厂（Abstract Factory）：提供了创建产品的接口，调用者通过它访问具体工厂的工厂方法来创建产品。
+* 具体工厂（ConcreteFactory）：主要是实现抽象工厂中的抽象方法，完成具体产品的创建。
+* 抽象产品（Product）：定义了产品的规范，描述了产品的主要特性和功能。
+* 具体产品（ConcreteProduct）：实现了抽象产品角色所定义的接口，由具体工厂来创建，它同具体工厂之间一一对应。
+
+### 3.3 实现
+
+使用工厂方法模式对上例进行改进，类图如下：
+
+<img src="./.design-factory.assets/%E5%B7%A5%E5%8E%82%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F.png" style="zoom:70%;" />
+
+代码如下：
+
+抽象工厂：
 
 ```java
-@Slf4j
-public class ApplePC implements PC {
-    @Override
-    public void playGame() {
-      log.info("使用苹果电脑玩国际象棋");
+public interface CoffeeFactory {
+
+    Coffee createCoffee();
+}
+```
+
+具体工厂：
+
+```java
+public class LatteCoffeeFactory implements CoffeeFactory {
+
+    public Coffee createCoffee() {
+        return new LatteCoffee();
+    }
+}
+
+public class AmericanCoffeeFactory implements CoffeeFactory {
+
+    public Coffee createCoffee() {
+        return new AmericanCoffee();
     }
 }
 ```
 
-
-
-**AbstractProductB 抽象产品类（手机）**
+咖啡店类：
 
 ```java
-public interface Phone {
-    void call(String receiver);
-}
-```
+public class CoffeeStore {
 
+    private CoffeeFactory factory;
 
+    public CoffeeStore(CoffeeFactory factory) {
+        this.factory = factory;
+    }
 
-**ConcreteProductB1 具体产品类（华为手机）**
-
-```java
-@Slf4j
-public class HuaweiPhone implements Phone {
-    @Override
-    public void call(String receiver) {
-        log.info("华为手机拨打{}电话", receiver);
+    public Coffee orderCoffee(String type) {
+        Coffee coffee = factory.createCoffee();
+        coffee.addMilk();
+        coffee.addsugar();
+        return coffee;
     }
 }
 ```
 
+从以上的编写的代码可以看到，要增加产品类时也要相应地增加工厂类，不需要修改工厂类的代码了，这样就解决了简单工厂模式的缺点。
+
+工厂方法模式是简单工厂模式的进一步抽象。由于使用了多态性，工厂方法模式保持了简单工厂模式的优点，而且克服了它的缺点。
+
+### 3.4 优缺点
+
+**优点：**
+
+- 用户只需要知道具体工厂的名称就可得到所要的产品，无须知道产品的具体创建过程；
+- 在系统增加新的产品时只需要添加具体产品类和对应的具体工厂类，无须对原工厂进行任何修改，满足开闭原则；
+
+**缺点：**
+
+* 每增加一个产品就要增加一个具体产品类和一个对应的具体工厂类，这增加了系统的复杂度。
 
 
-**ConcreteProductB2 具体产品类（苹果手机）**
+
+
+
+
+
+## 4、 抽象工厂模式
+
+前面介绍的工厂方法模式中考虑的是一类产品的生产，如畜牧场只养动物、电视机厂只生产电视机、传智播客只培养计算机软件专业的学生等。
+
+这些工厂只生产同种类产品，同种类产品称为同等级产品，也就是说：工厂方法模式只考虑生产同等级的产品，但是在现实生活中许多工厂是综合型的工厂，能生产多等级（种类） 的产品，如电器厂既生产电视机又生产洗衣机或空调，大学既有软件专业又有生物专业等。
+
+本节要介绍的抽象工厂模式将考虑多等级产品的生产，将同一个具体工厂所生产的位于不同等级的一组产品称为一个产品族，下图所示横轴是产品等级，也就是同一类产品；纵轴是产品族，也就是同一品牌的产品，同一品牌的产品产自同一个工厂。
+
+<img src="./.design-factory.assets/image-20200401214509176.png" style="zoom:67%;" />
+
+<img src="./.design-factory.assets/image-20200401222951963.png" style="zoom:67%;" />
+
+### 4.1 概念
+
+是一种为访问类提供一个创建一组相关或相互依赖对象的接口，且访问类无须指定所要产品的具体类就能得到同族的不同等级的产品的模式结构。
+
+抽象工厂模式是工厂方法模式的升级版本，工厂方法模式只生产一个等级的产品，而抽象工厂模式可生产多个等级的产品。
+
+### 4.2 结构
+
+抽象工厂模式的主要角色如下：
+
+* 抽象工厂（Abstract Factory）：提供了创建产品的接口，它包含多个创建产品的方法，可以创建多个不同等级的产品。
+* 具体工厂（Concrete Factory）：主要是实现抽象工厂中的多个抽象方法，完成具体产品的创建。
+* 抽象产品（Product）：定义了产品的规范，描述了产品的主要特性和功能，抽象工厂模式有多个抽象产品。
+* 具体产品（ConcreteProduct）：实现了抽象产品角色所定义的接口，由具体工厂来创建，它 同具体工厂之间是多对一的关系。
+
+### 4.2 实现
+
+现咖啡店业务发生改变，不仅要生产咖啡还要生产甜点，如提拉米苏、抹茶慕斯等，要是按照工厂方法模式，需要定义提拉米苏类、抹茶慕斯类、提拉米苏工厂、抹茶慕斯工厂、甜点工厂类，很容易发生类爆炸情况。其中拿铁咖啡、美式咖啡是一个产品等级，都是咖啡；提拉米苏、抹茶慕斯也是一个产品等级；拿铁咖啡和提拉米苏是同一产品族（也就是都属于意大利风味），美式咖啡和抹茶慕斯是同一产品族（也就是都属于美式风味）。所以这个案例可以使用抽象工厂模式实现。类图如下：
+
+<img src="./.design-factory.assets/%E6%8A%BD%E8%B1%A1%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F.png" style="zoom:67%;" />
+
+代码如下：
+
+抽象工厂：
 
 ```java
-@Slf4j
-public class IPhone implements Phone {
-    @Override
-    public void call(String receiver) {
-        log.info("苹果手机拨打{}电话", receiver);
+public interface DessertFactory {
+
+    Coffee createCoffee();
+
+    Dessert createDessert();
+}
+```
+
+具体工厂：
+
+```java
+//美式甜点工厂
+public class AmericanDessertFactory implements DessertFactory {
+
+    public Coffee createCoffee() {
+        return new AmericanCoffee();
+    }
+
+    public Dessert createDessert() {
+        return new MatchaMousse();
+    }
+}
+//意大利风味甜点工厂
+public class ItalyDessertFactory implements DessertFactory {
+
+    public Coffee createCoffee() {
+        return new LatteCoffee();
+    }
+
+    public Dessert createDessert() {
+        return new Tiramisu();
     }
 }
 ```
 
+如果要加同一个产品族的话，只需要再加一个对应的工厂类即可，不需要修改其他的类。
+
+### 4.3 优缺点
+
+**优点：**
+
+当一个产品族中的多个对象被设计成一起工作时，它能保证客户端始终只使用同一个产品族中的对象。
+
+**缺点：**
+
+当产品族中需要增加一个新的产品时，所有的工厂类都需要进行修改。
+
+### 4.4 使用场景
+
+* 当需要创建的对象是一系列相互关联或相互依赖的产品族时，如电器工厂中的电视机、洗衣机、空调等。
+
+* 系统中有多个产品族，但每次只使用其中的某一族产品。如有人只喜欢穿某一个品牌的衣服和鞋。
+
+* 系统中提供了产品的类库，且所有产品的接口相同，客户端不依赖产品实例的创建细节和内部结构。
+
+如：输入法换皮肤，一整套一起换。生成不同操作系统的程序。
 
 
-**AbstractFactory 抽象工厂类**
+
+
+
+## 5、 模式扩展
+
+**简单工厂+配置文件解除耦合**
+
+可以通过工厂模式+配置文件的方式解除工厂对象和产品对象的耦合。在工厂类中加载配置文件中的全类名，并创建对象进行存储，客户端如果需要对象，直接进行获取即可。
+
+第一步：定义配置文件
+
+为了演示方便，我们使用properties文件作为配置文件，名称为bean.properties
+
+```properties
+american=com.itheima.pattern.factory.config_factory.AmericanCoffee
+latte=com.itheima.pattern.factory.config_factory.LatteCoffee
+```
+
+第二步：改进工厂类
 
 ```java
-public interface AbstractFactory {
-    PC makePC();
-    Phone makePhone();
+public class CoffeeFactory {
+
+    private static Map<String,Coffee> map = new HashMap();
+
+    static {
+        Properties p = new Properties();
+        InputStream is = CoffeeFactory.class.getClassLoader().getResourceAsStream("bean.properties");
+        try {
+            p.load(is);
+            //遍历Properties集合对象
+            Set<Object> keys = p.keySet();
+            for (Object key : keys) {
+                //根据键获取值（全类名）
+                String className = p.getProperty((String) key);
+                //获取字节码对象
+                Class clazz = Class.forName(className);
+                Coffee obj = (Coffee) clazz.newInstance();
+                map.put((String)key,obj);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Coffee createCoffee(String name) {
+
+        return map.get(name);
+    }
 }
 ```
 
-
-
-**ConcreteFactory 具体工厂类1(华为工厂)**
-
-```java
-public class HuaweiFactory implements AbstractFactory {
-
-    @Override
-    public PC makePC() {
-        return new HuaweiPC();
-    }
-    @Override
-    public Phone makePhone() {
-        return new HuaweiPhone();
-    }
-}
-```
+静态成员变量用来存储创建的对象（键存储的是名称，值存储的是对应的对象），而读取配置文件以及创建对象写在静态代码块中，目的就是只需要执行一次。
 
 
 
-**ConcreteFactory 具体工厂类2 (苹果工厂)**
+## 6、JDK源码解析-Collection.iterator
 
 ```java
-public class AppleFactory implements AbstractFactory {
-
-    @Override
-    public PC makePC() {
-        return new ApplePC();
-    }
-
-    @Override
-    public Phone makePhone() {
-        return new IPhone();
-    }
-}
-```
-
-
-
-**测试类**
-
-```java
-public class Test {
-
+public class Demo {
     public static void main(String[] args) {
-        AbstractFactory huaweiFactory = new HuaweiFactory();
-        PC huaweiPC = huaweiFactory.makePC();
-        huaweiPC.playGame();
-        Phone huaweiPhone = huaweiFactory.makePhone();
-        huaweiPhone.call("西施");
+        List<String> list = new ArrayList<>();
+        list.add("令狐冲");
+        list.add("风清扬");
+        list.add("任我行");
 
-        AbstractFactory appleFactory = new AppleFactory();
-        PC applePC = appleFactory.makePC();
-        applePC.playGame();
-        Phone iphone = appleFactory.makePhone();
-        iphone.call("程咬金");
+        //获取迭代器对象
+        Iterator<String> it = list.iterator();
+        //使用迭代器遍历
+        while(it.hasNext()) {
+            String ele = it.next();
+            System.out.println(ele);
+        }
     }
 }
 ```
 
+对上面的代码大家应该很熟，使用迭代器遍历集合，获取集合中的元素。而单列集合获取迭代器的方法就使用到了工厂方法模式。我们看通过类图看看结构：
 
+<img src="./.design-factory.assets/JDK%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90.png" style="zoom:75%;" />
 
+Collection接口是抽象工厂类，ArrayList是具体的工厂类；Iterator接口是抽象商品类，ArrayList类中的Iter内部类是具体的商品类。在具体的工厂类中iterator()方法创建具体的商品类的对象。
 
-
-### 3.3 总结
-
-抽象工厂模式中主要的优点在于具体类的隔离，是的客户端不需要知道什么被创建了。其缺点在于增加新的产品族比较复杂，需要修改接口及其所有子类。
-
-工厂模式和抽象工厂模式主要区别在于产品，产品种类单一，适合工厂模式。抽象工厂模式适合用于创建多个产品种类，多个产品类型。
-
-
+> 另：
+>
+> ​	1,DateForamt类中的getInstance()方法使用的是工厂模式；
+>
+> ​	2,Calendar类中的getInstance()方法使用的是工厂模式；
 
 
 

@@ -1,29 +1,212 @@
 # 适配器模式
 
-适配器模式（Adapter Pattern）是作为两个不兼容的接口之间的桥梁。这种类型的设计模式属于结构型模式，它结合了两个独立接口的功能。
+## 一、概述
 
-这种模式涉及到一个单一的类，该类负责加入独立的或不兼容的接口功能。举个真实的例子，读卡器是作为内存卡和笔记本之间的适配器。您将内存卡插入读卡器，再将读卡器插入笔记本，这样就可以通过笔记本来读取内存卡。
+如果去欧洲国家去旅游的话，他们的插座如下图最左边，是欧洲标准。而我们使用的插头如下图最右边的。因此我们的笔记本电脑，手机在当地不能直接充电。所以就需要一个插座转换器，转换器第1面插入当地的插座，第2面供我们充电，这样使得我们的插头在当地能使用。生活中这样的例子很多，手机充电器（将220v转换为5v的电压），读卡器等，其实就是使用到了适配器模式。
+
+![](./.design-adapter.assets/%E8%BD%AC%E6%8E%A5%E5%A4%B4.png)
+
+**定义：**
+
+​	将一个类的接口转换成客户希望的另外一个接口，使得原本由于接口不兼容而不能一起工作的那些类能一起工作。
+
+​	适配器模式分为类适配器模式和对象适配器模式，前者类之间的耦合度比后者高，且要求程序员了解现有组件库中的相关组件的内部结构，所以应用相对较少些。
+
+## 二、结构
+
+适配器模式（Adapter）包含以下主要角色：
+
+* 目标（Target）接口：当前系统业务所期待的接口，它可以是抽象类或接口。
+* 适配者（Adaptee）类：它是被访问和适配的现存组件库中的组件接口。
+* 适配器（Adapter）类：它是一个转换器，通过继承或引用适配者的对象，把适配者接口转换成目标接口，让客户按目标接口的格式访问适配者。
+
+## 三、类适配器模式
+
+实现方式：定义一个适配器类来实现当前系统的业务接口，同时又继承现有组件库中已经存在的组件。
+
+【例】读卡器
+
+现有一台电脑只能读取SD卡，而要读取TF卡中的内容的话就需要使用到适配器模式。创建一个读卡器，将TF卡中的内容读取出来。
+
+类图如下：
+
+<img src="./.design-adapter.assets/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F.png" style="zoom:80%;" />
+
+代码如下：
+
+```java
+//SD卡的接口
+public interface SDCard {
+    //读取SD卡方法
+    String readSD();
+    //写入SD卡功能
+    void writeSD(String msg);
+}
+
+//SD卡实现类
+public class SDCardImpl implements SDCard {
+    public String readSD() {
+        String msg = "sd card read a msg :hello word SD";
+        return msg;
+    }
+
+    public void writeSD(String msg) {
+        System.out.println("sd card write msg : " + msg);
+    }
+}
+
+//电脑类
+public class Computer {
+
+    public String readSD(SDCard sdCard) {
+        if(sdCard == null) {
+            throw new NullPointerException("sd card null");
+        }
+        return sdCard.readSD();
+    }
+}
+
+//TF卡接口
+public interface TFCard {
+    //读取TF卡方法
+    String readTF();
+    //写入TF卡功能
+    void writeTF(String msg);
+}
+
+//TF卡实现类
+public class TFCardImpl implements TFCard {
+
+    public String readTF() {
+        String msg ="tf card read msg : hello word tf card";
+        return msg;
+    }
+
+    public void writeTF(String msg) {
+        System.out.println("tf card write a msg : " + msg);
+    }
+}
+
+//定义适配器类（SD兼容TF）
+public class SDAdapterTF extends TFCardImpl implements SDCard {
+
+    public String readSD() {
+        System.out.println("adapter read tf card ");
+        return readTF();
+    }
+
+    public void writeSD(String msg) {
+        System.out.println("adapter write tf card");
+        writeTF(msg);
+    }
+}
+
+//测试类
+public class Client {
+    public static void main(String[] args) {
+        Computer computer = new Computer();
+        SDCard sdCard = new SDCardImpl();
+        System.out.println(computer.readSD(sdCard));
+
+        System.out.println("------------");
+
+        SDAdapterTF adapter = new SDAdapterTF();
+        System.out.println(computer.readSD(adapter));
+    }
+}
+```
+
+类适配器模式违背了合成复用原则。类适配器是客户类有一个接口规范的情况下可用，反之不可用。
 
 
 
-## 介绍
+## 四、对象适配器模式
 
-**意图：** 将一个类的接口转换成客户希望的另外一个接口。适配器模式使得原本由于接口不兼容而不能一起工作的那些类可以一起工作。
+实现方式：对象适配器模式可釆用将现有组件库中已经实现的组件引入适配器类中，该类同时实现当前系统的业务接口。
 
-**主要解决：** 主要解决在软件系统中，常常要将一些"现存的对象"放到新的环境中，而新环境要求的接口是现对象不能满足的。
+【例】读卡器
 
-**何时使用：**  1、系统需要使用现有的类，而此类的接口不符合系统的需要。 2、想要建立一个可以重复使用的类，用于与一些彼此之间没有太大关联的一些类，包括一些可能在将来引进的类一起工作，这些源类不一定有一致的接口。 3、通过接口转换，将一个类插入另一个类系中。（比如老虎和飞禽，现在多了一个飞虎，在不增加实体的需求下，增加一个适配器，在里面包容一个虎对象，实现飞的接口。）
+我们使用对象适配器模式将读卡器的案例进行改写。类图如下：
 
-**如何解决：** 继承或依赖（推荐）。
+<img src="./.design-adapter.assets/%E5%AF%B9%E8%B1%A1%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F.png" style="zoom:80%;" />
 
-**关键代码：** 适配器继承或依赖已有的对象，实现想要的目标接口。
+代码如下：
 
-**应用实例：**  1、美国电器 110V，中国 220V，就要有一个适配器将 110V 转化为 220V。 2、JAVA JDK 1.1 提供了 Enumeration 接口，而在 1.2 中提供了 Iterator 接口，想要使用 1.2 的 JDK，则要将以前系统的 Enumeration 接口转化为 Iterator 接口，这时就需要适配器模式。 3、在 LINUX 上运行 WINDOWS 程序。 4、JAVA 中的 jdbc。
+类适配器模式的代码，我们只需要修改适配器类（SDAdapterTF）和测试类。
 
-**优点：**  1、可以让任何两个没有关联的类一起运行。 2、提高了类的复用。 3、增加了类的透明度。 4、灵活性好。
+```java
+//创建适配器对象（SD兼容TF）
+public class SDAdapterTF  implements SDCard {
 
-**缺点：**  1、过多地使用适配器，会让系统非常零乱，不易整体进行把握。比如，明明看到调用的是 A 接口，其实内部被适配成了 B 接口的实现，一个系统如果太多出现这种情况，无异于一场灾难。因此如果不是很有必要，可以不使用适配器，而是直接对系统进行重构。 2.由于 JAVA 至多继承一个类，所以至多只能适配一个适配者类，而且目标类必须是抽象类。
+    private TFCard tfCard;
 
-**使用场景：** 有动机地修改一个正常运行的系统的接口，这时应该考虑使用适配器模式。
+    public SDAdapterTF(TFCard tfCard) {
+        this.tfCard = tfCard;
+    }
 
-**注意事项：** 适配器不是在详细设计时添加的，而是解决正在服役的项目的问题。
+    public String readSD() {
+        System.out.println("adapter read tf card ");
+        return tfCard.readTF();
+    }
+
+    public void writeSD(String msg) {
+        System.out.println("adapter write tf card");
+        tfCard.writeTF(msg);
+    }
+}
+
+//测试类
+public class Client {
+    public static void main(String[] args) {
+        Computer computer = new Computer();
+        SDCard sdCard = new SDCardImpl();
+        System.out.println(computer.readSD(sdCard));
+
+        System.out.println("------------");
+
+        TFCard tfCard = new TFCardImpl();
+        SDAdapterTF adapter = new SDAdapterTF(tfCard);
+        System.out.println(computer.readSD(adapter));
+    }
+}
+```
+
+> 注意：还有一个适配器模式是接口适配器模式。当不希望实现一个接口中所有的方法时，可以创建一个抽象类Adapter ，实现所有方法。而此时我们只需要继承该抽象类即可。
+
+
+
+## 五、应用场景
+
+* 以前开发的系统存在满足新系统功能需求的类，但其接口同新系统的接口不一致。
+* 使用第三方提供的组件，但组件接口定义和自己要求的接口定义不同。
+
+
+
+## 六、JDK源码解析
+
+Reader（字符流）、InputStream（字节流）的适配使用的是InputStreamReader。
+
+InputStreamReader继承自java.io包中的Reader，对他中的抽象的未实现的方法给出实现。如：
+
+```java
+public int read() throws IOException {
+    return sd.read();
+}
+
+public int read(char cbuf[], int offset, int length) throws IOException {
+    return sd.read(cbuf, offset, length);
+}
+```
+
+如上代码中的sd（StreamDecoder类对象），在Sun的JDK实现中，实际的方法实现是对sun.nio.cs.StreamDecoder类的同名方法的调用封装。类结构图如下：
+
+![](./.design-adapter.assets/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F-jdk%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90.png)
+
+从上图可以看出：
+
+* InputStreamReader是对同样实现了Reader的StreamDecoder的封装。
+* StreamDecoder不是Java SE API中的内容，是Sun  JDK给出的自身实现。但我们知道他们对构造方法中的字节流类（InputStream）进行封装，并通过该类进行了字节流和字符流之间的解码转换。
+
+<font color="red">结论：</font>
+
+​	从表层来看，InputStreamReader做了InputStream字节流类到Reader字符流之间的转换。而从如上Sun JDK中的实现类关系结构中可以看出，是StreamDecoder的设计实现在实际上采用了适配器模式。

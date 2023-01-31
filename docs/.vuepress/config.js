@@ -167,7 +167,7 @@ module.exports = {
             '/spring/': [
                 {
                     text: 'Spring Framework',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         'test01',
                         'test02'
@@ -229,6 +229,7 @@ module.exports = {
             '/quality/': [
                 {
                     text: '设计模式',
+                    collapsible: true,
                     children: [
                         '/quality/design-mode/design-overview.html',
                         '/quality/design-mode/design-proxy.html',
@@ -243,6 +244,7 @@ module.exports = {
                 },
                 {
                     text: '数据结构',
+                    collapsible: true,
                     children: [
                         '/quality/data-structure/data-structure-overview.html',
                         '/quality/data-structure/data-structure-list.html',
@@ -281,28 +283,20 @@ module.exports = {
                 },
                 {
                     text: 'Tomcat 专题',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         '/middleware/tomcat/tomcat.md'
                     ]
                 },
                 {
                     text: 'Kafka 专题',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         '/middleware/kafka/kafka-overview.md',
                         '/middleware/kafka/kafka-consumer.md',
                         '/middleware/kafka/kafka-producer.md',
                         '/middleware/kafka/kafka-broker.md',
                         '/middleware/kafka/spring-kafka.md',
-                    ]
-                },
-                {
-                    text: 'Redis 专题',
-                    collapsible: false,
-                    children: [
-                        '/middleware/redis/redis-overview.md',
-                        '/middleware/redis/redis-cluster.md'
                     ]
                 },
                 {
@@ -330,7 +324,7 @@ module.exports = {
                 },
                 {
                     text: '常用开发工具',
-                    collapsible: false,
+                    collapsible: true,
                     children: [
                         '/tools/junit/junit5.md',
                         '/tools/junit/junit4.md',

@@ -224,6 +224,9 @@ module.exports = {
                         "/database/redis/redis-base.md",
                         "/database/redis/redis-cluster.md",
                     ]
+                },{
+                    text: "MongoDB 详解",
+                    link: "/database/mongo/mongo.md"
                 }
             ],
             '/quality/': [
@@ -232,14 +235,46 @@ module.exports = {
                     collapsible: true,
                     children: [
                         '/quality/design-mode/design-overview.html',
-                        '/quality/design-mode/design-proxy.html',
-                        '/quality/design-mode/design-decorator.html',
-                        '/quality/design-mode/design-adapter.html',
-                        '/quality/design-mode/design-chain.html',
-                        '/quality/design-mode/design-composite.html',
-                        '/quality/design-mode/design-strategy.html',
-                        '/quality/design-mode/design-factory.html',
-                        '/quality/design-mode/design-singleton.html',
+                        {
+                            text:"创建型模式",
+                            collapsible: true,
+                            children:[
+                                '/quality/design-mode/design-factory.html',
+                                '/quality/design-mode/design-singleton.html',
+                                '/quality/design-mode/design-builder.html',
+                                '/quality/design-mode/design-prototype.html',
+                            ]
+                        },
+                        {
+                            text:"结构型模式",
+                            collapsible: true,
+                            children:[
+                                '/quality/design-mode/design-adapter.html',
+                                '/quality/design-mode/design-bridge.html',
+                                '/quality/design-mode/design-decorator.html',
+                                '/quality/design-mode/design-composite.html',
+                                '/quality/design-mode/design-facade.html',
+                                '/quality/design-mode/design-flyweight.html',
+                                '/quality/design-mode/design-proxy.html',
+                            ]
+                        },
+                        {
+                            text:"行为型模式",
+                            collapsible: true,
+                            children:[
+                                '/quality/design-mode/design-chain.html',
+                                '/quality/design-mode/design-command.html',
+                                '/quality/design-mode/design-interpreter.html',
+                                '/quality/design-mode/design-iterator.html',
+                                '/quality/design-mode/design-mediator.html',
+                                '/quality/design-mode/design-memento.html',
+                                '/quality/design-mode/design-observer.html',
+                                '/quality/design-mode/design-state.html',
+                                '/quality/design-mode/design-template.html',
+                                '/quality/design-mode/design-visitor.html',
+                                '/quality/design-mode/design-strategy.html',
+                            ]
+                        }
                     ]
                 },
                 {

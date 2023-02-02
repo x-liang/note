@@ -423,8 +423,8 @@ options中的参数都是可选的，下面列出参数的功能：
 
 | option           | 说明                                                         |
 | ---------------- | ------------------------------------------------------------ |
-| upsert <boolean> | 默认为**false**<br />当upsert为**true**时，如果filter没有匹配到文档，则将<update>中的参数保存起来。如果<filter>中参数中指定了id，在保存时使用指定的id，没指定就自动生成一个id。<br />当upsert为**false**时，filter匹配上就更新文档，没匹配上不做任何操作 |
-| multi <boolean>  | 默认为false<br />当multi为true时，update操作会更新集合中所有匹配到的文档，<br />当multi为false时，update操作默认只更新集合中匹配到的第一个文档 |
+| upsert `boolean` | 默认为**false**<br />当upsert为**true**时，如果filter没有匹配到文档，则将`update`中的参数保存起来。如果`filter`中参数中指定了id，在保存时使用指定的id，没指定就自动生成一个id。<br />当upsert为**false**时，filter匹配上就更新文档，没匹配上不做任何操作 |
+| multi `boolean`  | 默认为false<br />当multi为true时，update操作会更新集合中所有匹配到的文档，<br />当multi为false时，update操作默认只更新集合中匹配到的第一个文档 |
 | writeConcern     |                                                              |
 | collation        |                                                              |
 | arrayFilters     |                                                              |
@@ -494,7 +494,7 @@ db.users.update({"username":"user1"},{"$unset":{"agee":""}})
 | --------------- | ------------------------------------------------------------ |
 | $               | 充当占位符，以更新与查询条件匹配的第一个元素。               |
 | $[]             | 充当占位符，以更新匹配查询条件的文档的数组中的所有元素。     |
-| $[<identifier>] | 充当占位符，以更新`arrayFilters`与查询条件匹配的文档中所有与条件匹配的元素。 |
+| $[`identifier`] | 充当占位符，以更新`arrayFilters`与查询条件匹配的文档中所有与条件匹配的元素。 |
 | $addToSet       | 仅当元素不存在于集合中时才将它们添加到数组中。               |
 | $pop            | 删除数组的第一项或最后一项。                                 |
 | $pull           | 删除与指定查询匹配的所有数组元素。                           |
@@ -2522,7 +2522,7 @@ mongdb副本集虽然解决了数据的单点问题，并提供了读写分离�
 
 集群的整体结构：
 
-![img](./.mongo.assets/20160919130723606)
+![img](./.mongo.assets/20160919130723606.png)
 
 ### 数据在集群中的分布
 

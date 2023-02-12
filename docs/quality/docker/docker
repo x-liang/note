@@ -40,7 +40,7 @@ Linux 容器不是模拟一个完整的操作系统而是对进程进行隔离�
 
 Docker容器是在操作系统层面上实现虚拟化，直接复用本地主机的操作系统，而传统虚拟机则是在硬件层面实现虚拟化。与传统的虚拟机相比，Docker优势体现为启动速度快、占用体积小。
 
-### 1.3 Docker 安装
+## 二、Docker 安装
 
 
 
@@ -48,11 +48,144 @@ Docker容器是在操作系统层面上实现虚拟化，直接复用本地主�
 
 ## 三、Docker 常用命令
 
+### 3.1 帮助启动类命令
+
+- **启动docker**：`systemctl start docker`
+- **停止docker**：`systemctl stop docker`
+- **重启docker**：`systemctl restart docker`
+- **查看docker状态**：`systemctl status docker`
+- **开机启动**：`systemctl enable docker`
+- **查看docker概要信息**：`docker info`
+- **查看docker总体帮助文档**：`docker --help`
+- **查看docker命令帮助文档**： `docker 命令 --help`
 
 
-### 3.1 容器命令
 
-#### 3.1.1 新建/启动容器
+### 3.2 镜像命令
+
+#### 3.2.1 docker images
+
+**【1】列出本地主机上的镜像列表**
+
+```shell
+PS > docker images
+REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
+hello-world   latest    feb5d9fea6a5   16 months ago   13.3kB
+```
+
+各个选项说明:
+
+```
+REPOSITORY：表示镜像的仓库源
+TAG：镜像的标签版本号
+IMAGE ID：镜像ID
+CREATED：镜像创建时间
+SIZE：镜像大小
+```
+
+同一仓库源可以有多个 TAG版本，代表这个仓库源的不同个版本，我们使用 REPOSITORY:TAG 来定义不同的镜像。
+
+如果你不指定一个镜像的版本标签，例如你只使用 ubuntu，docker 将默认使用 ubuntu:latest 镜像
+
+**【2】OPTIONS说明**
+
+-a： 列出本地所有镜像（含历史映像层）
+
+-q： 只显示镜像ID
+
+
+
+#### 3.2.2 docker search
+
+搜索镜像的名字，可以在https://hub.docker.com网站上进行查询。
+
+**【1】语法： docker search [options] 镜像名称**
+
+```
+PS > docker search hello-world
+NAME                                       DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
+hello-world                                Hello World! (an example of minimal Dockeriz…   1971      [OK]
+kitematic/hello-world-nginx                A light-weight nginx container that demonstr…   153
+tutum/hello-world                          Image to test docker deployments. Has Apache…   90                   [OK]
+dockercloud/hello-world                    Hello World!                                    20                   [OK]
+crccheck/hello-world                       Hello World web server in under 2.5 MB          15                   [OK]
+```
+
+个选项说明：
+
+| 参数        | 说明             |
+| ----------- | ---------------- |
+| NAME        | 镜像名称         |
+| DESCRIPTION | 镜像说明         |
+| STARS       | 点赞数量         |
+| OFFICIAL    | 是否为官方的     |
+| AUTOMATED   | 是否是自动构建的 |
+
+**【2】 OPTIONS说明**
+
+--limit: 只列出N个镜像，默认25个。
+
+```
+PS > docker search --limit 5 redis
+NAME                     DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
+redis                    Redis is an open source key-value store that…   11787     [OK]
+redislabs/redisinsight   RedisInsight - The GUI for Redis                79
+redislabs/redisearch     Redis With the RedisSearch module pre-loaded…   56
+redislabs/redis          Clustered in-memory database engine compatib…   36
+redislabs/rebloom        A probablistic datatypes module for Redis       22                   [OK]
+```
+
+
+
+#### 3.2.3 docker pull 
+
+下载镜像 `docker pull 镜像名称[:TAG]`
+
+TAG是可选的，如果没有指定，默认为latest
+
+```shell
+PS > docker pull ubuntu
+Using default tag: latest
+latest: Pulling from library/ubuntu
+677076032cca: Pull complete
+Digest: sha256:9a0bdde4188b896a372804be2384015e90e3f84906b750c1a53539b585fbbe7f
+Status: Downloaded newer image for ubuntu:latest
+docker.io/library/ubuntu:latest
+```
+
+
+
+#### 3.2.4 docker system df
+
+查看镜像/容器/数据卷所占的空间
+
+```
+PS > docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          2         1         77.82MB   77.81MB (99%)
+Containers      1         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+```
+
+
+
+#### 3.2.5 docker rmi
+
+删除镜像
+
+- 删除单个  ： docker rmi -f 镜像ID 
+- 删除多个  ： docker rmi -f 镜像ID1:TAG  镜像ID2:TAG
+
+- 删除全部  ： docker rmi -f $(docker images -qa)
+
+
+
+
+
+### 3.3 容器命令
+
+#### 3.3.1 新建/启动容器
 
 ```shell
 docker run [OPTIONS] IMAGE [COMMAND] [ARGS...]
@@ -121,7 +254,7 @@ root@1eb019dfafde:/#
 
 
 
-#### 3.1.2 列出正在运行的容器
+#### 3.3.2 列出正在运行的容器
 
 ```
 docker ps [OPTIONS]
@@ -139,7 +272,7 @@ docker ps [OPTIONS]
 
   
 
-#### 3.1.3 退出容器
+#### 3.3.3 退出容器
 
 **【1】exit**
 
@@ -151,7 +284,7 @@ docker ps [OPTIONS]
 
 
 
-#### 3.1.4 启动已停止的容器
+#### 3.3.4 启动已停止的容器
 
 ```
 docker start 容器ID/容器名称
@@ -159,7 +292,7 @@ docker start 容器ID/容器名称
 
 
 
-#### 3.1.5 重启容器
+#### 3.3.5 重启容器
 
 ```
 docker restart 容器ID/容器名称
@@ -167,7 +300,7 @@ docker restart 容器ID/容器名称
 
 
 
-#### 3.1.6 停止容器
+#### 3.3.6 停止容器
 
 ```
 docker stop 容器ID/容器名称
@@ -175,13 +308,13 @@ docker stop 容器ID/容器名称
 
 
 
-#### 3.1.7 强制停止容器
+#### 3.3.7 强制停止容器
 
 ```
 docker kill 容器ID/容器名称
 ```
 
-#### 3.1.8 删除已停止的容器
+#### 3.3.8 删除已停止的容器
 
 ```
 docker rm 容器ID
@@ -197,23 +330,15 @@ docker ps -a -q | xargs docker rm
 
 
 
-#### 3.1.9 实战
+#### 3.3.9 实战
 
 以redis:6.0.8镜像为例
 
 **【1】 启动守护式容器**
 
-在大部分的场景下，我们希望 docker 的服务是在后台运行的， 我们可以过 -d 指定容器的后台运行模式。我们使用镜像ubuntu以后台模式启动一个容器
+在大部分的场景下，我们希望 docker 的服务是在后台运行的， 我们可以过 -d 指定容器的后台运行模式。我们使用镜像ubuntu以后台模式启动一个容器`docker run -d centos`
 
-`docker run -d centos`
-
-然后我们使用`docker ps -a` 来查看一下容器，会发现容器已经退出。很重要的要说明的一点: **Docker容器后台运行,就必须有一个前台进程.**
-
-容器运行的命令如果不是那些一直挂起的命令（比如运行top，tail），就是会自动退出的。
-
-这个是docker的机制问题,比如你的web容器,我们以nginx为例，正常情况下,我们配置启动服务只需要启动响应的service即可。例如service nginx start
-
-但是，这样做，nginx为后台进程模式运行，就导致docker前台没有运行的应用，这样的容器后台启动后，会立即自杀因为他觉得他没事可做了.
+然后我们使用`docker ps -a` 来查看一下容器，会发现容器已经退出。很重要的要说明的一点: **Docker容器后台运行,就必须有一个前台进程.**容器运行的命令如果不是那些一直挂起的命令（比如运行top，tail），就是会自动退出的。这个是docker的机制问题，比如你的web容器，我们以nginx为例，正常情况下，我们配置启动服务只需要启动响应的service即可。例如service nginx start但是，这样做，nginx为后台进程模式运行，就导致docker前台没有运行的应用，这样的容器后台启动后，会立即自杀因为他觉得他没事可做了.
 
 所以，最佳的解决方案是，将你要运行的程序以前台进程的形式运行，常见就是命令行模式，表示我还有交互操作，别中断。
 

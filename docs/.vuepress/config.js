@@ -293,6 +293,10 @@ module.exports = {
                         "/quality/operating-system/encoding.md",
                         "/quality/operating-system/encryption-algorithm.md"
                     ]
+                },{
+                    text: "Docker 实战",
+                    collapsible: true,
+                    link: "/quality/docker/docker.md"
                 }
             ],
             '/middleware/': [
@@ -322,6 +326,11 @@ module.exports = {
                     children: [
                         '/middleware/tomcat/tomcat.md'
                     ]
+                },
+                {
+                    text: 'Nginx 实战',
+                    collapsible:true,
+                    link: "/middleware/nginx/nginx.md"
                 },
                 {
                     text: 'Kafka 专题',

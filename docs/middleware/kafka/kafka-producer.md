@@ -1,8 +1,8 @@
 # Kafka Producer
 
-## 生产者发送消息的流程
+## 一、生产者发送消息的流程
 
-### 发送原理
+### 1.1 发送原理
 
 在消息发送的过程中，涉及到了**两个线程——main 线程和 Sender 线程**。在 main 线程中创建了**一个双端队列 RecordAccumulator**。main 线程将消息发送给 RecordAccumulator，Sender 线程不断从 RecordAccumulator 中拉取消息发送到 Kafka Broker。
 
@@ -27,3 +27,4 @@
 ## 异步发送API
 
 普通异步发送
+

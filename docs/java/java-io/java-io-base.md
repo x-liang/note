@@ -252,3 +252,47 @@ IO 复用模型在第一个阶段和第二个阶段其实都有阻塞，第一�
 
 
 
+
+
+
+
+
+
+----
+
+
+
+
+
+
+
+IO面试题 - 基础
+
+> - NIO与IO的区别
+> - NIO和IO适用场景
+> - BIO,NIO,AIO有什么区别，分别是什么原理？
+> - NIO如何通过Buffer来缓冲数据的
+> - 什么是Reactor模型？什么是Proactor模型？
+> - 什么是选择器？实际工作中怎么使用
+> - Java的异步编程、异步网络编程如何实现的？
+> - Reactor模型有几种？如何实现
+
+
+
+IO面试题 - 高级/资深
+
+> - Tomcat线程模型如何实现，为何不用Netty?
+> - Tomcat的NIO和NIO2有何区别？怎么选择？
+> - Tomcat的Accept Count、Max Connections、Max Threads是什么？
+> - Netty线程模型如何实现？
+> - 什么是EventLoop？什么是EventLoopGroup
+> - Netty:线程模型在使用中有什么需要注意的？
+> - Netty的Channel如何处理的？线程安全吗？
+> - Netty:如何实现Java层面的零拷贝的？
+> - Linux内核IO操作实现原理了解吗？
+> - Linux内核如何实现零拷贝？
+
+
+
+
+

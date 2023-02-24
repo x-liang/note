@@ -287,7 +287,7 @@ public class BigDecimalTest {
 
 7、java中价格的数字中间有逗号的处理
 
-```
+```java
 import java.util.StringTokenizer;
  
 public class BigDecimalTest {
@@ -313,7 +313,7 @@ public class BigDecimalTest {
 
 8、精确计算
 
-```
+```java
 double value1=1.00;
 String value2 = "1.00";
 BigDecimal b1 = new BigDecimal(Double.valueOf(value1));
@@ -327,7 +327,7 @@ public BigDecimal divide(BigDecimal value);                     //除法
 
 下面是一个工具类，该工具类提供加，减，乘，除运算。
 
-```
+```java
 import java.math.BigDecimal;
  
 public class BigDecimalUtil {

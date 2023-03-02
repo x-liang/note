@@ -8,7 +8,7 @@
 
 ![image-20220514095233640](../../../.img/kafka-producer/image-20220514095233640.png)
 
-### 生产者重要参数列表
+### 1.2 生产者重要参数列表
 
 | 参数名称                              | 描述                                                         |
 | ------------------------------------- | ------------------------------------------------------------ |
@@ -24,7 +24,181 @@
 | enable.idempotence                    | 是否开启幂等性，默认 true，开启幂等性。                      |
 | compression.type                      | 生产者发送的所有数据的压缩方式。默认是 none，也就是不压缩。支持压缩类型：none、gzip、snappy、lz4 和 zstd。 |
 
-## 异步发送API
+## 二、异步发送API
 
-普通异步发送
+### 2.1 普通异步发送
 
+创建 Kafka 生产者，采用异步的方式发送到 Kafka Broker
+
+
+
+
+
+#### 2.1.1 代码编写
+
+（1）创建工程 kafka
+
+（2）导入依赖
+
+```xml
+<dependencies>
+     <dependency>
+         <groupId>org.apache.kafka</groupId>
+         <artifactId>kafka-clients</artifactId>
+         <version>3.0.0</version>
+     </dependency>
+</dependencies>
+```
+
+（3）创建包名：com.xul.kafka.producer
+
+（4）编写不带回调函数的 API 代码
+
+```java
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+
+import java.util.Properties;
+
+public class Producer {
+    public static void main(String[] args) {
+        // 1. 创建 kafka 生产者的配置对象
+        Properties properties = new Properties();
+        // 2. 给 kafka 配置对象添加配置信息：bootstrap.servers
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,  "localhost:9092");
+        // key,value 序列化（必须）：key.serializer，value.serializer
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                "org.apache.kafka.common.serialization.StringSerializer");
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                "org.apache.kafka.common.serialization.StringSerializer");
+        // 3. 创建 kafka 生产者对象
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+        // 4. 调用 send 方法,发送消息
+        for (int i = 0; i < 5; i++) {
+            kafkaProducer.send(new ProducerRecord<>("first","xul " + i));
+        }
+        // 5. 关闭资源
+        kafkaProducer.close();
+    }
+}
+```
+
+测试：
+
+
+
+### 2.2 带回调函数的异步发送
+
+回调函数会在 producer 收到 ack 时调用，为异步调用，该方法有两个参数，分别是元数据信息（RecordMetadata）和异常信息（Exception），如果 Exception 为 null，说明消息发送成功，如果 Exception 不为 null，说明消息发送失败。
+
+
+
+
+
+注意：消息发送失败会自动重试，不需要我们在回调函数中手动重试。
+
+```java
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.util.Properties;
+
+public class ProducerCallback {
+    public static void main(String[] args) throws InterruptedException {
+        // 1. 创建 kafka 生产者的配置对象
+        Properties properties = new Properties();
+        // 2. 给 kafka 配置对象添加配置信息
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        // key,value 序列化（必须）：key.serializer，value.serializer
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName());
+
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName());
+        // 3. 创建 kafka 生产者对象
+        KafkaProducer<String, String> kafkaProducer = new
+                KafkaProducer<String, String>(properties);
+        // 4. 调用 send 方法,发送消息
+        for (int i = 0; i < 5; i++) {
+            // 添加回调
+            // 该方法在 Producer 收到 ack 时调用，为异步调用
+            kafkaProducer.send(
+                    new ProducerRecord<>("first", "xuliang " + i),
+                    (metadata, exception) -> {
+                        if (exception == null) {
+                            // 没有异常,输出信息到控制台
+                            System.out.println(" 主题： " +
+                                    metadata.topic() + "->" + "分区：" + metadata.partition());
+                        } else {
+                            // 出现异常打印
+                            exception.printStackTrace();
+                        }
+                    });
+            // 延迟一会会看到数据发往不同分区
+            Thread.sleep(2);
+        }
+        // 5. 关闭资源
+        kafkaProducer.close();
+    }
+}
+```
+
+测试：
+
+
+
+## 三、同步发送 API
+
+只需在异步发送的基础上，再调用一下 get()方法即可。
+
+```java
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+
+public class ProducerSync {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        // 1. 创建 kafka 生产者的配置对象
+        Properties properties = new Properties();
+        // 2. 给 kafka 配置对象添加配置信息
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        // key,value 序列化（必须）：key.serializer，value.serializer
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName());
+        // 3. 创建 kafka 生产者对象
+        KafkaProducer<String, String> kafkaProducer = new
+                KafkaProducer<String, String>(properties);
+        // 4. 调用 send 方法,发送消息
+        for (int i = 0; i < 10; i++) {
+            // 异步发送 默认
+            // kafkaProducer.send(new  ProducerRecord<>("first","kafka" + i));
+            // 同步发送
+            kafkaProducer.send(new ProducerRecord<>("first","kafka" + i)).get();
+        }
+        // 5. 关闭资源
+        kafkaProducer.close();
+    }
+}
+
+```
+
+## 四、生产者分区
+
+### 4.1 分区好处
+
+1. **便于合理使用存储资源**，每个Partition在一个Broker上存储，可以把海量的数据按照分区切割成一块一块数据存储在多台Broker上。合理控制分区的任务，可以实现负载均衡的效果。
+
+2. **提高并行度**，生产者可以以分区为单位发送数据；消费者可以以分区为单位进行消费数据。
+
+
+
+### 4.2 生产者发送消息的分区策略
+
+默认的分区器 DefaultPartitioner

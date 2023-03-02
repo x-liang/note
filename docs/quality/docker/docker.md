@@ -714,7 +714,7 @@ ls
 
 
 
-## 六、Docker网络
+## 六、Docker Net
 
 ### 6.1 docker网络
 
@@ -745,8 +745,12 @@ Run 'docker network COMMAND --help' for more information on a command.
 
 查看网络
 
-```
-docker network ls
+```shell
+PS > docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+627d604f6e54   bridge    bridge    local
+2faf6cabbee6   host      host      local
+cac0a8d58437   none      null      local
 ```
 
 查看网络的详细信息
@@ -802,9 +806,126 @@ docker network rm 网络名称
 
 ### 6.3 Docker 的网络模型
 
+docker在安装完成后，默认会配置4中网络模型
+
+| 网络模式  | 简介                                                         |
+| --------- | ------------------------------------------------------------ |
+| bridge    | 为每一个容器分配、设置IP等，并将容器连接到一个docker0虚拟网桥，<br>默认为该模式。 |
+| host      | 容器将不会虚拟出自己的网卡，配置自己的IP等，而是使用宿主机的IP和端口。 |
+| container | 新创建的容器不会创建自己的网卡和配置自己的IP，而是和一个指定的<br>容器共享IP、端口范围等。 |
+| none      | 容器有独立的Network namespace，但并没有对其进行任何网络设置，<br>如分配veth pair和网桥连接，IP等。 |
+
+#### 6.3.1 IP分配方式
+
+每次启动容器时，都是通过docker0网桥为其分配id地址。当容器停止时，IP地址会回收，并可能分配给其他的容器使用。
 
 
-## 七、Docker网络
+
+#### 6.3.2 Bridge 网络模型
+
+Docker 服务默认会创建一个 docker0 网桥（其上有一个 docker0 内部接口），该桥接网络的名称为docker0，它在内核层连通了其他的物理或虚拟网卡，这就将所有容器和本地主机都放到同一个物理网络。Docker 默认指定了 docker0 接口 的 IP 地址和子网掩码，让主机和容器之间可以通过网桥相互通信。
+
+查看 bridge 网络的详细信息
+
+```shell
+docker network inspect bridge 
+```
+
+展示的结果
+
+```json
+[
+    {
+        "Name": "bridge",
+        "Id": "627d604f6e54707e74b9b2120e4b33b6ec02807db84616a74299e15b428d5201",
+        "Created": "2023-02-14T06:14:49.8039412Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16",
+                    "Gateway": "172.17.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            "com.docker.network.bridge.name": "docker0",
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
+```
+
+Docker使用Linux桥接，在宿主机虚拟一个Docker容器网桥(docker0)，Docker启动一个容器时会根据Docker网桥的网段分配给容器一个IP地址，称为Container-IP，同时Docker网桥是每个容器的默认网关。因为在同一宿主机内的容器都接入同一个网桥，这样容器之间就能够通过容器的Container-IP直接通信。
+
+docker run 的时候，没有指定network的话默认使用的网桥模式就是bridge，使用的就是docker0。在宿主机ifconfig,就可以看到docker0和自己create的network(后面讲)eth0，eth1，eth2……代表网卡一，网卡二，网卡三……，lo代表127.0.0.1，即localhost，inet addr用来表示网卡的IP地址
+
+网桥docker0创建一对对等虚拟设备接口一个叫veth，另一个叫eth0，成对匹配。
+
+- 整个宿主机的网桥模式都是docker0，类似一个交换机有一堆接口，每个接口叫veth，在本地主机和容器内分别创建一个虚拟接口，并让他们彼此联通（这样一对接口叫veth pair）；
+
+- 每个容器实例内部也有一块网卡，每个接口叫eth0；
+
+- docker0上面的每个veth匹配某个容器实例内部的eth0，两两配对，一一匹配。
+
+ 通过上述，将宿主机上的所有容器都连接到这个内部网络上，两个容器在同一个网络下,会从这个网关下各自拿到分配的ip，此时两个容器的网络是互通的。
+
+![image-20230302110257665](./.docker.assets/image-20230302110257665.png)
+
+
+
+#### 6.3.3 Host网络模型
+
+直接使用宿主机的 IP 地址与外界进行通信，不再需要额外进行NAT 转换。
+
+容器将不会获得一个独立的Network Namespace， 而是和宿主机共用一个Network Namespace。容器将不会虚拟出自己的网卡而是使用宿主机的IP和端口。
+
+![image-20230302110439163](./.docker.assets/image-20230302110439163.png)
+
+
+
+> 注意：
+>
+> 在该模式下，不要需要制定端口映射，指定了也不生效
+
+
+
+`docker run -d -network host -name hello-world ubuntu`
+
+
+
+#### 6.3.4 none 网络模型
+
+在none模式下，并不为Docker容器进行任何网络配置。 也就是说，这个Docker容器没有网卡、IP、路由等信息，只有一个lo需要我们自己为Docker容器添加网卡、配置IP等。
+
+
+
+#### 6.3.5 container⽹络模式 
+
+新建的容器和已经存在的一个容器共享一个网络ip配置而不是和宿主机共享。新创建的容器不会创建自己的网卡，配置自己的IP，而是和一个指定的容器共享IP、端口范围等。同样，两个容器除了网络方面，其他的如文件系统、进程列表等还是隔离的。
+
+![image-20230302111310366](./.docker.assets/image-20230302111310366.png)
+
+
+
+#### 6.3.6 自定义网络模型
 
 
 
@@ -812,3 +933,10 @@ docker network rm 网络名称
 
 
 
+## 七、Dockerfile
+
+
+
+
+
+## 八、Docker Compose

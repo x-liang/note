@@ -269,3 +269,385 @@ public ProducerRecord(String topic, K key, V value) {
 【3】既没有partition值又没有key值的情况下，Kafka采用Sticky Partition(黏性分区器)，会随机选择一个分区，并尽可能一直使用该分区，待该分区的batch已满或者已完成，Kafka再随机一个分区进行使用（和上一次的分区不同）
 
 例如：第一次随机选择0号分区，等0号分区当前批次满了（默认16k)或者linger.ms设置的时间到，Kafka再随机一个分区进行使用（如果还是0会继续随机）
+
+
+
+### 4.3 自定义分区器
+
+#### 4.3.1 实现一个分区器
+
+实现一个分区器只需要实现Partitioner接口并重写partition()方法即可
+
+```java
+import org.apache.kafka.clients.producer.Partitioner;
+import org.apache.kafka.common.Cluster;
+import java.util.Map;
+/**
+ * 1. 实现接口 Partitioner
+ * 2. 实现 3 个方法:partition,close,configure
+ * 3. 编写 partition 方法,返回分区号
+ */
+public class MyPartitioner implements Partitioner {
+     /**
+     * 返回信息对应的分区
+     * @param topic 主题
+     * @param key 消息的 key
+     * @param keyBytes 消息的 key 序列化后的字节数组
+     * @param value 消息的 value
+     * @param valueBytes 消息的 value 序列化后的字节数组
+     * @param cluster 集群元数据可以查看分区信息
+     * @return
+     */
+     @Override
+     public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+        // 获取消息
+        String msgValue = value.toString();
+        // 创建 partition
+        int partition;
+        // 判断消息是否包含 key
+        if (msgValue.contains("key")){
+         	partition = 0;
+        }else {
+            partition = 1;
+     	}
+        // 返回分区号
+        return partition;
+    }
+    
+     // 关闭资源
+    @Override
+    public void close() {
+    }
+    
+     // 配置方法
+     @Override
+     public void configure(Map<String, ?> configs) {
+     }
+}
+```
+
+#### 4.3.2 使用分区器
+
+在生产者的配置中添加分区器参数。
+
+```java
+import org.apache.kafka.clients.producer.*;
+import java.util.Properties;
+
+public class CustomProducerCallbackPartitions {
+    public static void main(String[] args) throws InterruptedException {
+        Properties properties = new Properties();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        // 添加自定义分区器
+        properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG,"com.xul.kafka.producer.MyPartitioner");
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+        for (int i = 0; i < 5; i++) {
+            kafkaProducer.send(new ProducerRecord<>("first", "key " + i),
+                    new Callback() {
+                        @Override
+                        public void onCompletion(RecordMetadata metadata, Exception e) {
+
+                            if (e == null){
+                                System.out.println(" 主题： " + metadata.topic() + "->" + "分区：" + metadata.partition());
+                            }else {
+                                e.printStackTrace();
+                            }
+                        }
+
+                    });
+        }
+        kafkaProducer.close();    
+    }
+}    
+```
+
+
+
+## 五、提高生产者的吞吐量
+
+相关的配置属性：
+
+- batch.size: 批次大小，默认为16K
+- linger.ms: 等待时间，修改为5-100ms
+- compression.type: 压缩snappy
+- RecordAccumulator： 缓冲区大小，修改为64M（当分区多了，这里可以相应的调大）
+
+```java
+import org.apache.kafka.clients.producer.*;
+import java.util.Properties;
+
+public class Test {
+    public static void main(String[] args) {
+         // 1. 创建 kafka 生产者的配置对象
+        Properties properties = new Properties();
+        // 2. 给 kafka 配置对象添加配置信息：bootstrap.servers
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        // key,value 序列化（必须）：key.serializer，value.serializer
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, 
+                       "org.apache.kafka.common.serialization.StringSerializer");
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, 
+                       "org.apache.kafka.common.serialization.StringSerializer");
+        // batch.size：批次大小，默认 16K
+        properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
+        // linger.ms：等待时间，默认 0
+        properties.put(ProducerConfig.LINGER_MS_CONFIG, 1);
+        // RecordAccumulator：缓冲区大小，默认 32M：buffer.memory
+        properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG,33554432);
+        // compression.type：压缩，默认 none，可配置值 gzip、snappy、lz4 和 zstd
+        properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG,"snappy");
+        // 3. 创建 kafka 生产者对象
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+        // 4. 调用 send 方法,发送消息
+        for (int i = 0; i < 5; i++) {
+            kafkaProducer.send(new ProducerRecord<>("first","atguigu " + i));
+        }
+        // 5. 关闭资源
+        kafkaProducer.close();
+    }
+}
+```
+
+
+
+## 六、数据的可靠性
+
+在数据发送流程中，当数据发送到kafka集群后，服务端后响应客户端的发送请求。
+
+![image-20230304182640490](./.kafka-producer.assets/image-20230304182640490.png)
+
+### 6.1 ACKS的响应机制
+
+【1】**0：生产者发送过来的数据，不需要等数据落盘应答。** 
+
+<img src="./.kafka-producer.assets/image-20230304183911193.png" alt="image-20230304183911193" style="zoom:80%;" />
+
+在该模式下，数据存在丢失风险
+
+【2】**1：生产者发送过来的数据，LeaderL收到数据后应答。**
+
+<img src="./.kafka-producer.assets/image-20230304184248625.png" alt="image-20230304184248625" style="zoom: 67%;" />
+
+ Leader应答完成后，还没有开始同步数据，就down了。新的leader不会收到producer发送的hello信息，因为生产者已经收到了数据发送成功的信息，不会再次发送。该条信息将会丢失。
+
+【3】**-1(all)：生产者发送过来的数据，Leader和ISR队列里面的所有节点收齐数据后应答。-1和all等价。** 
+
+<img src="./.kafka-producer.assets/image-20230304184847784.png" alt="image-20230304184847784" style="zoom: 67%;" />
+
+【4】**ISR队列**
+
+Leader维护了一个动态的in-sync replica set（ISR），意为和Leader保持同步的Follower+Leader集合（leader：0，isr：0，l，2)。
+
+如果Follower长时间未向Leader发送通信请求或同步数据，则该Follower将被踢出ISR队列。该时间阈值由**replica.lag.time.max.ms**参数设定，默认30s。例如2超时，(leader：0，isr：0,1)。这样就不用等长期联系不上或者已经故障的节点。
+
+
+
+**数据可靠性分析：**
+
+如果分区副本设置为1个，或者ISR里应答的最小副本数量（min.insync.replicas默认为1）设置为1，和ack=1的效果是一样的，仍然有丢数的风险（leader：0，isr：0）
+
+> 数据完全可靠条件 = ACK级别设置为-1 + 分区副本大于等于2 + ISR里应答的最小副本数量大于等于2
+
+
+
+**可靠性总结：**
+
+- acks=0，生产者发送过来数据就不管了，可靠性差，效率高；
+
+- acks=1，生产者发送过来数据Leader应答，可靠性中等，效率中等；
+
+- acks=-1，生产者发送过来数据Leader和ISR队列里面所有Follwer应答，可靠性高，效率低；
+
+  
+
+在生产环境中，acks=0很少使用；acks=1，一般用于传输普通日志，允许丢个别数据；acks=-1，一般用于传输和钱相关的数据，对可靠性要求比较高的场景。
+
+**数据重复性分析：**
+
+<img src="./.kafka-producer.assets/image-20230304191324639.png" alt="image-20230304191324639" style="zoom:67%;" />
+
+生产者发送过来的数据，Leader和ISR队列里面的所有节点收齐数据后应答。但是，当Leader和ISR都同步完数据后，leader服务down了，producer没有收到ack应答后，会进行重试，这时就会导致数据重复。
+
+
+
+代码配置：
+
+```java
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.util.Properties;
+
+public class CustomProducerAck {
+    public static void main(String[] args) {
+        // 1. 创建 kafka 生产者的配置对象
+        Properties properties = new Properties();
+        // 2. 给 kafka 配置对象添加配置信息：bootstrap.servers
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        // key,value 序列化（必须）：key.serializer，value.serializer
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        // 设置 acks
+        properties.put(ProducerConfig.ACKS_CONFIG, "all");
+        // 重试次数 retries，默认是 int 最大值，2147483647
+        properties.put(ProducerConfig.RETRIES_CONFIG, 3);
+        // 3. 创建 kafka 生产者对象
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+        // 4. 调用 send 方法,发送消息
+        for (int i = 0; i < 5; i++) {
+            kafkaProducer.send(new ProducerRecord<>("first","atguigu " + i));
+        }
+        // 5. 关闭资源
+        kafkaProducer.close();
+    }
+}
+```
+
+
+
+## 七、数据去重
+
+### 7.1 数据传递语义
+
+- 至少一次（At Least Once）= ACK级别设置为-1 + 分区副本大于等于2 + ISR里应答的最小副本数量大于等于2
+- 最多一次（At Most Once）= ACK级别设置为0
+-  总结：
+  - At Least Once 可以保证数据不丢失，但是不能保证数据不重复；
+  - At Most Once 可以保证数据不重复，但是不能保证数据不丢失。
+- **精确一次（Exactly Once）：** 对于一些非常重要的信息，比如和钱相关的数据，要求数据既不能重复也不丢失。
+
+
+
+Kafka 0.11版本以后，引入了一项重大特性：幂等性和事务。
+
+
+
+### 7.2 幂等性
+
+#### 7.2.1 幂等性原理
+
+幂等性就是指Producer不论向Broker发送多少次重复数据，Broker端都只会持久化一条，保证了不重复。
+
+精确一次（Exactly Once） =  幂等性 + 至少一次（ ack=-1 + 分区副本数>=2 + ISR最小副本数量>=2） 。
+
+重复数据的判断标准：具有<PID, Partition, SeqNumber>相同主键的消息提交时，Broker只会持久化一条。其中PID是Kafka每次重启都会分配一个新的；Partition 表示分区号；Sequence Number是单调自增的。 
+
+所以**幂等性只能保证的是在单分区单会话内不重复。**
+
+<img src="./.kafka-producer.assets/image-20230304192703916.png" alt="image-20230304192703916" style="zoom:80%;" />
+
+#### 7.2.2 如何开启幂等性？
+
+将参数`enable.idempotence `设为true， 该参数默认为true，即默认开启幂等。
+
+
+
+### 7.3 Kafka事务
+
+#### 7.3.1 Kafka事务原理
+
+前提： 开启事物，必须要开启幂等性。
+
+![image-20230305145800014](./.kafka-producer.assets/image-20230305145800014.png)
+
+Producer在使用事务功能前，必须先自定义一个唯一的transactional..id。有了transactional..id,即使客户端挂掉了，它重启后也能继续处理未完成的事务
+
+
+
+#### 7.3.2 事务API及其使用
+
+kafka事务API：
+
+```java
+// 1 初始化事务
+void initTransactions();
+// 2 开启事务
+void beginTransaction() throws ProducerFencedException;
+// 3 在事务内提交已经消费的偏移量（主要用于消费者）
+void sendOffsetsToTransaction(Map<TopicPartition, OffsetAndMetadata> offsets,
+                              String consumerGroupId) throws ProducerFencedException;
+// 4 提交事务
+void commitTransaction() throws ProducerFencedException;
+// 5 放弃事务（类似于回滚事务的操作）
+void abortTransaction() throws ProducerFencedException;
+```
+
+
+
+在Producer中使用事务来保证消息生产的可靠性
+
+```java
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
+import java.util.Properties;
+
+public class CustomProducerTransactions {
+    public static void main(String[] args) {
+        // 1. 创建 kafka 生产者的配置对象
+        Properties properties = new Properties();
+        // 2. 给 kafka 配置对象添加配置信息
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"hadoop102:9092");
+        // key,value 序列化
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        // 设置事务 id（必须），事务 id 任意起名
+        properties.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "transaction_id_0");
+        // 3. 创建 kafka 生产者对象
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+        // 初始化事务
+        kafkaProducer.initTransactions();
+        // 开启事务
+        kafkaProducer.beginTransaction();
+        try {
+            // 4. 调用 send 方法,发送消息
+            for (int i = 0; i < 5; i++) {
+                // 发送消息
+                kafkaProducer.send(new ProducerRecord<>("first", "atguigu " + i));
+            }
+            // int i = 1 / 0;
+            // 提交事务
+            kafkaProducer.commitTransaction();
+        } catch (Exception e) {
+            // 终止事务
+            kafkaProducer.abortTransaction();
+        } finally {
+            // 5. 关闭资源
+            kafkaProducer.close();
+        }
+    }
+}
+```
+
+
+
+## 八、数据顺序
+
+### 8.1 数据的有序性
+
+<img src="./.kafka-producer.assets/image-20230305155020003.png" alt="image-20230305155020003" style="zoom: 50%;" />
+
+- 单分区内，有序；
+- 多分区，分区与分区间无序；
+
+
+
+### 8.2 数据的无序性
+
+- kafka在1.x版本之前保证数据单分区有序，条件如下：
+  - **max.in.flight.requests.per.connection**=1（不需要考虑是否开启幂等性）。
+
+- kafka在1.x及以后版本保证数据单分区有序，条件如下：（
+
+  - 开启幂等性，**max.in.flight.requests.per.connection** 需要设置小于等于5
+
+  - 未开启幂等性，**max.in.flight.requests.per.connection** 需要设置为1
+
+原因说明：因为在kafka1.x以后，启用幂等后，kafka服务端会缓存producer发来的最近5个request的元数据，故无论如何，都可以保证最近5个request的数据都是有序的。
+
+![image-20230305155422141](./.kafka-producer.assets/image-20230305155422141.png)
+
+
+
+
+

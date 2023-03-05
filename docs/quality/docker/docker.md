@@ -56,7 +56,9 @@ Docker容器是在操作系统层面上实现虚拟化，直接复用本地主�
 
 ## 二、Docker 安装
 
+1、安装docker可见：https://changlu.blog.csdn.net/article/details/124394266
 
+2、安装docker-compose：https://blog.csdn.net/cl939974883/article/details/126463806?spm=1001.2014.3001.5501
 
 
 

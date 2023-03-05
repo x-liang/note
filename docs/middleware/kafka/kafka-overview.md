@@ -300,31 +300,114 @@ esac
 
 
 
-#### 2.1.4 docker compose
+#### 2.1.4 docker compose部署集群
 
-通过docker的方式快速启动一个开发环境
+通过docker的方式快速启动一个开发环境。
+
+这里需要注意，KAFKA_CFG_ADVERTISED_LISTENERS配置需要替换为虚机的实际IP地址。
 
 ```yaml
-version: "3"
+version: '3.1'
+
+networks:
+  zk-net:  # 网络名
+    name: zk-net
+    driver: bridge
+
 services:
-  zookeeper:
-    image: 'bitnami/zookeeper:latest'
+  # zookeeper集群
+  zoo1:
+    image: zookeeper:3.8.0
+    container_name: zoo1   # 容器名称
+    restart: always       # 开机自启
+    hostname: zoo1        # 主机名
     ports:
-      - '2181:2181'
+      - 2181:2181         # 端口号
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-  kafka:
-    image: 'bitnami/kafka:latest'
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    networks:
+      - zk-net
+  zoo2:
+    image: zookeeper:3.8.0
+    container_name: zoo2
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    networks:
+      - zk-net
+  zoo3:
+    image: zookeeper:3.8.0
+    container_name: zoo3
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    networks:
+      - zk-net
+  # kafka集群
+  kafka1:
+    image: 'bitnami/kafka:3.0.0'
+    container_name: kafka1
+    hostname: kafka1
+    networks:
+      - zk-net
     ports:
       - '9092:9092'
     environment:
-      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zoo1:2181,zoo2:2182,zoo3:2183/kafka
+      - KAFKA_BROKER_ID=1   
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://192.168.10.105:9092
       - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
-      - zookeeper
+      - zoo1
+      - zoo2
+      - zoo3
+  kafka2:
+    image: 'bitnami/kafka:3.0.0'
+    container_name: kafka2
+    hostname: kafka2
+    networks:
+      - zk-net
+    ports:
+      - '9093:9093'
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zoo1:2181,zoo2:2182,zoo3:2183/kafka
+      - KAFKA_BROKER_ID=2
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://192.168.10.105:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+  kafka3:
+    image: 'bitnami/kafka:3.0.0'
+    container_name: kafka3
+    hostname: kafka3
+    networks:
+      - zk-net
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zoo1:2181,zoo2:2182,zoo3:2183/kafka
+      - KAFKA_BROKER_ID=3  
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://192.168.10.105:9094
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+
 ```
 
 
@@ -333,6 +416,100 @@ services:
 
 ```
 docker-compose up -d
+```
+
+
+
+
+
+主线：使用docker-compose部署zookeeper集群以及kafka集群
+
+博客：
+
+1、安装docker可见：https://changlu.blog.csdn.net/article/details/124394266
+
+2、安装docker-compose：https://blog.csdn.net/cl939974883/article/details/126463806?spm=1001.2014.3001.5501
+
+3、使用docker-compose快速搭建zookeeper+kafka集群：https://changlu.blog.csdn.net/article/details/126511784?spm=1001.2014.3001.5502
+
+```shell
+# 检验zookeeper集群中是否有kafka信息
+./zkCli.sh -server 127.0.0.1:2181
+
+ls /kafka/brokers/ids
+```
+
+**容器内收发消息**：
+
+```shell
+# 进入kafka1服务
+docker exec -it kafka1 /bin/bash
+
+# 创建topic【first】
+kafka-topics.sh --bootstrap-server localhost:9092 --create --partitions 3 --replication-factor 3 --topic first
+
+# 生产者发送消息到topic
+kafka-console-producer.sh --bootstrap-server localhost:9092 --topic first
+
+# -------------------------------------
+
+# 进入kafka2服务
+docker exec -it kafka2 /bin/bash
+
+# 查看主题列表
+kafka-topics.sh --bootstrap-server localhost:9093 --list
+
+# 消费者
+kafka-console-consumer.sh --bootstrap-server localhost:9093 --topic first
+```
+
+**Java程序去发送消息**：
+
+kafka1服务也进入到指定topic为first的消费者模式：
+
+```shell
+# kafka1服务中
+kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic first
+```
+
+Java连接代码：
+
+```java
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.util.Properties;
+
+/**
+ * @Description: 自定义生产者
+ * @Author: changlu
+ * @Date: 10:27 AM
+ */
+public class CustomProducer {
+
+    public static void main(String[] args) {
+        //1、创建kafka的生产者配置对象
+        Properties properties = new Properties();
+
+        //2、添加对象配置参数：bootstrap.servers、key与value序列化器
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.10.119:9094");
+        //key,value序列化器
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        //3、创建kafka生产者对象
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<String, String>(properties);
+
+        //4、send方法进行发送
+        for (int i = 0; i < 5; i++) {
+            kafkaProducer.send(new ProducerRecord<String, String>("first", "changlu" + i));
+        }
+
+        //5、关闭资源
+        kafkaProducer.close();
+    }
+
+}
 ```
 
 

@@ -963,7 +963,7 @@ db.inventory.find( { "size.h": { $lt: 15 }, "size.uom": "in", status: "D" } )
 
 下面给出一个简单的例子
 
-```
+```json
 db.users.aggregate([
 	{$match:{"gender":0}},
 	{$group:{_id:"$age",count:{$sum:1}}}
@@ -986,7 +986,7 @@ $project可以提取字段，重命名字段，包含或排除字段，还可以
 
 简单的包含和排除字段
 
-```
+```json
 db.users.aggregate({
 	$project:{"userId":"$_id", "_id":0, "name":1}
 })

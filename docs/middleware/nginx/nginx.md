@@ -459,7 +459,7 @@ location /test/ {
 
 停止处理请求，直接返回响应码或重定向到其他 `URL` ；执行 `return` 指令后， `location` 中后续指令将不会被执行。
 
-```
+```properties
 return code [text];
 return code URL;
 return URL;
@@ -501,7 +501,7 @@ location / {
 - `redirect` 返回302临时重定向；
 - `permanent` 返回301永久重定向；
 
-```
+```properties
 server{
   listen 80;
   server_name fe.lion.club; # 要在本地hosts文件进行配置
@@ -531,7 +531,7 @@ server{
 
 ### 6.8 if 指令
 
-```
+```properties
 语法：if (condition) {...}
 
 上下文：server、location
@@ -556,7 +556,7 @@ if($http_user_agent ~ Chrome){
 
 实例：
 
-```
+```properties
 server {
   listen 8080;
   server_name localhost;
@@ -578,7 +578,7 @@ server {
 
 `autoindex.conf` 配置信息：
 
-```
+```properties
 server {
   listen 80;
   server_name fe.lion-test.club;
@@ -634,7 +634,7 @@ server {
 
 实例演示：
 
-```pascal
+```properties
 server{
  listen 8081;
  server_name var.lion-test.club;
@@ -672,7 +672,7 @@ document_root: $document_root
 
 当我们访问 `http://var.lion-test.club:8081/test?pid=121414&cid=sadasd` 时，由于 `Nginx` 中写了 `return` 方法，因此 `chrome` 浏览器会默认为我们下载一个文件，下面展示的就是下载的文件内容：
 
-```
+```properties
 remote_addr: 27.16.220.84
 remote_port: 56838
 server_addr: 172.17.0.2
@@ -782,7 +782,7 @@ document_root: /usr/share/nginx/html
 
 ![图片](./.nginx.assets/5.png)
 
-```
+```properties
 语法：upstream name {
  ...
 }
@@ -814,7 +814,7 @@ upstream back_end_server{
 
 定义上游服务器地址。
 
-```
+```properties
 语法：server address [parameters]
 上下文：upstream
 ```
@@ -834,7 +834,7 @@ upstream back_end_server{
 
 限制每个 `worker` 子进程与上游服务器空闲长连接的最大数量。
 
-```
+```properties
 keepalive connections;
 上下文：upstream
 示例：keepalive 16;
@@ -846,7 +846,7 @@ keepalive connections;
 
 单个长连接可以处理的最多 `HTTP` 请求个数。
 
-```
+```properties
 语法：keepalive_requests number;
 默认值：keepalive_requests 100;
 上下文：upstream
@@ -858,7 +858,7 @@ keepalive connections;
 
 空闲长连接的最长保持时间。
 
-```
+```properties
 语法：keepalive_timeout time;
 默认值：keepalive_timeout 60s;
 上下文：upstream
@@ -868,7 +868,7 @@ keepalive connections;
 
 #### 8.1.5 配置实例
 
-```
+```properties
 upstream back_end{
   server 127.0.0.1:8081 weight=3 max_conns=1000 fail_timeout=10s max_fails=2;
   keepalive 32;
@@ -883,7 +883,7 @@ upstream back_end{
 
 用于配置代理服务器。
 
-```
+```properties
 语法：proxy_pass URL;
 
 上下文：location、if、limit_except
@@ -913,7 +913,7 @@ proxy_pass http://127.0.0.1:8081/proxy
 
 不带 `/` 的用法：
 
-```
+```properties
 location /bbs/{
   proxy_pass http://127.0.0.1:8080;
 }
@@ -929,7 +929,7 @@ location /bbs/{
 
 带 `/` 的用法：
 
-```
+```properties
 location /bbs/{
   proxy_pass http://127.0.0.1:8080/;
 }
@@ -951,7 +951,7 @@ location /bbs/{
 
 我们把 `121.42.11.34` 服务器作为上游服务器，做如下配置：
 
-```
+```properties
 # /etc/nginx/conf.d/proxy.conf
 server{
   listen 8080;

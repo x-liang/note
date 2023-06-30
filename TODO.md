@@ -1,3 +1,11 @@
+[(123条消息) 七层网络模型_mzm1166的博客-CSDN博客](https://blog.csdn.net/mzm1166/article/details/122867144)
+
+[Linux网络IO精华指南 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/629510945)
+
+
+
+
+
 Nacos  临时实例和持久化实例
 
 https://blog.csdn.net/qq_38826019/article/details/109433231

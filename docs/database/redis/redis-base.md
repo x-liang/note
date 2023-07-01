@@ -109,39 +109,7 @@ logfile "redis.log"
 
 
 
-## 二、Redis常见命令
-
-Redis是典型的key-value数据库，key一般是字符串，而value包含很多不同的数据类型：
-
-<img src="./.redis-base.assets/8tli2o9-1678426923643-1.png" alt="8tli2o9" style="zoom: 80%;" />
-
-不同类型的命令称为一个group，我们也可以通过help命令来查看各种不同group的命令：
-
-<img src="./.redis-base.assets/image-20230310134558280.png" alt="image-20230310134558280"  />
-
-
-
-### 2.1 Redis通用命令
-
-通用指令是部分数据类型的，都可以使用的指令，常见的有：
-
-- KEYS：查看符合模板的所有key
-- DEL：删除一个指定的key
-- EXISTS：判断key是否存在
-- EXPIRE：给一个key设置有效期，有效期到期时该key会被自动删除
-- TTL：查看一个KEY的剩余有效期
-
-通过help [command] 可以查看一个命令的具体用法，例如：
-
-```shell
-# 查看keys命令的帮助信息：
-127.0.0.1:6379> help keys
-
-KEYS pattern
-summary: Find all keys matching the given pattern
-since: 1.0.0
-group: generic
-```
+## 二、Redis基本数据类型
 
 ### 2.2.String类型
 
@@ -522,7 +490,39 @@ public class JedisConnectionFactory {
 
 
 
+Redis是典型的key-value数据库，key一般是字符串，而value包含很多不同的数据类型：
 
+<img src="./.redis-base.assets/8tli2o9-1678426923643-1.png" alt="8tli2o9" style="zoom: 80%;" />
+
+不同类型的命令称为一个group，我们也可以通过help命令来查看各种不同group的命令：
+
+<img src="./.redis-base.assets/image-20230310134558280.png" alt="image-20230310134558280"  />
+
+
+
+### 2.1 Redis通用命令
+
+通用指令是部分数据类型的，都可以使用的指令，常见的有：
+
+- KEYS：查看符合模板的所有key
+- DEL：删除一个指定的key
+- EXISTS：判断key是否存在
+- EXPIRE：给一个key设置有效期，有效期到期时该key会被自动删除
+- TTL：查看一个KEY的剩余有效期
+
+通过help [command] 可以查看一个命令的具体用法，例如：
+
+```shell
+# 查看keys命令的帮助信息：
+127.0.0.1:6379> help keys
+
+KEYS pattern
+summary: Find all keys matching the given pattern
+since: 1.0.0
+group: generic
+```
+
+### 
 
 
 
